@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+import re
 
 import numpy as np
 
@@ -10,15 +11,6 @@ from ade.preprocessing.patch_extractor import Patch
 from ade.reasoning.hypothesis_generator import Hypothesis
 from ade.reporting.report_generator import DatasetSummary, ReportGenerator
 from ade.representation.embedding_engine import PatchEmbedding
-
-
-def _test_output_dir() -> Path:
-    output_dir = Path("tests/.tmp_report_assets")
-    output_dir.mkdir(parents=True, exist_ok=True)
-    for path in output_dir.rglob("*"):
-        if path.is_file():
-            path.unlink()
-    return output_dir
 
 
 def _candidate_patch() -> tuple[Patch, CandidateAnomaly]:
@@ -37,15 +29,44 @@ def _candidate_patch() -> tuple[Patch, CandidateAnomaly]:
     return patch, candidate
 
 
-def test_report_generator_includes_required_sections() -> None:
-    _, candidate = _candidate_patch()
-    evidence = ConceptEvidence(
+def _test_output_dir(name: str) -> Path:
+    output_dir = Path("tests/.tmp_report_outputs") / name
+    if output_dir.exists():
+        for path in sorted(output_dir.rglob("*"), reverse=True):
+            if path.is_file():
+                path.unlink()
+            elif path.is_dir():
+                path.rmdir()
+    output_dir.mkdir(parents=True, exist_ok=True)
+    return output_dir
+
+
+def _concept_evidence() -> ConceptEvidence:
+    return ConceptEvidence(
         concept_id="concept-001",
         examples=[EvidenceItem(source_path=Path("image.png"), coordinates=(1, 2, 4, 4), novelty_score=0.42)],
         example_count=1,
         average_novelty=0.42,
         consistency=1.0,
     )
+
+
+def _write_sample_report(output_path: Path) -> None:
+    _, candidate = _candidate_patch()
+    evidence = _concept_evidence()
+    ReportGenerator().write(
+        output_path=output_path,
+        dataset_summary=DatasetSummary(input_dir=Path("data/raw"), image_count=1, patch_count=1),
+        candidates=[candidate],
+        evidence_items=[evidence],
+        confidences=[ConceptConfidence(concept_id="concept-001", score=0.7)],
+        hypotheses=[Hypothesis(concept_id="concept-001", text="A cautious hypothesis.")],
+    )
+
+
+def test_report_generator_includes_required_sections() -> None:
+    _, candidate = _candidate_patch()
+    evidence = _concept_evidence()
 
     report = ReportGenerator().generate(
         dataset_summary=DatasetSummary(input_dir=Path("data/raw"), image_count=1, patch_count=1),
@@ -67,24 +88,9 @@ def test_report_generator_includes_required_sections() -> None:
 
 
 def test_report_generator_includes_image_links_when_assets_are_saved() -> None:
-    _, candidate = _candidate_patch()
-    evidence = ConceptEvidence(
-        concept_id="concept-001",
-        examples=[EvidenceItem(source_path=Path("image.png"), coordinates=(1, 2, 4, 4), novelty_score=0.42)],
-        example_count=1,
-        average_novelty=0.42,
-        consistency=1.0,
-    )
-    output_path = _test_output_dir() / "demo_report.md"
+    output_path = _test_output_dir("image_links") / "demo_report.md"
 
-    ReportGenerator().write(
-        output_path=output_path,
-        dataset_summary=DatasetSummary(input_dir=Path("data/raw"), image_count=1, patch_count=1),
-        candidates=[candidate],
-        evidence_items=[evidence],
-        confidences=[ConceptConfidence(concept_id="concept-001", score=0.7)],
-        hypotheses=[Hypothesis(concept_id="concept-001", text="A cautious hypothesis.")],
-    )
+    _write_sample_report(output_path)
 
     report = output_path.read_text(encoding="utf-8")
     assert "![candidate anomaly 1](assets/anomaly_0001.png)" in report
@@ -93,24 +99,9 @@ def test_report_generator_includes_image_links_when_assets_are_saved() -> None:
 
 
 def test_report_generator_writes_structured_json_report() -> None:
-    _, candidate = _candidate_patch()
-    evidence = ConceptEvidence(
-        concept_id="concept-001",
-        examples=[EvidenceItem(source_path=Path("image.png"), coordinates=(1, 2, 4, 4), novelty_score=0.42)],
-        example_count=1,
-        average_novelty=0.42,
-        consistency=1.0,
-    )
-    output_path = _test_output_dir() / "demo_report.md"
+    output_path = _test_output_dir("structured_json") / "demo_report.md"
 
-    ReportGenerator().write(
-        output_path=output_path,
-        dataset_summary=DatasetSummary(input_dir=Path("data/raw"), image_count=1, patch_count=1),
-        candidates=[candidate],
-        evidence_items=[evidence],
-        confidences=[ConceptConfidence(concept_id="concept-001", score=0.7)],
-        hypotheses=[Hypothesis(concept_id="concept-001", text="A cautious hypothesis.")],
-    )
+    _write_sample_report(output_path)
 
     json_path = output_path.with_suffix(".json")
     report_data = json.loads(json_path.read_text(encoding="utf-8"))
@@ -118,6 +109,8 @@ def test_report_generator_writes_structured_json_report() -> None:
     expected_keys = {
         "project_name",
         "report_version",
+        "run_id",
+        "run_metadata",
         "generated_at",
         "input_summary",
         "number_of_images",
@@ -142,16 +135,46 @@ def test_report_generator_writes_structured_json_report() -> None:
     assert report_data["candidate_unknown_concepts"][0]["confidence_score"] == 0.7
 
 
+def test_report_generator_tracks_run_metadata() -> None:
+    output_dir = _test_output_dir("run_metadata")
+    output_path = output_dir / "demo_report.md"
+
+    _write_sample_report(output_path)
+
+    markdown = output_path.read_text(encoding="utf-8")
+    json_report = json.loads(output_path.with_suffix(".json").read_text(encoding="utf-8"))
+    run_id = json_report["run_id"]
+    run_metadata = json_report["run_metadata"]
+    metadata_path = output_dir / "runs" / f"{run_id}.json"
+    saved_metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+
+    assert re.fullmatch(r"ade_\d{8}_\d{6}_[a-f0-9]{6}", run_id)
+    assert f"**Run ID:** `{run_id}`" in markdown
+    assert metadata_path.is_file()
+    assert saved_metadata == run_metadata
+    assert run_metadata["run_id"] == run_id
+    assert run_metadata["input_path"] == "data/raw"
+    assert run_metadata["markdown_report_path"] == output_path.as_posix()
+    assert run_metadata["json_report_path"] == output_path.with_suffix(".json").as_posix()
+    assert run_metadata["number_of_images"] == 1
+    assert run_metadata["number_of_patches"] == 1
+    assert run_metadata["number_of_candidate_anomalies"] == 1
+    assert run_metadata["number_of_candidate_unknown_concepts"] == 1
+    assert run_metadata["pipeline_version"]
+    assert run_metadata["human_review_required"] is True
+    assert json_report["human_review_required"] is True
+
+
+def test_report_generator_generates_run_id() -> None:
+    run_id = ReportGenerator.generate_run_id()
+
+    assert re.fullmatch(r"ade_\d{8}_\d{6}_[a-f0-9]{6}", run_id)
+
+
 def test_report_generator_creates_assets_and_saves_patch_images() -> None:
     _, candidate = _candidate_patch()
-    evidence = ConceptEvidence(
-        concept_id="concept-001",
-        examples=[EvidenceItem(source_path=Path("image.png"), coordinates=(1, 2, 4, 4), novelty_score=0.42)],
-        example_count=1,
-        average_novelty=0.42,
-        consistency=1.0,
-    )
-    output_dir = _test_output_dir()
+    evidence = _concept_evidence()
+    output_dir = _test_output_dir("assets")
     output_path = output_dir / "demo_report.md"
 
     assets = ReportGenerator().save_assets(

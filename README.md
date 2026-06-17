@@ -149,6 +149,18 @@ Then run ADE on the generated image folder:
 python -m ade.cli --input data/raw/demo_images --output data/reports/demo_report.md
 ```
 
+## Run Tracking
+
+Each ADE analysis run receives a unique run ID and a small metadata record for traceability. The run metadata includes the input path, Markdown and JSON report paths, basic result counts, pipeline version, timestamp, and the human-review requirement.
+
+Run metadata is stored alongside reports:
+
+```text
+data/reports/runs/ade_YYYYMMDD_HHMMSS_xxxxxx.json
+```
+
+This is an early foundation for future review workflows, dashboards, APIs, audits, subscription workspaces, and experiment comparison.
+
 ## Repository Structure
 
 ```text

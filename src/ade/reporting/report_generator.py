@@ -8,8 +8,10 @@ import json
 from pathlib import Path
 import re
 import struct
+import uuid
 import zlib
 
+from ade import __version__
 from ade.discovery.confidence_scorer import ConceptConfidence
 from ade.discovery.evidence_collector import ConceptEvidence
 from ade.discovery.novelty_scorer import CandidateAnomaly
@@ -44,6 +46,7 @@ class ReportGenerator:
         confidences: list[ConceptConfidence],
         hypotheses: list[Hypothesis],
         assets: ReportAssets | None = None,
+        run_id: str | None = None,
     ) -> str:
         """Return an ADE Discovery Report in Markdown format."""
 
@@ -55,6 +58,8 @@ class ReportGenerator:
             "# ADE Discovery Report",
             "",
             "ADE Discovery Report for exploratory review. Findings below are candidate patterns and require human review.",
+            "",
+            f"**Run ID:** `{run_id}`" if run_id else "**Run ID:** not assigned",
             "",
             "## Dataset Summary",
             "",
@@ -151,6 +156,18 @@ class ReportGenerator:
 
         path = Path(output_path)
         path.parent.mkdir(parents=True, exist_ok=True)
+        generated_at = datetime.now(UTC)
+        run_id = self.generate_run_id(generated_at)
+        json_path = path.with_suffix(".json")
+        run_metadata = self.build_run_metadata(
+            run_id=run_id,
+            generated_at=generated_at,
+            dataset_summary=dataset_summary,
+            markdown_report_path=path,
+            json_report_path=json_path,
+            candidates=candidates,
+            evidence_items=evidence_items,
+        )
         assets = self.save_assets(path, candidates, evidence_items)
         report = self.generate(
             dataset_summary=dataset_summary,
@@ -159,9 +176,9 @@ class ReportGenerator:
             confidences=confidences,
             hypotheses=hypotheses,
             assets=assets,
+            run_id=run_id,
         )
         path.write_text(report, encoding="utf-8")
-        json_path = path.with_suffix(".json")
         json_report = self.generate_json(
             dataset_summary=dataset_summary,
             candidates=candidates,
@@ -169,11 +186,14 @@ class ReportGenerator:
             confidences=confidences,
             hypotheses=hypotheses,
             assets=assets,
+            run_id=run_id,
+            run_metadata=run_metadata,
         )
         json_path.write_text(
             json.dumps(json_report, indent=2, sort_keys=True),
             encoding="utf-8",
         )
+        self.write_run_metadata(report_dir=path.parent, run_id=run_id, run_metadata=run_metadata)
         return path
 
     def generate_json(
@@ -184,6 +204,8 @@ class ReportGenerator:
         confidences: list[ConceptConfidence],
         hypotheses: list[Hypothesis],
         assets: ReportAssets | None = None,
+        run_id: str | None = None,
+        run_metadata: dict[str, object] | None = None,
     ) -> dict[str, object]:
         """Return a machine-readable ADE discovery report."""
 
@@ -208,7 +230,13 @@ class ReportGenerator:
         return {
             "project_name": "ADE",
             "report_version": "0.1.0",
-            "generated_at": datetime.now(UTC).isoformat(),
+            "run_id": run_id,
+            "run_metadata": run_metadata,
+            "generated_at": (
+                str(run_metadata["generated_at"])
+                if run_metadata is not None
+                else datetime.now(UTC).isoformat()
+            ),
             "input_summary": {
                 "input_dir": str(dataset_summary.input_dir),
                 "image_count": int(dataset_summary.image_count),
@@ -251,6 +279,57 @@ class ReportGenerator:
                 "Confidence scores are readiness signals, not proof of scientific or operational significance.",
             ],
         }
+
+    def build_run_metadata(
+        self,
+        run_id: str,
+        generated_at: datetime,
+        dataset_summary: DatasetSummary,
+        markdown_report_path: Path,
+        json_report_path: Path,
+        candidates: list[CandidateAnomaly],
+        evidence_items: list[ConceptEvidence],
+    ) -> dict[str, object]:
+        """Build traceable metadata for one ADE analysis run."""
+
+        return {
+            "run_id": run_id,
+            "generated_at": generated_at.isoformat(),
+            "input_path": dataset_summary.input_dir.as_posix(),
+            "markdown_report_path": markdown_report_path.as_posix(),
+            "json_report_path": json_report_path.as_posix(),
+            "number_of_images": int(dataset_summary.image_count),
+            "number_of_patches": int(dataset_summary.patch_count),
+            "number_of_candidate_anomalies": len(candidates),
+            "number_of_candidate_unknown_concepts": len(evidence_items),
+            "pipeline_version": __version__,
+            "human_review_required": True,
+        }
+
+    def write_run_metadata(
+        self,
+        report_dir: Path,
+        run_id: str,
+        run_metadata: dict[str, object],
+    ) -> Path:
+        """Write run metadata JSON and return its path."""
+
+        runs_dir = report_dir / "runs"
+        runs_dir.mkdir(parents=True, exist_ok=True)
+        run_metadata_path = runs_dir / f"{run_id}.json"
+        run_metadata_path.write_text(
+            json.dumps(run_metadata, indent=2, sort_keys=True),
+            encoding="utf-8",
+        )
+        return run_metadata_path
+
+    @staticmethod
+    def generate_run_id(generated_at: datetime | None = None) -> str:
+        """Return a unique ADE run identifier."""
+
+        timestamp = (generated_at or datetime.now(UTC)).strftime("%Y%m%d_%H%M%S")
+        short_uuid = uuid.uuid4().hex[:6]
+        return f"ade_{timestamp}_{short_uuid}"
 
     def _candidate_anomaly_json(
         self,
