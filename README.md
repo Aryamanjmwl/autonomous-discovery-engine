@@ -121,6 +121,22 @@ python -m ade.cli --input data/raw --output data/reports/demo_report.md
 
 The report will be written to `data/reports/demo_report.md`.
 
+## Generate Demo Data
+
+ADE includes a small synthetic data generator for local testing. It creates simple PNG images with repeated geometric patterns, brightness variation, mild texture, and a few intentionally unusual regions so the prototype has candidate anomalies to rank.
+
+The generated images are programmatic test data only. They are not external datasets and should not be treated as scientific evidence.
+
+```bash
+python scripts/create_demo_data.py
+```
+
+Then run ADE on the generated image folder:
+
+```bash
+python -m ade.cli --input data/raw/demo_images --output data/reports/demo_report.md
+```
+
 ## Repository Structure
 
 ```text
