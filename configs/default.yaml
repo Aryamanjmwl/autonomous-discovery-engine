@@ -1,0 +1,9 @@
+pipeline:
+  patch_size: 64
+  patch_stride: 64
+  max_candidates: 25
+  cluster_distance_threshold: 0.35
+
+reporting:
+  title: "ADE Discovery Report"
+  require_human_review_note: true
