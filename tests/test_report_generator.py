@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import numpy as np
@@ -88,6 +89,57 @@ def test_report_generator_includes_image_links_when_assets_are_saved() -> None:
     report = output_path.read_text(encoding="utf-8")
     assert "![candidate anomaly 1](assets/anomaly_0001.png)" in report
     assert "![concept-001 example 1](assets/concept_001_example_001.png)" in report
+    assert output_path.with_suffix(".json").is_file()
+
+
+def test_report_generator_writes_structured_json_report() -> None:
+    _, candidate = _candidate_patch()
+    evidence = ConceptEvidence(
+        concept_id="concept-001",
+        examples=[EvidenceItem(source_path=Path("image.png"), coordinates=(1, 2, 4, 4), novelty_score=0.42)],
+        example_count=1,
+        average_novelty=0.42,
+        consistency=1.0,
+    )
+    output_path = _test_output_dir() / "demo_report.md"
+
+    ReportGenerator().write(
+        output_path=output_path,
+        dataset_summary=DatasetSummary(input_dir=Path("data/raw"), image_count=1, patch_count=1),
+        candidates=[candidate],
+        evidence_items=[evidence],
+        confidences=[ConceptConfidence(concept_id="concept-001", score=0.7)],
+        hypotheses=[Hypothesis(concept_id="concept-001", text="A cautious hypothesis.")],
+    )
+
+    json_path = output_path.with_suffix(".json")
+    report_data = json.loads(json_path.read_text(encoding="utf-8"))
+
+    expected_keys = {
+        "project_name",
+        "report_version",
+        "generated_at",
+        "input_summary",
+        "number_of_images",
+        "number_of_patches",
+        "number_of_candidate_anomalies",
+        "number_of_candidate_unknown_concepts",
+        "candidate_anomalies",
+        "candidate_unknown_concepts",
+        "evidence_summary",
+        "confidence_scores",
+        "hypotheses",
+        "human_review_required",
+        "limitations",
+    }
+    assert expected_keys.issubset(report_data)
+    assert report_data["number_of_images"] == 1
+    assert report_data["number_of_patches"] == 1
+    assert report_data["number_of_candidate_anomalies"] == 1
+    assert report_data["number_of_candidate_unknown_concepts"] == 1
+    assert report_data["human_review_required"] is True
+    assert report_data["candidate_anomalies"][0]["preview_path"] == "assets/anomaly_0001.png"
+    assert report_data["candidate_unknown_concepts"][0]["confidence_score"] == 0.7
 
 
 def test_report_generator_creates_assets_and_saves_patch_images() -> None:

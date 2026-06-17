@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import UTC, datetime
+import json
 from pathlib import Path
 import re
 import struct
@@ -32,7 +34,7 @@ class ReportAssets:
 
 
 class ReportGenerator:
-    """Generate Markdown reports for human review."""
+    """Generate Markdown and JSON reports for human review."""
 
     def generate(
         self,
@@ -159,7 +161,149 @@ class ReportGenerator:
             assets=assets,
         )
         path.write_text(report, encoding="utf-8")
+        json_path = path.with_suffix(".json")
+        json_report = self.generate_json(
+            dataset_summary=dataset_summary,
+            candidates=candidates,
+            evidence_items=evidence_items,
+            confidences=confidences,
+            hypotheses=hypotheses,
+            assets=assets,
+        )
+        json_path.write_text(
+            json.dumps(json_report, indent=2, sort_keys=True),
+            encoding="utf-8",
+        )
         return path
+
+    def generate_json(
+        self,
+        dataset_summary: DatasetSummary,
+        candidates: list[CandidateAnomaly],
+        evidence_items: list[ConceptEvidence],
+        confidences: list[ConceptConfidence],
+        hypotheses: list[Hypothesis],
+        assets: ReportAssets | None = None,
+    ) -> dict[str, object]:
+        """Return a machine-readable ADE discovery report."""
+
+        confidence_by_id = {confidence.concept_id: confidence for confidence in confidences}
+        hypothesis_by_id = {hypothesis.concept_id: hypothesis for hypothesis in hypotheses}
+        assets = assets or ReportAssets(anomaly_previews={}, concept_previews={})
+
+        candidate_anomalies = [
+            self._candidate_anomaly_json(index, candidate, assets)
+            for index, candidate in enumerate(candidates, start=1)
+        ]
+        candidate_unknown_concepts = [
+            self._concept_json(
+                evidence=evidence,
+                confidence=confidence_by_id.get(evidence.concept_id),
+                hypothesis=hypothesis_by_id.get(evidence.concept_id),
+                assets=assets,
+            )
+            for evidence in evidence_items
+        ]
+
+        return {
+            "project_name": "ADE",
+            "report_version": "0.1.0",
+            "generated_at": datetime.now(UTC).isoformat(),
+            "input_summary": {
+                "input_dir": str(dataset_summary.input_dir),
+                "image_count": int(dataset_summary.image_count),
+                "patch_count": int(dataset_summary.patch_count),
+            },
+            "number_of_images": int(dataset_summary.image_count),
+            "number_of_patches": int(dataset_summary.patch_count),
+            "number_of_candidate_anomalies": len(candidate_anomalies),
+            "number_of_candidate_unknown_concepts": len(candidate_unknown_concepts),
+            "candidate_anomalies": candidate_anomalies,
+            "candidate_unknown_concepts": candidate_unknown_concepts,
+            "evidence_summary": [
+                {
+                    "concept_id": evidence.concept_id,
+                    "example_count": int(evidence.example_count),
+                    "average_novelty": float(evidence.average_novelty),
+                    "cluster_consistency": float(evidence.consistency),
+                }
+                for evidence in evidence_items
+            ],
+            "confidence_scores": [
+                {
+                    "concept_id": confidence.concept_id,
+                    "confidence_score": float(confidence.score),
+                }
+                for confidence in confidences
+            ],
+            "hypotheses": [
+                {
+                    "concept_id": hypothesis.concept_id,
+                    "hypothesis": hypothesis.text,
+                }
+                for hypothesis in hypotheses
+            ],
+            "human_review_required": True,
+            "limitations": [
+                "All findings are exploratory candidate findings.",
+                "Candidate anomalies and candidate unknown concepts require human review.",
+                "The current MVP uses deterministic placeholder image statistics, not deep learning.",
+                "Confidence scores are readiness signals, not proof of scientific or operational significance.",
+            ],
+        }
+
+    def _candidate_anomaly_json(
+        self,
+        rank: int,
+        candidate: CandidateAnomaly,
+        assets: ReportAssets,
+    ) -> dict[str, object]:
+        """Return one candidate anomaly as JSON-safe data."""
+
+        patch = candidate.embedding.patch
+        return {
+            "rank": int(rank),
+            "source_path": str(patch.source_path),
+            "coordinates": [int(value) for value in patch.coordinates],
+            "novelty_score": float(candidate.novelty_score),
+            "preview_path": assets.anomaly_previews.get(rank),
+            "label": "candidate anomaly",
+            "requires_human_review": True,
+        }
+
+    def _concept_json(
+        self,
+        evidence: ConceptEvidence,
+        confidence: ConceptConfidence | None,
+        hypothesis: Hypothesis | None,
+        assets: ReportAssets,
+    ) -> dict[str, object]:
+        """Return one candidate unknown concept as JSON-safe data."""
+
+        examples = []
+        for example_index, item in enumerate(evidence.examples, start=1):
+            examples.append(
+                {
+                    "source_path": str(item.source_path),
+                    "coordinates": [int(value) for value in item.coordinates],
+                    "novelty_score": float(item.novelty_score),
+                    "preview_path": assets.concept_previews.get(
+                        (evidence.concept_id, example_index)
+                    ),
+                }
+            )
+
+        return {
+            "concept_id": evidence.concept_id,
+            "label": "candidate unknown concept",
+            "example_count": int(evidence.example_count),
+            "average_novelty": float(evidence.average_novelty),
+            "cluster_consistency": float(evidence.consistency),
+            "confidence_score": float(confidence.score) if confidence else None,
+            "possible_pattern": hypothesis.text if hypothesis else None,
+            "examples": examples,
+            "requires_human_review": True,
+        }
 
     def save_assets(
         self,

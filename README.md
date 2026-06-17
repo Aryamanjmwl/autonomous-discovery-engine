@@ -121,6 +121,18 @@ python -m ade.cli --input data/raw --output data/reports/demo_report.md
 
 The report will be written to `data/reports/demo_report.md`.
 
+ADE also writes a machine-readable JSON report beside the Markdown report.
+For example, this command creates both:
+
+- `data/reports/demo_report.md`
+- `data/reports/demo_report.json`
+
+The Markdown report is for human review. The JSON report stores structured
+candidate anomalies, candidate unknown concepts, confidence scores,
+hypotheses, evidence summaries, limitations, and the human-review requirement
+so future dashboards, APIs, databases, subscription workflows, or comparison
+tools can consume the same discovery results.
+
 ## Generate Demo Data
 
 ADE includes a small synthetic data generator for local testing. It creates simple PNG images with repeated geometric patterns, brightness variation, mild texture, and a few intentionally unusual regions so the prototype has candidate anomalies to rank.
