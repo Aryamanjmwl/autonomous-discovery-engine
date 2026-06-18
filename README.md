@@ -195,7 +195,7 @@ The platform vision includes private workspaces, dataset management, configurabl
 
 ## Future Roadmap
 
-- Add robust dataset manifests and run tracking
+- Add robust dataset manifests and richer run comparison
 - Add video frame sampling and temporal patch extraction
 - Add CSV and time-series adapters
 - Add support for industrial sensor data and robot logs
