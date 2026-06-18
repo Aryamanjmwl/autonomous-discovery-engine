@@ -63,6 +63,14 @@ def update_run_index(
     return index_path
 
 
+def load_run_index(index_path: Path) -> dict[str, object] | None:
+    """Load a run index if it exists."""
+
+    if not index_path.exists():
+        return None
+    return _load_run_index(index_path)
+
+
 def _load_run_index(index_path: Path) -> dict[str, object]:
     """Load an existing run index or return an empty index."""
 

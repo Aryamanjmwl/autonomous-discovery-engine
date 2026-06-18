@@ -167,6 +167,18 @@ data/reports/runs/index.json
 
 The index lists compact summaries of previous runs so future review workflows, dashboards, APIs, audits, subscription workspaces, and experiment comparison tools can discover run history without scanning every metadata file manually.
 
+List previous runs from the terminal:
+
+```bash
+python -m ade.cli --list-runs
+```
+
+Show only the most recent runs:
+
+```bash
+python -m ade.cli --list-runs --limit 5
+```
+
 ## Repository Structure
 
 ```text

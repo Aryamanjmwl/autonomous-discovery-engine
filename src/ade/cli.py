@@ -13,18 +13,33 @@ from ade.discovery.novelty_scorer import NoveltyScorer
 from ade.preprocessing.patch_extractor import PatchExtractor
 from ade.reasoning.hypothesis_generator import HypothesisGenerator
 from ade.reporting.report_generator import DatasetSummary, ReportGenerator
+from ade.reporting.run_index import load_run_index
 from ade.representation.embedding_engine import EmbeddingEngine
+
+
+DEFAULT_RUN_INDEX_PATH = Path("data/reports/runs/index.json")
 
 
 def build_parser() -> argparse.ArgumentParser:
     """Create the ADE command-line parser."""
 
     parser = argparse.ArgumentParser(description="Run the ADE prototype image pipeline.")
-    parser.add_argument("--input", required=True, type=Path, help="Directory containing input images.")
-    parser.add_argument("--output", required=True, type=Path, help="Markdown report output path.")
+    parser.add_argument("--input", type=Path, help="Directory containing input images.")
+    parser.add_argument("--output", type=Path, help="Markdown report output path.")
     parser.add_argument("--patch-size", default=64, type=int, help="Square patch size in pixels.")
     parser.add_argument("--stride", default=None, type=int, help="Patch stride in pixels. Defaults to patch size.")
     parser.add_argument("--max-candidates", default=25, type=int, help="Maximum candidate anomalies to report.")
+    parser.add_argument(
+        "--list-runs",
+        action="store_true",
+        help="List previous ADE runs from data/reports/runs/index.json.",
+    )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="Limit run history output to the most recent N runs.",
+    )
     return parser
 
 
@@ -67,10 +82,58 @@ def run_pipeline(
     )
 
 
+def format_run_history(
+    index_path: Path = DEFAULT_RUN_INDEX_PATH,
+    limit: int | None = None,
+) -> str:
+    """Return a terminal-friendly ADE run history summary."""
+
+    run_index = load_run_index(index_path)
+    if run_index is None:
+        return "No ADE run history found yet. Run an analysis first."
+
+    runs = [run for run in run_index.get("runs", []) if isinstance(run, dict)]
+    if limit is not None:
+        if limit < 1:
+            raise ValueError("--limit must be greater than or equal to 1.")
+        runs = runs[-limit:]
+
+    lines = [
+        "## ADE Run History",
+        "",
+        f"Total runs: {len(runs)}",
+        "",
+    ]
+    for index, run in enumerate(runs, start=1):
+        lines.extend(
+            [
+                f"{index}. {run.get('run_id')}",
+                f"   Generated at: {run.get('generated_at')}",
+                f"   Input: {run.get('input_path')}",
+                f"   Markdown report: {run.get('markdown_report_path')}",
+                f"   JSON report: {run.get('json_report_path')}",
+                f"   Candidate anomalies: {run.get('number_of_candidate_anomalies')}",
+                "   Candidate unknown concepts: "
+                f"{run.get('number_of_candidate_unknown_concepts')}",
+                f"   Human review required: {run.get('human_review_required')}",
+                "",
+            ]
+        )
+    return "\n".join(lines).rstrip()
+
+
 def main() -> None:
     """Run ADE from command-line arguments."""
 
-    args = build_parser().parse_args()
+    parser = build_parser()
+    args = parser.parse_args()
+    if args.list_runs:
+        print(format_run_history(limit=args.limit))
+        return
+
+    if args.input is None or args.output is None:
+        parser.error("--input and --output are required unless --list-runs is used.")
+
     report_path = run_pipeline(
         input_dir=args.input,
         output_path=args.output,
