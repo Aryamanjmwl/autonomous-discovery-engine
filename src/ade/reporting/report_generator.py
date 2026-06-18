@@ -16,6 +16,7 @@ from ade.discovery.confidence_scorer import ConceptConfidence
 from ade.discovery.evidence_collector import ConceptEvidence
 from ade.discovery.novelty_scorer import CandidateAnomaly
 from ade.reasoning.hypothesis_generator import Hypothesis
+from ade.reporting.run_index import build_run_summary, update_run_index
 
 
 @dataclass(frozen=True)
@@ -159,12 +160,16 @@ class ReportGenerator:
         generated_at = datetime.now(UTC)
         run_id = self.generate_run_id(generated_at)
         json_path = path.with_suffix(".json")
+        runs_dir = path.parent / "runs"
+        run_metadata_path = runs_dir / f"{run_id}.json"
+        run_index_path = runs_dir / "index.json"
         run_metadata = self.build_run_metadata(
             run_id=run_id,
             generated_at=generated_at,
             dataset_summary=dataset_summary,
             markdown_report_path=path,
             json_report_path=json_path,
+            run_index_path=run_index_path,
             candidates=candidates,
             evidence_items=evidence_items,
         )
@@ -193,7 +198,14 @@ class ReportGenerator:
             json.dumps(json_report, indent=2, sort_keys=True),
             encoding="utf-8",
         )
-        self.write_run_metadata(report_dir=path.parent, run_id=run_id, run_metadata=run_metadata)
+        self.write_run_metadata(
+            run_metadata_path=run_metadata_path,
+            run_metadata=run_metadata,
+        )
+        update_run_index(
+            index_path=run_index_path,
+            run_summary=build_run_summary(run_metadata, run_metadata_path),
+        )
         return path
 
     def generate_json(
@@ -232,6 +244,11 @@ class ReportGenerator:
             "report_version": "0.1.0",
             "run_id": run_id,
             "run_metadata": run_metadata,
+            "run_index_path": (
+                str(run_metadata["run_index_path"])
+                if run_metadata is not None
+                else None
+            ),
             "generated_at": (
                 str(run_metadata["generated_at"])
                 if run_metadata is not None
@@ -287,6 +304,7 @@ class ReportGenerator:
         dataset_summary: DatasetSummary,
         markdown_report_path: Path,
         json_report_path: Path,
+        run_index_path: Path,
         candidates: list[CandidateAnomaly],
         evidence_items: list[ConceptEvidence],
     ) -> dict[str, object]:
@@ -298,6 +316,7 @@ class ReportGenerator:
             "input_path": dataset_summary.input_dir.as_posix(),
             "markdown_report_path": markdown_report_path.as_posix(),
             "json_report_path": json_report_path.as_posix(),
+            "run_index_path": run_index_path.as_posix(),
             "number_of_images": int(dataset_summary.image_count),
             "number_of_patches": int(dataset_summary.patch_count),
             "number_of_candidate_anomalies": len(candidates),
@@ -308,15 +327,12 @@ class ReportGenerator:
 
     def write_run_metadata(
         self,
-        report_dir: Path,
-        run_id: str,
+        run_metadata_path: Path,
         run_metadata: dict[str, object],
     ) -> Path:
         """Write run metadata JSON and return its path."""
 
-        runs_dir = report_dir / "runs"
-        runs_dir.mkdir(parents=True, exist_ok=True)
-        run_metadata_path = runs_dir / f"{run_id}.json"
+        run_metadata_path.parent.mkdir(parents=True, exist_ok=True)
         run_metadata_path.write_text(
             json.dumps(run_metadata, indent=2, sort_keys=True),
             encoding="utf-8",

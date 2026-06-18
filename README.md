@@ -153,13 +153,19 @@ python -m ade.cli --input data/raw/demo_images --output data/reports/demo_report
 
 Each ADE analysis run receives a unique run ID and a small metadata record for traceability. The run metadata includes the input path, Markdown and JSON report paths, basic result counts, pipeline version, timestamp, and the human-review requirement.
 
-Run metadata is stored alongside reports:
+Individual run metadata is stored alongside reports:
 
 ```text
 data/reports/runs/ade_YYYYMMDD_HHMMSS_xxxxxx.json
 ```
 
-This is an early foundation for future review workflows, dashboards, APIs, audits, subscription workspaces, and experiment comparison.
+ADE also maintains a lightweight run history index:
+
+```text
+data/reports/runs/index.json
+```
+
+The index lists compact summaries of previous runs so future review workflows, dashboards, APIs, audits, subscription workspaces, and experiment comparison tools can discover run history without scanning every metadata file manually.
 
 ## Repository Structure
 
