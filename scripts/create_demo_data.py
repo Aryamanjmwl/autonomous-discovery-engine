@@ -86,7 +86,7 @@ def _save_png(image: np.ndarray, output_path: Path) -> None:
 
     from PIL import Image
 
-    Image.fromarray(image, mode="RGB").save(output_path)
+    Image.fromarray(image).save(output_path)
 
 
 def main() -> None:

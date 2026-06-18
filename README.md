@@ -49,7 +49,7 @@ The current pipeline performs:
 6. Evidence collection
 7. Confidence scoring
 8. Cautious hypothesis generation
-9. Markdown discovery report generation
+9. Markdown and JSON discovery report generation
 
 The embedding system currently uses simple image statistics such as color means, standard deviations, brightness, and edge density. This is intentionally basic so the architecture can later support stronger encoders for specific domains.
 
@@ -82,7 +82,7 @@ ADE is designed to grow into a cross-industry discovery platform. Example future
 - Collect supporting patches and basic statistics
 - Produce a simple confidence score from novelty strength, example count, and cluster consistency
 - Generate cautious template-based hypotheses
-- Write a Markdown ADE Discovery Report
+- Write a Markdown ADE Discovery Report and a structured JSON sidecar report
 
 ## What This Version Cannot Do Yet
 
@@ -176,7 +176,7 @@ ade/
 │   ├── storage/             # Metadata and embedding stores
 │   ├── discovery/           # Novelty, concepts, evidence, and confidence
 │   ├── reasoning/           # Cautious hypothesis generation
-│   ├── reporting/           # Markdown report generation
+│   ├── reporting/           # Markdown and JSON report generation
 │   └── cli.py               # Command-line pipeline
 └── tests/                   # Basic regression tests
 ```
