@@ -7,18 +7,6 @@ import pytest
 from ade.cli import format_run_history, main
 
 
-def _cli_output_dir(name: str) -> Path:
-    output_dir = Path("tests/.tmp_cli_outputs") / name
-    if output_dir.exists():
-        for path in sorted(output_dir.rglob("*"), reverse=True):
-            if path.is_file():
-                path.unlink()
-            elif path.is_dir():
-                path.rmdir()
-    output_dir.mkdir(parents=True, exist_ok=True)
-    return output_dir
-
-
 def _sample_run(run_id: str) -> dict[str, object]:
     return {
         "run_id": run_id,
@@ -45,17 +33,14 @@ def _load_demo_module():
     return module
 
 
-def test_format_run_history_handles_missing_index() -> None:
-    output_dir = _cli_output_dir("missing_index")
-
-    result = format_run_history(index_path=output_dir / "runs" / "index.json")
+def test_format_run_history_handles_missing_index(tmp_path: Path) -> None:
+    result = format_run_history(index_path=tmp_path / "runs" / "index.json")
 
     assert result == "No ADE run history found yet. Run an analysis first."
 
 
-def test_format_run_history_lists_runs_and_applies_limit() -> None:
-    output_dir = _cli_output_dir("list_runs")
-    index_path = output_dir / "runs" / "index.json"
+def test_format_run_history_lists_runs_and_applies_limit(tmp_path: Path) -> None:
+    index_path = tmp_path / "runs" / "index.json"
     index_path.parent.mkdir(parents=True, exist_ok=True)
     index_path.write_text(
         json.dumps(
@@ -80,9 +65,12 @@ def test_format_run_history_lists_runs_and_applies_limit() -> None:
     assert "Human review required: True" in result
 
 
-def test_cli_list_runs_reads_default_index(monkeypatch, capsys) -> None:
-    output_dir = _cli_output_dir("cli_default_index")
-    index_path = output_dir / "data" / "reports" / "runs" / "index.json"
+def test_cli_list_runs_reads_default_index(
+    tmp_path: Path,
+    monkeypatch,
+    capsys,
+) -> None:
+    index_path = tmp_path / "data" / "reports" / "runs" / "index.json"
     index_path.parent.mkdir(parents=True, exist_ok=True)
     index_path.write_text(
         json.dumps(
@@ -94,7 +82,7 @@ def test_cli_list_runs_reads_default_index(monkeypatch, capsys) -> None:
         ),
         encoding="utf-8",
     )
-    monkeypatch.chdir(output_dir)
+    monkeypatch.chdir(tmp_path)
     monkeypatch.setattr("sys.argv", ["ade", "--list-runs", "--limit", "5"])
 
     main()
@@ -104,9 +92,8 @@ def test_cli_list_runs_reads_default_index(monkeypatch, capsys) -> None:
     assert "ade_20260618_143100_b22222" in output
 
 
-def test_format_run_history_rejects_invalid_limit() -> None:
-    output_dir = _cli_output_dir("invalid_limit")
-    index_path = output_dir / "runs" / "index.json"
+def test_format_run_history_rejects_invalid_limit(tmp_path: Path) -> None:
+    index_path = tmp_path / "runs" / "index.json"
     index_path.parent.mkdir(parents=True, exist_ok=True)
     index_path.write_text(
         json.dumps(
@@ -123,12 +110,11 @@ def test_format_run_history_rejects_invalid_limit() -> None:
         format_run_history(index_path=index_path, limit=0)
 
 
-def test_cli_analysis_uses_explicit_config(monkeypatch) -> None:
+def test_cli_analysis_uses_explicit_config(tmp_path: Path, monkeypatch) -> None:
     pytest.importorskip("PIL.Image")
-    output_dir = _cli_output_dir("analysis_with_config")
-    image_dir = output_dir / "images"
-    report_path = output_dir / "report.md"
-    config_path = output_dir / "config.yaml"
+    image_dir = tmp_path / "images"
+    report_path = tmp_path / "report.md"
+    config_path = tmp_path / "config.yaml"
     _load_demo_module().generate_demo_images(output_dir=image_dir)
     config_path.write_text(
         """
@@ -180,5 +166,5 @@ demo_data:
     assert report_data["number_of_candidate_anomalies"] == 2
     assert report_data["run_metadata"]["pipeline_version"] == "test-version"
     assert report_data["run_index_path"].endswith("run_records/index.json")
-    assert (output_dir / "preview_assets").is_dir()
-    assert (output_dir / "run_records" / "index.json").is_file()
+    assert (tmp_path / "preview_assets").is_dir()
+    assert (tmp_path / "run_records" / "index.json").is_file()

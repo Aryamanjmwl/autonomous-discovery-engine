@@ -14,13 +14,10 @@ def _load_demo_module():
     return module
 
 
-def test_generate_demo_images_creates_valid_png_files() -> None:
+def test_generate_demo_images_creates_valid_png_files(tmp_path: Path) -> None:
     Image = pytest.importorskip("PIL.Image")
     demo_data = _load_demo_module()
-    output_dir = Path("tests/.tmp_demo_images")
-    output_dir.mkdir(parents=True, exist_ok=True)
-    for path in output_dir.glob("*.png"):
-        path.unlink()
+    output_dir = tmp_path / "demo_images"
 
     created_paths = demo_data.generate_demo_images(output_dir=output_dir)
 

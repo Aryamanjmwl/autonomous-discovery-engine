@@ -30,18 +30,6 @@ def _candidate_patch() -> tuple[Patch, CandidateAnomaly]:
     return patch, candidate
 
 
-def _test_output_dir(name: str) -> Path:
-    output_dir = Path("tests/.tmp_report_outputs") / name
-    if output_dir.exists():
-        for path in sorted(output_dir.rglob("*"), reverse=True):
-            if path.is_file():
-                path.unlink()
-            elif path.is_dir():
-                path.rmdir()
-    output_dir.mkdir(parents=True, exist_ok=True)
-    return output_dir
-
-
 def _concept_evidence() -> ConceptEvidence:
     return ConceptEvidence(
         concept_id="concept-001",
@@ -88,8 +76,8 @@ def test_report_generator_includes_required_sections() -> None:
     assert "A cautious hypothesis." in report
 
 
-def test_report_generator_includes_image_links_when_assets_are_saved() -> None:
-    output_path = _test_output_dir("image_links") / "demo_report.md"
+def test_report_generator_includes_image_links_when_assets_are_saved(tmp_path: Path) -> None:
+    output_path = tmp_path / "demo_report.md"
 
     _write_sample_report(output_path)
 
@@ -99,8 +87,8 @@ def test_report_generator_includes_image_links_when_assets_are_saved() -> None:
     assert output_path.with_suffix(".json").is_file()
 
 
-def test_report_generator_writes_structured_json_report() -> None:
-    output_path = _test_output_dir("structured_json") / "demo_report.md"
+def test_report_generator_writes_structured_json_report(tmp_path: Path) -> None:
+    output_path = tmp_path / "demo_report.md"
 
     _write_sample_report(output_path)
 
@@ -137,9 +125,8 @@ def test_report_generator_writes_structured_json_report() -> None:
     assert report_data["candidate_unknown_concepts"][0]["confidence_score"] == 0.7
 
 
-def test_report_generator_tracks_run_metadata() -> None:
-    output_dir = _test_output_dir("run_metadata")
-    output_path = output_dir / "demo_report.md"
+def test_report_generator_tracks_run_metadata(tmp_path: Path) -> None:
+    output_path = tmp_path / "demo_report.md"
 
     _write_sample_report(output_path)
 
@@ -147,8 +134,8 @@ def test_report_generator_tracks_run_metadata() -> None:
     json_report = json.loads(output_path.with_suffix(".json").read_text(encoding="utf-8"))
     run_id = json_report["run_id"]
     run_metadata = json_report["run_metadata"]
-    metadata_path = output_dir / "runs" / f"{run_id}.json"
-    index_path = output_dir / "runs" / "index.json"
+    metadata_path = tmp_path / "runs" / f"{run_id}.json"
+    index_path = tmp_path / "runs" / "index.json"
     saved_metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
     run_index = json.loads(index_path.read_text(encoding="utf-8"))
 
@@ -182,9 +169,8 @@ def test_report_generator_generates_run_id() -> None:
     assert re.fullmatch(r"ade_\d{8}_\d{6}_[a-f0-9]{6}", run_id)
 
 
-def test_run_index_appends_and_avoids_duplicate_run_ids() -> None:
-    output_dir = _test_output_dir("run_index")
-    index_path = output_dir / "runs" / "index.json"
+def test_run_index_appends_and_avoids_duplicate_run_ids(tmp_path: Path) -> None:
+    index_path = tmp_path / "runs" / "index.json"
     first_metadata = {
         "run_id": "ade_20260618_143022_a7f3c9",
         "generated_at": "2026-06-18T14:30:22+00:00",
@@ -207,11 +193,11 @@ def test_run_index_appends_and_avoids_duplicate_run_ids() -> None:
 
     first_summary = build_run_summary(
         first_metadata,
-        output_dir / "runs" / f"{first_metadata['run_id']}.json",
+        tmp_path / "runs" / f"{first_metadata['run_id']}.json",
     )
     second_summary = build_run_summary(
         second_metadata,
-        output_dir / "runs" / f"{second_metadata['run_id']}.json",
+        tmp_path / "runs" / f"{second_metadata['run_id']}.json",
     )
 
     update_run_index(index_path, first_summary)
@@ -233,11 +219,10 @@ def test_run_index_appends_and_avoids_duplicate_run_ids() -> None:
     )
 
 
-def test_report_generator_creates_assets_and_saves_patch_images() -> None:
+def test_report_generator_creates_assets_and_saves_patch_images(tmp_path: Path) -> None:
     _, candidate = _candidate_patch()
     evidence = _concept_evidence()
-    output_dir = _test_output_dir("assets")
-    output_path = output_dir / "demo_report.md"
+    output_path = tmp_path / "demo_report.md"
 
     assets = ReportGenerator().save_assets(
         output_path=output_path,
@@ -245,8 +230,8 @@ def test_report_generator_creates_assets_and_saves_patch_images() -> None:
         evidence_items=[evidence],
     )
 
-    assert (output_dir / "assets").is_dir()
-    assert (output_dir / "assets" / "anomaly_0001.png").is_file()
-    assert (output_dir / "assets" / "concept_001_example_001.png").is_file()
+    assert (tmp_path / "assets").is_dir()
+    assert (tmp_path / "assets" / "anomaly_0001.png").is_file()
+    assert (tmp_path / "assets" / "concept_001_example_001.png").is_file()
     assert assets.anomaly_previews[1] == "assets/anomaly_0001.png"
     assert assets.concept_previews[("concept-001", 1)] == "assets/concept_001_example_001.png"

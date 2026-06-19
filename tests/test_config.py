@@ -14,10 +14,8 @@ def test_default_config_loads_expected_sections() -> None:
     assert config["reporting"]["human_review_required"] is True
 
 
-def test_config_loader_uses_defaults_for_missing_optional_fields() -> None:
-    output_dir = Path("tests/.tmp_config_outputs")
-    output_dir.mkdir(parents=True, exist_ok=True)
-    config_path = output_dir / "partial.yaml"
+def test_config_loader_uses_defaults_for_missing_optional_fields(tmp_path: Path) -> None:
+    config_path = tmp_path / "partial.yaml"
     config_path.write_text(
         """
 project:
