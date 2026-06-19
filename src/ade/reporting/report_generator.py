@@ -15,6 +15,7 @@ from ade import __version__
 from ade.discovery.confidence_scorer import ConceptConfidence
 from ade.discovery.evidence_collector import ConceptEvidence
 from ade.discovery.novelty_scorer import CandidateAnomaly
+from ade.models import EvidenceSummary, RunMetadata, UnknownConcept
 from ade.reasoning.hypothesis_generator import Hypothesis
 from ade.reporting.run_index import build_run_summary, update_run_index
 
@@ -328,20 +329,20 @@ class ReportGenerator:
     ) -> dict[str, object]:
         """Build traceable metadata for one ADE analysis run."""
 
-        return {
-            "run_id": run_id,
-            "generated_at": generated_at.isoformat(),
-            "input_path": dataset_summary.input_dir.as_posix(),
-            "markdown_report_path": markdown_report_path.as_posix(),
-            "json_report_path": json_report_path.as_posix(),
-            "run_index_path": run_index_path.as_posix(),
-            "number_of_images": int(dataset_summary.image_count),
-            "number_of_patches": int(dataset_summary.patch_count),
-            "number_of_candidate_anomalies": len(candidates),
-            "number_of_candidate_unknown_concepts": len(evidence_items),
-            "pipeline_version": self.pipeline_version,
-            "human_review_required": self.human_review_required,
-        }
+        return RunMetadata(
+            run_id=run_id,
+            generated_at=generated_at.isoformat(),
+            input_path=dataset_summary.input_dir,
+            markdown_report_path=markdown_report_path,
+            json_report_path=json_report_path,
+            run_index_path=run_index_path,
+            number_of_images=dataset_summary.image_count,
+            number_of_patches=dataset_summary.patch_count,
+            number_of_candidate_anomalies=len(candidates),
+            number_of_candidate_unknown_concepts=len(evidence_items),
+            pipeline_version=self.pipeline_version,
+            human_review_required=self.human_review_required,
+        ).to_dict()
 
     def write_run_metadata(
         self,
@@ -374,12 +375,18 @@ class ReportGenerator:
         """Return one candidate anomaly as JSON-safe data."""
 
         patch = candidate.embedding.patch
+        anomaly = CandidateAnomaly(
+            embedding=candidate.embedding,
+            novelty_score=candidate.novelty_score,
+            anomaly_id=candidate.anomaly_id or f"anomaly-{rank:04d}",
+            preview_path=assets.anomaly_previews.get(rank),
+        ).to_dict()
         return {
             "rank": int(rank),
-            "source_path": str(patch.source_path),
+            "source_path": anomaly["source_path"],
             "coordinates": [int(value) for value in patch.coordinates],
-            "novelty_score": float(candidate.novelty_score),
-            "preview_path": assets.anomaly_previews.get(rank),
+            "novelty_score": anomaly["novelty_score"],
+            "preview_path": anomaly["preview_path"],
             "label": "candidate anomaly",
             "requires_human_review": self.human_review_required,
         }
@@ -406,13 +413,40 @@ class ReportGenerator:
                 }
             )
 
+        concept_model = UnknownConcept(
+            concept_id=evidence.concept_id,
+            anomaly_ids=[
+                f"{Path(str(item.source_path)).stem}_{item.coordinates[0]}_"
+                f"{item.coordinates[1]}_{item.coordinates[2]}_{item.coordinates[3]}"
+                for item in evidence.examples
+            ],
+            representative_anomaly_id=(
+                f"{Path(str(evidence.examples[0].source_path)).stem}_"
+                f"{evidence.examples[0].coordinates[0]}_"
+                f"{evidence.examples[0].coordinates[1]}_"
+                f"{evidence.examples[0].coordinates[2]}_"
+                f"{evidence.examples[0].coordinates[3]}"
+                if evidence.examples
+                else None
+            ),
+            average_novelty_score=evidence.average_novelty,
+            confidence_score=confidence.score if confidence else None,
+            evidence=EvidenceSummary(
+                supporting_examples=[
+                    str(item.source_path) for item in evidence.examples
+                ],
+                notes=["candidate unknown concept requires human review"],
+            ),
+        )
+        concept_data = concept_model.to_dict()
+
         return {
             "concept_id": evidence.concept_id,
             "label": "candidate unknown concept",
             "example_count": int(evidence.example_count),
-            "average_novelty": float(evidence.average_novelty),
+            "average_novelty": concept_data["average_novelty_score"],
             "cluster_consistency": float(evidence.consistency),
-            "confidence_score": float(confidence.score) if confidence else None,
+            "confidence_score": concept_data["confidence_score"],
             "possible_pattern": hypothesis.text if hypothesis else None,
             "examples": examples,
             "requires_human_review": self.human_review_required,

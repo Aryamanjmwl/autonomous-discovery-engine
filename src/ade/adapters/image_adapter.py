@@ -2,23 +2,12 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
+from ade.models import ImageRecord
 
 SUPPORTED_IMAGE_EXTENSIONS = {".bmp", ".jpeg", ".jpg", ".png", ".tif", ".tiff", ".webp"}
-
-
-@dataclass(frozen=True)
-class ImageRecord:
-    """Metadata describing an image available for ADE processing."""
-
-    path: Path
-    width: int
-    height: int
-    mode: str
-    format: str | None
 
 
 class ImageAdapter:
@@ -45,8 +34,11 @@ class ImageAdapter:
                         path=path,
                         width=image.width,
                         height=image.height,
-                        mode=image.mode,
-                        format=image.format,
+                        image_id=path.stem,
+                        metadata={
+                            "mode": image.mode,
+                            "format": image.format,
+                        },
                     )
                 )
         return records

@@ -2,28 +2,11 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
 
-
-@dataclass(frozen=True)
-class Patch:
-    """A fixed-size image patch and its source coordinates."""
-
-    source_path: Path
-    array: np.ndarray
-    x: int
-    y: int
-    width: int
-    height: int
-
-    @property
-    def coordinates(self) -> tuple[int, int, int, int]:
-        """Return coordinates as ``(x, y, width, height)``."""
-
-        return (self.x, self.y, self.width, self.height)
+from ade.models import PatchRecord as Patch
 
 
 class PatchExtractor:
@@ -70,6 +53,8 @@ class PatchExtractor:
                         y=y,
                         width=self.patch_size,
                         height=self.patch_size,
+                        patch_id=f"{source.stem}_{x}_{y}_{self.patch_size}_{self.patch_size}",
+                        image_id=source.stem,
                     )
                 )
 
@@ -84,6 +69,8 @@ class PatchExtractor:
                     y=0,
                     width=cropped_width,
                     height=cropped_height,
+                    patch_id=f"{source.stem}_0_0_{cropped_width}_{cropped_height}",
+                    image_id=source.stem,
                 )
             )
 

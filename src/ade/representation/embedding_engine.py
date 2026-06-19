@@ -2,19 +2,10 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-
 import numpy as np
 
+from ade.models import EmbeddingRecord as PatchEmbedding
 from ade.preprocessing.patch_extractor import Patch
-
-
-@dataclass(frozen=True)
-class PatchEmbedding:
-    """Embedding and trace metadata for a patch."""
-
-    patch: Patch
-    vector: np.ndarray
 
 
 class EmbeddingEngine:

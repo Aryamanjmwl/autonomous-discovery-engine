@@ -1,0 +1,261 @@
+"""Typed internal data models for ADE."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any
+
+import numpy as np
+
+
+def _json_safe_metadata(metadata: dict[str, Any]) -> dict[str, Any]:
+    """Return metadata with path and NumPy scalar values converted for JSON."""
+
+    safe: dict[str, Any] = {}
+    for key, value in metadata.items():
+        if isinstance(value, Path):
+            safe[key] = value.as_posix()
+        elif isinstance(value, np.integer):
+            safe[key] = int(value)
+        elif isinstance(value, np.floating):
+            safe[key] = float(value)
+        elif isinstance(value, np.bool_):
+            safe[key] = bool(value)
+        else:
+            safe[key] = value
+    return safe
+
+
+@dataclass(frozen=True)
+class ImageRecord:
+    """Metadata describing an image available for ADE processing."""
+
+    path: Path
+    width: int
+    height: int
+    image_id: str = ""
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def mode(self) -> str | None:
+        """Return the image mode when available."""
+
+        value = self.metadata.get("mode")
+        return str(value) if value is not None else None
+
+    @property
+    def format(self) -> str | None:
+        """Return the image format when available."""
+
+        value = self.metadata.get("format")
+        return str(value) if value is not None else None
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-safe representation."""
+
+        return {
+            "image_id": self.image_id,
+            "path": self.path.as_posix(),
+            "width": int(self.width),
+            "height": int(self.height),
+            "metadata": _json_safe_metadata(self.metadata),
+        }
+
+
+@dataclass(frozen=True)
+class PatchRecord:
+    """A fixed-size image patch and its source coordinates."""
+
+    source_path: Path
+    array: np.ndarray
+    x: int
+    y: int
+    width: int
+    height: int
+    patch_id: str = ""
+    image_id: str = ""
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def coordinates(self) -> tuple[int, int, int, int]:
+        """Return coordinates as ``(x, y, width, height)``."""
+
+        return (self.x, self.y, self.width, self.height)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return JSON-safe patch metadata without dumping the image array."""
+
+        return {
+            "patch_id": self.patch_id,
+            "image_id": self.image_id,
+            "source_path": self.source_path.as_posix(),
+            "x": int(self.x),
+            "y": int(self.y),
+            "width": int(self.width),
+            "height": int(self.height),
+            "metadata": _json_safe_metadata(self.metadata),
+        }
+
+
+@dataclass(frozen=True)
+class EmbeddingRecord:
+    """Embedding and trace metadata for a patch."""
+
+    patch: PatchRecord
+    vector: np.ndarray
+    patch_id: str = ""
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return JSON-safe embedding metadata without dumping the full vector."""
+
+        patch_id = self.patch_id or self.patch.patch_id
+        return {
+            "patch_id": patch_id,
+            "vector_length": int(self.vector.size),
+            "metadata": _json_safe_metadata(self.metadata),
+        }
+
+
+@dataclass(frozen=True)
+class CandidateAnomaly:
+    """A patch ranked as a candidate anomaly."""
+
+    embedding: EmbeddingRecord
+    novelty_score: float
+    anomaly_id: str = ""
+    preview_path: str | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-safe candidate anomaly representation."""
+
+        patch = self.embedding.patch
+        return {
+            "anomaly_id": self.anomaly_id,
+            "patch_id": patch.patch_id,
+            "source_path": patch.source_path.as_posix(),
+            "x": int(patch.x),
+            "y": int(patch.y),
+            "width": int(patch.width),
+            "height": int(patch.height),
+            "novelty_score": float(self.novelty_score),
+            "preview_path": self.preview_path,
+            "metadata": _json_safe_metadata(self.metadata),
+        }
+
+
+@dataclass(frozen=True)
+class EvidenceSummary:
+    """Structured evidence attached to a candidate unknown concept."""
+
+    supporting_examples: list[str] = field(default_factory=list)
+    contradicting_examples: list[str] = field(default_factory=list)
+    notes: list[str] = field(default_factory=list)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-safe evidence summary."""
+
+        return {
+            "supporting_examples": list(self.supporting_examples),
+            "contradicting_examples": list(self.contradicting_examples),
+            "notes": list(self.notes),
+        }
+
+
+@dataclass(frozen=True)
+class UnknownConcept:
+    """A cautious grouping of related candidate anomalies."""
+
+    concept_id: str
+    anomaly_ids: list[str]
+    representative_anomaly_id: str | None
+    average_novelty_score: float
+    confidence_score: float | None
+    evidence: EvidenceSummary
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-safe candidate unknown concept representation."""
+
+        return {
+            "concept_id": self.concept_id,
+            "anomaly_ids": list(self.anomaly_ids),
+            "representative_anomaly_id": self.representative_anomaly_id,
+            "average_novelty_score": float(self.average_novelty_score),
+            "confidence_score": (
+                float(self.confidence_score)
+                if self.confidence_score is not None
+                else None
+            ),
+            "evidence": self.evidence.to_dict(),
+        }
+
+
+@dataclass(frozen=True)
+class RunMetadata:
+    """Traceable metadata for one ADE analysis run."""
+
+    run_id: str
+    generated_at: str
+    input_path: Path
+    markdown_report_path: Path
+    json_report_path: Path
+    number_of_images: int
+    number_of_patches: int
+    number_of_candidate_anomalies: int
+    number_of_candidate_unknown_concepts: int
+    pipeline_version: str
+    human_review_required: bool
+    run_index_path: Path | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-safe run metadata dictionary."""
+
+        data: dict[str, Any] = {
+            "run_id": self.run_id,
+            "generated_at": self.generated_at,
+            "input_path": self.input_path.as_posix(),
+            "markdown_report_path": self.markdown_report_path.as_posix(),
+            "json_report_path": self.json_report_path.as_posix(),
+            "number_of_images": int(self.number_of_images),
+            "number_of_patches": int(self.number_of_patches),
+            "number_of_candidate_anomalies": int(
+                self.number_of_candidate_anomalies
+            ),
+            "number_of_candidate_unknown_concepts": int(
+                self.number_of_candidate_unknown_concepts
+            ),
+            "pipeline_version": self.pipeline_version,
+            "human_review_required": bool(self.human_review_required),
+        }
+        if self.run_index_path is not None:
+            data["run_index_path"] = self.run_index_path.as_posix()
+        return data
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> RunMetadata:
+        """Build run metadata from a dictionary."""
+
+        return cls(
+            run_id=str(data["run_id"]),
+            generated_at=str(data["generated_at"]),
+            input_path=Path(str(data["input_path"])),
+            markdown_report_path=Path(str(data["markdown_report_path"])),
+            json_report_path=Path(str(data["json_report_path"])),
+            run_index_path=(
+                Path(str(data["run_index_path"]))
+                if data.get("run_index_path") is not None
+                else None
+            ),
+            number_of_images=int(data["number_of_images"]),
+            number_of_patches=int(data["number_of_patches"]),
+            number_of_candidate_anomalies=int(
+                data["number_of_candidate_anomalies"]
+            ),
+            number_of_candidate_unknown_concepts=int(
+                data["number_of_candidate_unknown_concepts"]
+            ),
+            pipeline_version=str(data["pipeline_version"]),
+            human_review_required=bool(data["human_review_required"]),
+        )

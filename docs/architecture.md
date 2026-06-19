@@ -25,3 +25,11 @@ ADE is organized as a modular discovery pipeline. Each stage has a narrow respon
 - Keep advanced models behind replaceable interfaces.
 - Avoid overstating results.
 - Preserve traceability from report findings back to source image paths and patch coordinates.
+
+## Internal Data Models
+
+ADE uses typed dataclasses in `src/ade/models.py` for image records, patches,
+embeddings, candidate anomalies, candidate unknown concepts, evidence summaries,
+and run metadata. These models keep internal objects explicit while ensuring
+JSON reports and run metadata serialize paths, counts, scores, and references
+without dumping raw NumPy arrays.
