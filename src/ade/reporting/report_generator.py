@@ -39,6 +39,24 @@ class ReportAssets:
 class ReportGenerator:
     """Generate Markdown and JSON reports for human review."""
 
+    def __init__(
+        self,
+        project_name: str = "ADE",
+        pipeline_version: str = __version__,
+        report_version: str = "1.0",
+        human_review_required: bool = True,
+        save_patch_previews: bool = True,
+        assets_dir_name: str = "assets",
+        runs_dir_name: str = "runs",
+    ) -> None:
+        self.project_name = project_name
+        self.pipeline_version = pipeline_version
+        self.report_version = report_version
+        self.human_review_required = human_review_required
+        self.save_patch_previews = save_patch_previews
+        self.assets_dir_name = assets_dir_name
+        self.runs_dir_name = runs_dir_name
+
     def generate(
         self,
         dataset_summary: DatasetSummary,
@@ -160,7 +178,7 @@ class ReportGenerator:
         generated_at = datetime.now(UTC)
         run_id = self.generate_run_id(generated_at)
         json_path = path.with_suffix(".json")
-        runs_dir = path.parent / "runs"
+        runs_dir = path.parent / self.runs_dir_name
         run_metadata_path = runs_dir / f"{run_id}.json"
         run_index_path = runs_dir / "index.json"
         run_metadata = self.build_run_metadata(
@@ -240,8 +258,8 @@ class ReportGenerator:
         ]
 
         return {
-            "project_name": "ADE",
-            "report_version": "0.1.0",
+            "project_name": self.project_name,
+            "report_version": self.report_version,
             "run_id": run_id,
             "run_metadata": run_metadata,
             "run_index_path": (
@@ -288,7 +306,7 @@ class ReportGenerator:
                 }
                 for hypothesis in hypotheses
             ],
-            "human_review_required": True,
+            "human_review_required": self.human_review_required,
             "limitations": [
                 "All findings are exploratory candidate findings.",
                 "Candidate anomalies and candidate unknown concepts require human review.",
@@ -321,8 +339,8 @@ class ReportGenerator:
             "number_of_patches": int(dataset_summary.patch_count),
             "number_of_candidate_anomalies": len(candidates),
             "number_of_candidate_unknown_concepts": len(evidence_items),
-            "pipeline_version": __version__,
-            "human_review_required": True,
+            "pipeline_version": self.pipeline_version,
+            "human_review_required": self.human_review_required,
         }
 
     def write_run_metadata(
@@ -363,7 +381,7 @@ class ReportGenerator:
             "novelty_score": float(candidate.novelty_score),
             "preview_path": assets.anomaly_previews.get(rank),
             "label": "candidate anomaly",
-            "requires_human_review": True,
+            "requires_human_review": self.human_review_required,
         }
 
     def _concept_json(
@@ -397,7 +415,7 @@ class ReportGenerator:
             "confidence_score": float(confidence.score) if confidence else None,
             "possible_pattern": hypothesis.text if hypothesis else None,
             "examples": examples,
-            "requires_human_review": True,
+            "requires_human_review": self.human_review_required,
         }
 
     def save_assets(
@@ -409,10 +427,13 @@ class ReportGenerator:
         """Save anomaly and concept patch previews next to the report."""
 
         path = Path(output_path)
-        assets_dir = path.parent / "assets"
+        assets_dir = path.parent / self.assets_dir_name
         assets_dir.mkdir(parents=True, exist_ok=True)
 
         anomaly_previews: dict[int, str] = {}
+        if not self.save_patch_previews:
+            return ReportAssets(anomaly_previews={}, concept_previews={})
+
         for index, candidate in enumerate(candidates, start=1):
             asset_path = assets_dir / f"anomaly_{index:04d}.png"
             self._save_patch_image(candidate, asset_path)

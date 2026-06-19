@@ -6,6 +6,7 @@ import argparse
 from pathlib import Path
 
 from ade.adapters.image_adapter import ImageAdapter
+from ade.config import load_config
 from ade.discovery.concept_clusterer import ConceptClusterer
 from ade.discovery.confidence_scorer import ConfidenceScorer
 from ade.discovery.evidence_collector import EvidenceCollector
@@ -26,9 +27,15 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run the ADE prototype image pipeline.")
     parser.add_argument("--input", type=Path, help="Directory containing input images.")
     parser.add_argument("--output", type=Path, help="Markdown report output path.")
-    parser.add_argument("--patch-size", default=64, type=int, help="Square patch size in pixels.")
+    parser.add_argument("--patch-size", default=None, type=int, help="Square patch size in pixels.")
     parser.add_argument("--stride", default=None, type=int, help="Patch stride in pixels. Defaults to patch size.")
-    parser.add_argument("--max-candidates", default=25, type=int, help="Maximum candidate anomalies to report.")
+    parser.add_argument("--max-candidates", default=None, type=int, help="Maximum candidate anomalies to report.")
+    parser.add_argument(
+        "--config",
+        default=None,
+        type=Path,
+        help="ADE configuration path. Defaults to configs/default.yaml.",
+    )
     parser.add_argument(
         "--list-runs",
         action="store_true",
@@ -46,14 +53,33 @@ def build_parser() -> argparse.ArgumentParser:
 def run_pipeline(
     input_dir: Path,
     output_path: Path,
-    patch_size: int = 64,
+    patch_size: int | None = None,
     stride: int | None = None,
-    max_candidates: int = 25,
+    max_candidates: int | None = None,
+    config_path: Path | None = None,
 ) -> Path:
     """Run the minimal ADE image pipeline and write a Markdown report."""
 
+    config = load_config(config_path)
+    preprocessing = config["preprocessing"]
+    discovery = config["discovery"]
+    reporting = config["reporting"]
+    project = config["project"]
+
+    effective_patch_size = (
+        patch_size if patch_size is not None else int(preprocessing["patch_size"])
+    )
+    effective_stride = (
+        stride if stride is not None else int(preprocessing["patch_stride"])
+    )
+    effective_max_candidates = (
+        max_candidates
+        if max_candidates is not None
+        else int(discovery["max_candidate_anomalies"])
+    )
+
     image_records = ImageAdapter(input_dir).load()
-    extractor = PatchExtractor(patch_size=patch_size, stride=stride)
+    extractor = PatchExtractor(patch_size=effective_patch_size, stride=effective_stride)
     patches = [
         patch
         for record in image_records
@@ -61,8 +87,14 @@ def run_pipeline(
     ]
 
     embeddings = EmbeddingEngine().embed_patches(patches)
-    candidates = NoveltyScorer().score(embeddings, max_candidates=max_candidates)
-    concepts = ConceptClusterer().cluster(candidates)
+    candidates = NoveltyScorer().score(
+        embeddings,
+        max_candidates=effective_max_candidates,
+    )
+    concepts = ConceptClusterer(
+        distance_threshold=float(discovery["cluster_distance_threshold"]),
+        max_concepts=int(discovery["max_concepts"]),
+    ).cluster(candidates)
     evidence_items = EvidenceCollector().collect(concepts)
     confidences = ConfidenceScorer().score(evidence_items)
     hypotheses = HypothesisGenerator().generate(evidence_items)
@@ -72,7 +104,15 @@ def run_pipeline(
         image_count=len(image_records),
         patch_count=len(patches),
     )
-    return ReportGenerator().write(
+    return ReportGenerator(
+        project_name=str(project["name"]),
+        pipeline_version=str(project["pipeline_version"]),
+        report_version=str(reporting["report_version"]),
+        human_review_required=bool(reporting["human_review_required"]),
+        save_patch_previews=bool(reporting["save_patch_previews"]),
+        assets_dir_name=str(reporting["assets_dir_name"]),
+        runs_dir_name=str(reporting["runs_dir_name"]),
+    ).write(
         output_path=output_path,
         dataset_summary=summary,
         candidates=candidates,
@@ -140,6 +180,7 @@ def main() -> None:
         patch_size=args.patch_size,
         stride=args.stride,
         max_candidates=args.max_candidates,
+        config_path=args.config,
     )
     print(f"ADE report written to {report_path}")
 

@@ -22,10 +22,17 @@ class CandidateConcept:
 class ConceptClusterer:
     """Group candidate anomalies with a small dependency-light algorithm."""
 
-    def __init__(self, distance_threshold: float = 0.35) -> None:
+    def __init__(
+        self,
+        distance_threshold: float = 0.35,
+        max_concepts: int | None = None,
+    ) -> None:
         if distance_threshold <= 0:
             raise ValueError("distance_threshold must be positive")
+        if max_concepts is not None and max_concepts < 1:
+            raise ValueError("max_concepts must be positive")
         self.distance_threshold = distance_threshold
+        self.max_concepts = max_concepts
 
     def cluster(self, candidates: list[CandidateAnomaly]) -> list[CandidateConcept]:
         """Return candidate unknown concepts grouped by embedding distance."""
@@ -52,6 +59,8 @@ class ConceptClusterer:
                     centroid=updated_centroid,
                     consistency=self._consistency(updated_candidates, updated_centroid),
                 )
+        if self.max_concepts is not None:
+            return concepts[: self.max_concepts]
         return concepts
 
     def _nearest_concept_index(

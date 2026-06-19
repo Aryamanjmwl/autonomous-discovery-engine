@@ -1,24 +1,20 @@
 project:
-  name: "ADE"
-  pipeline_version: "0.1.0"
-
+  name: "ADE Test"
+  pipeline_version: "test-version"
 preprocessing:
-  patch_size: 64
-  patch_stride: 64
-
+  patch_size: 128
+  patch_stride: 128
 discovery:
-  max_candidate_anomalies: 10
-  max_concepts: 5
+  max_candidate_anomalies: 2
+  max_concepts: 2
   novelty_metric: "euclidean"
   cluster_distance_threshold: 0.35
-
 reporting:
-  report_version: "1.0"
+  report_version: "test-report"
   human_review_required: true
   save_patch_previews: true
-  assets_dir_name: "assets"
-  runs_dir_name: "runs"
-
+  assets_dir_name: "preview_assets"
+  runs_dir_name: "run_records"
 demo_data:
   output_dir: "data/raw/demo_images"
   image_count: 6

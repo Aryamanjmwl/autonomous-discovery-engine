@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+import importlib.util
 
 import pytest
 
@@ -32,6 +33,16 @@ def _sample_run(run_id: str) -> dict[str, object]:
         "number_of_candidate_unknown_concepts": 3,
         "human_review_required": True,
     }
+
+
+def _load_demo_module():
+    script_path = Path(__file__).resolve().parents[1] / "scripts" / "create_demo_data.py"
+    spec = importlib.util.spec_from_file_location("create_demo_data", script_path)
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def test_format_run_history_handles_missing_index() -> None:
@@ -110,3 +121,64 @@ def test_format_run_history_rejects_invalid_limit() -> None:
 
     with pytest.raises(ValueError, match="--limit"):
         format_run_history(index_path=index_path, limit=0)
+
+
+def test_cli_analysis_uses_explicit_config(monkeypatch) -> None:
+    pytest.importorskip("PIL.Image")
+    output_dir = _cli_output_dir("analysis_with_config")
+    image_dir = output_dir / "images"
+    report_path = output_dir / "report.md"
+    config_path = output_dir / "config.yaml"
+    _load_demo_module().generate_demo_images(output_dir=image_dir)
+    config_path.write_text(
+        """
+project:
+  name: "ADE Test"
+  pipeline_version: "test-version"
+preprocessing:
+  patch_size: 128
+  patch_stride: 128
+discovery:
+  max_candidate_anomalies: 2
+  max_concepts: 2
+  novelty_metric: "euclidean"
+  cluster_distance_threshold: 0.35
+reporting:
+  report_version: "test-report"
+  human_review_required: true
+  save_patch_previews: true
+  assets_dir_name: "preview_assets"
+  runs_dir_name: "run_records"
+demo_data:
+  output_dir: "data/raw/demo_images"
+  image_count: 6
+  image_size: 256
+  seed: 42
+""".strip(),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "ade",
+            "--input",
+            str(image_dir),
+            "--output",
+            str(report_path),
+            "--config",
+            str(config_path),
+        ],
+    )
+
+    main()
+
+    report_data = json.loads(report_path.with_suffix(".json").read_text(encoding="utf-8"))
+    assert report_path.is_file()
+    assert report_path.with_suffix(".json").is_file()
+    assert report_data["project_name"] == "ADE Test"
+    assert report_data["report_version"] == "test-report"
+    assert report_data["number_of_candidate_anomalies"] == 2
+    assert report_data["run_metadata"]["pipeline_version"] == "test-version"
+    assert report_data["run_index_path"].endswith("run_records/index.json")
+    assert (output_dir / "preview_assets").is_dir()
+    assert (output_dir / "run_records" / "index.json").is_file()

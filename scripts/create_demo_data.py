@@ -6,10 +6,15 @@ from pathlib import Path
 
 import numpy as np
 
+from ade.config import load_config
 
-DEFAULT_OUTPUT_DIR = Path("data/raw/demo_images")
-IMAGE_COUNT = 6
-IMAGE_SIZE = 256
+_CONFIG = load_config()
+_DEMO_CONFIG = _CONFIG["demo_data"]
+
+DEFAULT_OUTPUT_DIR = Path(str(_DEMO_CONFIG["output_dir"]))
+IMAGE_COUNT = int(_DEMO_CONFIG["image_count"])
+IMAGE_SIZE = int(_DEMO_CONFIG["image_size"])
+SEED = int(_DEMO_CONFIG["seed"])
 
 
 def generate_demo_images(output_dir: Path | str = DEFAULT_OUTPUT_DIR) -> list[Path]:
@@ -18,7 +23,7 @@ def generate_demo_images(output_dir: Path | str = DEFAULT_OUTPUT_DIR) -> list[Pa
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
-    rng = np.random.default_rng(seed=42)
+    rng = np.random.default_rng(seed=SEED)
     created_paths: list[Path] = []
     for index in range(IMAGE_COUNT):
         image = _base_image(index=index, rng=rng)

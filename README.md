@@ -149,6 +149,26 @@ Then run ADE on the generated image folder:
 python -m ade.cli --input data/raw/demo_images --output data/reports/demo_report.md
 ```
 
+## Configuration
+
+ADE loads default pipeline settings from:
+
+```text
+configs/default.yaml
+```
+
+You can also pass the config path explicitly:
+
+```bash
+python -m ade.cli --input data/raw/demo_images --output data/reports/demo_report.md --config configs/default.yaml
+```
+
+The current config covers settings such as patch size, patch stride, maximum
+candidate anomaly count, concept limits, report version, human-review
+requirement, report asset folders, run metadata folders, and synthetic demo
+data settings. These settings are intended to make ADE runs easier to
+reproduce and compare as the project grows.
+
 ## Run Tracking
 
 Each ADE analysis run receives a unique run ID and a small metadata record for traceability. The run metadata includes the input path, Markdown and JSON report paths, basic result counts, pipeline version, timestamp, and the human-review requirement.

@@ -1,0 +1,14 @@
+{
+  "generated_at": "2026-06-19T12:16:33.967034+00:00",
+  "human_review_required": true,
+  "input_path": "tests/.tmp_cli_outputs/analysis_with_config/images",
+  "json_report_path": "tests/.tmp_cli_outputs/analysis_with_config/report.json",
+  "markdown_report_path": "tests/.tmp_cli_outputs/analysis_with_config/report.md",
+  "number_of_candidate_anomalies": 2,
+  "number_of_candidate_unknown_concepts": 2,
+  "number_of_images": 6,
+  "number_of_patches": 24,
+  "pipeline_version": "test-version",
+  "run_id": "ade_20260619_121633_1c4d11",
+  "run_index_path": "tests/.tmp_cli_outputs/analysis_with_config/run_records/index.json"
+}
