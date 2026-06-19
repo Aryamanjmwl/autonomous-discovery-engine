@@ -1,4 +1,0 @@
-project:
-  name: "Custom ADE"
-discovery:
-  max_candidate_anomalies: 2

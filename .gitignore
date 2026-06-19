@@ -4,6 +4,9 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+tests/.tmp*/
+tests/.tmp_cli_outputs/
+tests/.tmp_config_outputs/
 tests/.tmp_report_assets/
 tests/.tmp_report_outputs/
 tests/.tmp_demo_images/
@@ -17,6 +20,11 @@ data/raw/*
 data/processed/*
 data/embeddings/*
 data/reports/*
+data/raw/demo_images/
+data/reports/*.md
+data/reports/*.json
+data/reports/assets/
+data/reports/runs/
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !data/embeddings/.gitkeep
