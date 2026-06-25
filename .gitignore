@@ -1,11 +1,14 @@
 __pycache__/
+**/__pycache__/
 *.py[cod]
+*.pyc
 *.egg-info/
 .pytest_cache/
 .pytest-tmp/
 .mypy_cache/
 .ruff_cache/
 tests/.tmp*/
+tests/.tmp_pytest/
 tests/.tmp_cli_outputs/
 tests/.tmp_config_outputs/
 tests/.tmp_report_assets/
@@ -25,7 +28,9 @@ data/raw/demo_images/
 data/reports/*.md
 data/reports/*.json
 data/reports/assets/
+data/reports/assets/*
 data/reports/runs/
+data/reports/runs/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !data/embeddings/.gitkeep

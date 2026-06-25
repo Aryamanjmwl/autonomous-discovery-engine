@@ -1,8 +1,10 @@
 # ADE: Autonomous Discovery Engine
 
-ADE is an Autonomous Discovery Engine designed to help users discover hidden patterns, anomalies, recurring behaviors, and predictive signals inside their data. Instead of only answering predefined questions, ADE helps users find questions worth asking.
+ADE is a general autonomous discovery platform designed to help users discover hidden patterns, anomalies, recurring behaviors, and predictive signals inside their data. Instead of only answering predefined questions, ADE helps users find questions worth asking.
 
-ADE is not only a computer vision tool, not only for NASA, and not only for scientific or aerospace datasets. The long-term goal is a general discovery assistant for individuals, companies, researchers, students, startups, factories, robotics teams, healthcare research teams, finance and data teams, climate and satellite analysts, logistics companies, security and monitoring teams, agriculture companies, space and aerospace organizations, and any user who has data and wants to investigate unknown patterns.
+The current implementation focuses on visual data. Computer vision is the first supported adapter, not the final scope of the product.
+
+ADE is not only for NASA and not only for scientific or aerospace datasets. The long-term goal is a general discovery assistant for individuals, companies, researchers, students, startups, factories, robotics teams, healthcare research teams, finance and data teams, climate and satellite analysts, logistics companies, security and monitoring teams, agriculture companies, space and aerospace organizations, and any user who has data and wants to investigate unknown patterns.
 
 The current repository is an early private research prototype. It produces candidate anomalies, candidate unknown concepts, possible relationships, and hypotheses that require human expert review. ADE is not a final truth machine and does not replace domain experts.
 
@@ -14,13 +16,13 @@ ADE is designed for exploratory discovery workflows where the user may not know 
 
 ## Why ADE Is Different
 
-ADE is intended to be a discovery assistant, not a single-purpose prediction model. Its architecture separates data adapters, preprocessing, representation, novelty scoring, concept grouping, evidence collection, reasoning, and reporting.
+ADE is intended to be a discovery assistant, not a single-purpose prediction model. Its architecture separates data adapters, preprocessing, representation, novelty scoring, concept grouping, evidence collection, reasoning, reporting, and run tracking.
 
-This modular design allows ADE to grow across domains and data types without being locked to one model, one industry, or one question format. Future implementations can replace the current placeholder embedding engine with stronger domain-specific models while keeping the review-oriented discovery workflow intact.
+This modular design allows ADE to grow across domains and data types without being locked to one model, one industry, or one question format. Future implementations can add new dataset adapters and replace the current placeholder visual embedding engine with stronger domain-specific models while keeping the review-oriented discovery workflow intact.
 
 ## Current Prototype Status
 
-This version is a minimal working MVP for image-folder input. It demonstrates the end-to-end discovery pipeline without using advanced AI, proprietary models, or deep learning.
+This version is a minimal working MVP for image-folder input. It demonstrates a visual-data-first end-to-end discovery pipeline without using advanced AI, proprietary models, or deep learning.
 
 Current supported inputs:
 
@@ -29,12 +31,12 @@ Current supported inputs:
 Planned future supported data types:
 
 - Videos
-- Satellite images
-- Medical research images
-- Industrial sensor data
-- CSV and time-series data
-- Robot logs
-- Business datasets
+- Tabular data
+- Time-series data
+- Logs
+- Audio
+- Documents
+- Multimodal datasets
 - Live streams
 
 ## Current MVP Pipeline
@@ -73,7 +75,7 @@ ADE is designed to grow into a cross-industry discovery platform. Example future
 
 ## What This Version Can Do
 
-- Load images from a folder
+- Load images from a folder through the first visual data adapter
 - Return image path and metadata
 - Split images into fixed-size patches
 - Create deterministic placeholder embeddings from image statistics
@@ -86,7 +88,7 @@ ADE is designed to grow into a cross-industry discovery platform. Example future
 
 ## What This Version Cannot Do Yet
 
-- Process videos, live streams, CSV files, robot logs, or industrial sensor data
+- Process videos, live streams, CSV files, robot logs, audio, documents, multimodal datasets, or industrial sensor data
 - Use deep learning encoders such as CLIP, DINOv2, medical imaging models, or satellite-specific encoders
 - Guarantee that a candidate anomaly is meaningful
 - Prove scientific, clinical, operational, or financial conclusions
@@ -219,6 +221,15 @@ ade/
 └── tests/                   # Basic regression tests
 ```
 
+Additional project docs:
+
+- `docs/product_scope.md`
+- `docs/architecture.md`
+- `docs/roadmap.md`
+- `docs/development_workflow.md`
+- `docs/research_and_ip_notes.md`
+- `STATUS.md`
+
 ## Patent/IP-Aware Development
 
 ADE is original, self-made scaffold code. It uses common open-source Python libraries as normal dependencies and keeps advanced discovery methods behind replaceable interfaces.
@@ -229,7 +240,7 @@ Development notes, experiment records, and technical decisions should be documen
 
 In the long term, ADE is intended to become a secure subscription-based discovery platform where users can upload different kinds of data, run autonomous discovery pipelines, review candidate discoveries, and receive evidence-backed reports.
 
-The platform vision includes private workspaces, dataset management, configurable discovery pipelines, evidence review tools, exportable reports, and human-in-the-loop workflows for teams and organizations.
+The platform vision includes private workspaces, dataset management, configurable discovery pipelines, future visual and non-visual adapters, evidence review tools, exportable reports, and human-in-the-loop workflows for teams and organizations.
 
 ## Future Roadmap
 
