@@ -33,6 +33,14 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "assets_dir_name": "assets",
         "runs_dir_name": "runs",
     },
+    "validation": {
+        "supported_image_extensions": [".jpg", ".jpeg", ".png", ".bmp", ".webp"],
+        "min_images": 1,
+        "warn_if_images_below": 3,
+        "warn_if_estimated_patches_above": 50_000,
+        "min_image_width": 32,
+        "min_image_height": 32,
+    },
     "demo_data": {
         "output_dir": "data/raw/demo_images",
         "image_count": 6,

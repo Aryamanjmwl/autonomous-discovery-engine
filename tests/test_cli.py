@@ -121,6 +121,14 @@ def test_run_pipeline_rejects_empty_input_directory(tmp_path: Path) -> None:
         )
 
 
+def test_run_pipeline_rejects_missing_input_path(tmp_path: Path) -> None:
+    with pytest.raises(FileNotFoundError, match="Input directory does not exist"):
+        run_pipeline(
+            input_dir=tmp_path / "missing",
+            output_path=tmp_path / "report.md",
+        )
+
+
 def test_run_pipeline_rejects_missing_explicit_config(tmp_path: Path) -> None:
     input_dir = tmp_path / "images"
     input_dir.mkdir()

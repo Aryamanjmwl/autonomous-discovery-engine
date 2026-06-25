@@ -43,15 +43,16 @@ Planned future supported data types:
 
 The current pipeline performs:
 
-1. Image loading from a local folder
-2. Fixed-size patch extraction
-3. Deterministic statistical embeddings
-4. Novelty ranking
-5. Simple candidate concept grouping
-6. Evidence collection
-7. Confidence scoring
-8. Cautious hypothesis generation
-9. Markdown and JSON discovery report generation
+1. Image-folder input validation and dataset profiling
+2. Image loading from a local folder
+3. Fixed-size patch extraction
+4. Deterministic statistical embeddings
+5. Novelty ranking
+6. Simple candidate concept grouping
+7. Evidence collection
+8. Confidence scoring
+9. Cautious hypothesis generation
+10. Markdown and JSON discovery report generation
 
 The embedding system currently uses simple image statistics such as color means, standard deviations, brightness, and edge density. This is intentionally basic so the architecture can later support stronger encoders for specific domains.
 
@@ -76,6 +77,8 @@ ADE is designed to grow into a cross-industry discovery platform. Example future
 ## What This Version Can Do
 
 - Load images from a folder through the first visual data adapter
+- Profile visual input folders before analysis
+- Warn about unsupported files, unreadable images, small datasets, small images, and high estimated patch counts
 - Return image path and metadata
 - Split images into fixed-size patches
 - Create deterministic placeholder embeddings from image statistics
@@ -85,6 +88,8 @@ ADE is designed to grow into a cross-industry discovery platform. Example future
 - Produce a simple confidence score from novelty strength, example count, and cluster consistency
 - Generate cautious template-based hypotheses
 - Write a Markdown ADE Discovery Report and a structured JSON sidecar report
+
+Current supported image formats are configured in `configs/default.yaml` and include `.jpg`, `.jpeg`, `.png`, `.bmp`, and `.webp`.
 
 ## What This Version Cannot Do Yet
 
@@ -167,9 +172,16 @@ python -m ade.cli --input data/raw/demo_images --output data/reports/demo_report
 
 The current config covers settings such as patch size, patch stride, maximum
 candidate anomaly count, concept limits, report version, human-review
-requirement, report asset folders, run metadata folders, and synthetic demo
-data settings. These settings are intended to make ADE runs easier to
+requirement, report asset folders, run metadata folders, input validation
+thresholds, supported image extensions, and synthetic demo data settings.
+These settings are intended to make ADE runs easier to
 reproduce and compare as the project grows.
+
+## Input Validation
+
+Before analysis, the current visual implementation profiles the input image folder. The profile records file counts, valid image counts, unsupported files, unreadable files, image size ranges, estimated patch count, and warnings.
+
+Invalid inputs fail with clear CLI errors. Valid inputs with warnings continue, and the warnings are included in the Markdown report, JSON report, and concise run metadata.
 
 ## Run Tracking
 

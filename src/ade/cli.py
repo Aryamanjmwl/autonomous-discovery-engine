@@ -11,6 +11,8 @@ from ade.discovery.concept_clusterer import ConceptClusterer
 from ade.discovery.confidence_scorer import ConfidenceScorer
 from ade.discovery.evidence_collector import EvidenceCollector
 from ade.discovery.novelty_scorer import NoveltyScorer
+from ade.models import DatasetProfile
+from ade.preprocessing.input_validator import profile_image_folder
 from ade.preprocessing.patch_extractor import PatchExtractor
 from ade.reasoning.hypothesis_generator import HypothesisGenerator
 from ade.reporting.report_generator import DatasetSummary, ReportGenerator
@@ -72,6 +74,7 @@ def run_pipeline(
     discovery = config["discovery"]
     reporting = config["reporting"]
     project = config["project"]
+    validation = config["validation"]
 
     effective_patch_size = (
         patch_size if patch_size is not None else int(preprocessing["patch_size"])
@@ -84,8 +87,22 @@ def run_pipeline(
         if max_candidates is not None
         else int(discovery["max_candidate_anomalies"])
     )
+    supported_extensions = [
+        str(extension) for extension in validation["supported_image_extensions"]
+    ]
+    dataset_profile = profile_image_folder(
+        input_path=input_dir,
+        config=config,
+        supported_image_extensions=supported_extensions,
+        patch_size=effective_patch_size,
+        patch_stride=effective_stride,
+    )
+    _raise_for_invalid_profile(dataset_profile)
 
-    image_records = ImageAdapter(input_dir).load()
+    image_records = ImageAdapter(
+        input_dir,
+        supported_image_extensions=supported_extensions,
+    ).load()
     if not image_records:
         raise ValueError(
             f"No supported image files found in input directory: {input_dir}. "
@@ -131,6 +148,32 @@ def run_pipeline(
         evidence_items=evidence_items,
         confidences=confidences,
         hypotheses=hypotheses,
+        dataset_profile=dataset_profile,
+    )
+
+
+def _raise_for_invalid_profile(dataset_profile: DatasetProfile) -> None:
+    """Raise a clear error when a profiled input cannot be analyzed."""
+
+    if dataset_profile.is_valid:
+        return
+
+    if not dataset_profile.input_path.exists():
+        raise FileNotFoundError(f"Input path does not exist: {dataset_profile.input_path}")
+    if not dataset_profile.input_path.is_dir():
+        raise NotADirectoryError(
+            "Input path must be an image folder for the current implementation: "
+            f"{dataset_profile.input_path}"
+        )
+    if dataset_profile.supported_image_files == 0:
+        raise ValueError(f"No supported image files were found in: {dataset_profile.input_path}")
+    if dataset_profile.valid_images == 0 and dataset_profile.unreadable_files:
+        raise ValueError(
+            "Found unreadable image files and no valid images. See dataset profile warnings."
+        )
+    raise ValueError(
+        f"Input dataset is not valid for analysis: {dataset_profile.input_path}. "
+        f"Warnings: {'; '.join(dataset_profile.warnings)}"
     )
 
 

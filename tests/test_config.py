@@ -8,12 +8,18 @@ from ade.config import DEFAULT_CONFIG, load_config
 def test_default_config_loads_expected_sections() -> None:
     config = load_config()
 
-    assert {"project", "preprocessing", "discovery", "reporting", "demo_data"}.issubset(
-        config
-    )
+    assert {
+        "project",
+        "preprocessing",
+        "discovery",
+        "reporting",
+        "validation",
+        "demo_data",
+    }.issubset(config)
     assert config["project"]["name"] == "ADE"
     assert config["preprocessing"]["patch_size"] == 64
     assert config["reporting"]["human_review_required"] is True
+    assert ".png" in config["validation"]["supported_image_extensions"]
 
 
 def test_config_loader_uses_defaults_for_missing_optional_fields(tmp_path: Path) -> None:

@@ -20,6 +20,7 @@ ADE is a general autonomous discovery platform with a visual-data-first implemen
 - Do not depend on internet access, GPUs, or user-local datasets.
 - Test behavior and output contracts, not incidental implementation details.
 - Cover CLI errors for invalid input paths, missing config files, empty datasets, and invalid limits.
+- Cover input profiling for valid folders, empty folders, unsupported files, unreadable images, and warning behavior.
 
 ## Documentation Standards
 
@@ -48,6 +49,7 @@ Keep `.gitkeep` files only where they preserve intended empty directory structur
 - Defaults belong in `configs/default.yaml` and `src/ade/config.py`.
 - CLI flags may override selected runtime settings.
 - User-provided config paths should fail clearly when missing or invalid.
+- Input validation thresholds and supported extensions belong in config.
 - New configuration keys should have tests and documentation.
 
 ## Commit Discipline

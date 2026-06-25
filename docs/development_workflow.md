@@ -30,6 +30,8 @@ python scripts/create_demo_data.py
 python -m ade.cli --input data/raw/demo_images --output data/reports/demo_report.md
 ```
 
+The current implementation expects an image folder. Before processing, ADE profiles the folder and reports unsupported files, unreadable images, small datasets, small images, and high estimated patch counts as warnings.
+
 With an explicit config:
 
 ```bash
@@ -49,7 +51,7 @@ Run history is read from `data/reports/runs/index.json`.
 
 Default settings live in `configs/default.yaml`. Current settings cover project metadata, patch extraction, discovery limits, reporting behavior, asset folders, run metadata folders, and demo data generation.
 
-CLI arguments can override selected config values such as patch size, stride, and maximum candidate anomalies.
+CLI arguments can override selected config values such as patch size, stride, and maximum candidate anomalies. Validation settings include supported image extensions, minimum image count, small dataset warning threshold, high patch-count warning threshold, and minimum image dimensions.
 
 ## Git Workflow Guidance
 

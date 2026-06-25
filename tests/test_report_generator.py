@@ -7,6 +7,7 @@ import numpy as np
 from ade.discovery.confidence_scorer import ConceptConfidence
 from ade.discovery.evidence_collector import ConceptEvidence, EvidenceItem
 from ade.discovery.novelty_scorer import CandidateAnomaly
+from ade.models import DatasetProfile
 from ade.preprocessing.patch_extractor import Patch
 from ade.reasoning.hypothesis_generator import Hypothesis
 from ade.reporting.report_generator import DatasetSummary, ReportGenerator
@@ -40,6 +41,26 @@ def _concept_evidence() -> ConceptEvidence:
     )
 
 
+def _dataset_profile() -> DatasetProfile:
+    return DatasetProfile(
+        input_path=Path("data/raw"),
+        input_type="image_folder",
+        total_files=2,
+        supported_image_files=1,
+        unsupported_files=[Path("data/raw/notes.txt")],
+        unreadable_files=[],
+        valid_images=1,
+        image_width_min=4,
+        image_width_max=4,
+        image_height_min=4,
+        image_height_max=4,
+        unique_image_sizes=[(4, 4)],
+        estimated_patch_count=1,
+        warnings=["Unsupported files found: 1"],
+        is_valid=True,
+    )
+
+
 def _write_sample_report(output_path: Path) -> None:
     _, candidate = _candidate_patch()
     evidence = _concept_evidence()
@@ -50,6 +71,7 @@ def _write_sample_report(output_path: Path) -> None:
         evidence_items=[evidence],
         confidences=[ConceptConfidence(concept_id="concept-001", score=0.7)],
         hypotheses=[Hypothesis(concept_id="concept-001", text="A cautious hypothesis.")],
+        dataset_profile=_dataset_profile(),
     )
 
 
@@ -63,6 +85,7 @@ def test_report_generator_includes_required_sections() -> None:
         evidence_items=[evidence],
         confidences=[ConceptConfidence(concept_id="concept-001", score=0.7)],
         hypotheses=[Hypothesis(concept_id="concept-001", text="A cautious hypothesis.")],
+        dataset_profile=_dataset_profile(),
     )
 
     assert "# ADE Discovery Report" in report
@@ -71,6 +94,8 @@ def test_report_generator_includes_required_sections() -> None:
     assert "Number of candidate anomalies: 1" in report
     assert "Number of candidate unknown concepts: 1" in report
     assert "Top Candidate Anomalies" in report
+    assert "Input Dataset Profile" in report
+    assert "Unsupported files found: 1" in report
     assert "Candidate Unknown Concepts" in report
     assert "Human Expert Review Required" in report
     assert "A cautious hypothesis." in report
@@ -103,6 +128,7 @@ def test_report_generator_writes_structured_json_report(tmp_path: Path) -> None:
         "run_index_path",
         "generated_at",
         "input_summary",
+        "dataset_profile",
         "number_of_images",
         "number_of_patches",
         "number_of_candidate_anomalies",
@@ -121,6 +147,8 @@ def test_report_generator_writes_structured_json_report(tmp_path: Path) -> None:
     assert report_data["number_of_candidate_anomalies"] == 1
     assert report_data["number_of_candidate_unknown_concepts"] == 1
     assert report_data["human_review_required"] is True
+    assert report_data["dataset_profile"]["input_type"] == "image_folder"
+    assert report_data["dataset_profile"]["unsupported_file_count"] == 1
     assert report_data["candidate_anomalies"][0]["preview_path"] == "assets/anomaly_0001.png"
     assert report_data["candidate_unknown_concepts"][0]["confidence_score"] == 0.7
 
@@ -153,6 +181,12 @@ def test_report_generator_tracks_run_metadata(tmp_path: Path) -> None:
     assert run_metadata["number_of_patches"] == 1
     assert run_metadata["number_of_candidate_anomalies"] == 1
     assert run_metadata["number_of_candidate_unknown_concepts"] == 1
+    assert run_metadata["number_of_input_files"] == 2
+    assert run_metadata["number_of_valid_images"] == 1
+    assert run_metadata["number_of_unsupported_files"] == 1
+    assert run_metadata["number_of_unreadable_files"] == 0
+    assert run_metadata["estimated_patch_count"] == 1
+    assert run_metadata["input_warnings"] == ["Unsupported files found: 1"]
     assert run_metadata["pipeline_version"]
     assert run_metadata["human_review_required"] is True
     assert json_report["human_review_required"] is True

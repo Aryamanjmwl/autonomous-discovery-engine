@@ -25,6 +25,7 @@ Future adapter families may include:
 The current implementation supports a visual-data-first pipeline:
 
 - Synthetic demo image generation
+- Image-folder validation and dataset profiling
 - Image folder loading
 - Fixed-size patch extraction
 - Deterministic statistical embeddings

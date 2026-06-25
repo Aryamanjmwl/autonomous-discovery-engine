@@ -64,6 +64,53 @@ class ImageRecord:
 
 
 @dataclass(frozen=True)
+class DatasetProfile:
+    """Profile and validation summary for one input dataset."""
+
+    input_path: Path
+    input_type: str
+    total_files: int
+    supported_image_files: int
+    unsupported_files: list[Path] = field(default_factory=list)
+    unreadable_files: list[Path] = field(default_factory=list)
+    valid_images: int = 0
+    image_width_min: int | None = None
+    image_width_max: int | None = None
+    image_height_min: int | None = None
+    image_height_max: int | None = None
+    unique_image_sizes: list[tuple[int, int]] = field(default_factory=list)
+    estimated_patch_count: int = 0
+    warnings: list[str] = field(default_factory=list)
+    is_valid: bool = False
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-safe dataset profile."""
+
+        return {
+            "input_path": self.input_path.as_posix(),
+            "input_type": self.input_type,
+            "total_files": int(self.total_files),
+            "supported_image_files": int(self.supported_image_files),
+            "unsupported_files": [path.as_posix() for path in self.unsupported_files],
+            "unsupported_file_count": len(self.unsupported_files),
+            "unreadable_files": [path.as_posix() for path in self.unreadable_files],
+            "unreadable_file_count": len(self.unreadable_files),
+            "valid_images": int(self.valid_images),
+            "image_width_min": self.image_width_min,
+            "image_width_max": self.image_width_max,
+            "image_height_min": self.image_height_min,
+            "image_height_max": self.image_height_max,
+            "unique_image_sizes": [
+                {"width": int(width), "height": int(height)}
+                for width, height in self.unique_image_sizes
+            ],
+            "estimated_patch_count": int(self.estimated_patch_count),
+            "warnings": list(self.warnings),
+            "is_valid": bool(self.is_valid),
+        }
+
+
+@dataclass(frozen=True)
 class PatchRecord:
     """A fixed-size image patch and its source coordinates."""
 
@@ -208,6 +255,12 @@ class RunMetadata:
     pipeline_version: str
     human_review_required: bool
     run_index_path: Path | None = None
+    number_of_input_files: int | None = None
+    number_of_valid_images: int | None = None
+    number_of_unsupported_files: int | None = None
+    number_of_unreadable_files: int | None = None
+    estimated_patch_count: int | None = None
+    input_warnings: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         """Return a JSON-safe run metadata dictionary."""
@@ -231,6 +284,18 @@ class RunMetadata:
         }
         if self.run_index_path is not None:
             data["run_index_path"] = self.run_index_path.as_posix()
+        if self.number_of_input_files is not None:
+            data["number_of_input_files"] = int(self.number_of_input_files)
+        if self.number_of_valid_images is not None:
+            data["number_of_valid_images"] = int(self.number_of_valid_images)
+        if self.number_of_unsupported_files is not None:
+            data["number_of_unsupported_files"] = int(self.number_of_unsupported_files)
+        if self.number_of_unreadable_files is not None:
+            data["number_of_unreadable_files"] = int(self.number_of_unreadable_files)
+        if self.estimated_patch_count is not None:
+            data["estimated_patch_count"] = int(self.estimated_patch_count)
+        if self.input_warnings:
+            data["input_warnings"] = list(self.input_warnings)
         return data
 
     @classmethod
@@ -258,6 +323,32 @@ class RunMetadata:
             ),
             pipeline_version=str(data["pipeline_version"]),
             human_review_required=bool(data["human_review_required"]),
+            number_of_input_files=(
+                int(data["number_of_input_files"])
+                if data.get("number_of_input_files") is not None
+                else None
+            ),
+            number_of_valid_images=(
+                int(data["number_of_valid_images"])
+                if data.get("number_of_valid_images") is not None
+                else None
+            ),
+            number_of_unsupported_files=(
+                int(data["number_of_unsupported_files"])
+                if data.get("number_of_unsupported_files") is not None
+                else None
+            ),
+            number_of_unreadable_files=(
+                int(data["number_of_unreadable_files"])
+                if data.get("number_of_unreadable_files") is not None
+                else None
+            ),
+            estimated_patch_count=(
+                int(data["estimated_patch_count"])
+                if data.get("estimated_patch_count") is not None
+                else None
+            ),
+            input_warnings=[str(item) for item in data.get("input_warnings", [])],
         )
 
 

@@ -15,7 +15,7 @@ from ade import __version__
 from ade.discovery.confidence_scorer import ConceptConfidence
 from ade.discovery.evidence_collector import ConceptEvidence
 from ade.discovery.novelty_scorer import CandidateAnomaly
-from ade.models import EvidenceSummary, RunMetadata, UnknownConcept
+from ade.models import DatasetProfile, EvidenceSummary, RunMetadata, UnknownConcept
 from ade.reasoning.hypothesis_generator import Hypothesis
 from ade.reporting.run_index import build_run_summary, update_run_index
 
@@ -67,6 +67,7 @@ class ReportGenerator:
         hypotheses: list[Hypothesis],
         assets: ReportAssets | None = None,
         run_id: str | None = None,
+        dataset_profile: DatasetProfile | None = None,
     ) -> str:
         """Return an ADE Discovery Report in Markdown format."""
 
@@ -88,6 +89,10 @@ class ReportGenerator:
             f"- Number of extracted patches: {dataset_summary.patch_count}",
             f"- Number of candidate anomalies: {len(candidates)}",
             f"- Number of candidate unknown concepts: {len(evidence_items)}",
+            "",
+            "## Input Dataset Profile",
+            "",
+            *self._dataset_profile_lines(dataset_profile),
             "",
             "## Top Candidate Anomalies",
             "",
@@ -171,6 +176,7 @@ class ReportGenerator:
         evidence_items: list[ConceptEvidence],
         confidences: list[ConceptConfidence],
         hypotheses: list[Hypothesis],
+        dataset_profile: DatasetProfile | None = None,
     ) -> Path:
         """Write a Markdown report and return the output path."""
 
@@ -191,6 +197,7 @@ class ReportGenerator:
             run_index_path=run_index_path,
             candidates=candidates,
             evidence_items=evidence_items,
+            dataset_profile=dataset_profile,
         )
         assets = self.save_assets(path, candidates, evidence_items)
         report = self.generate(
@@ -201,6 +208,7 @@ class ReportGenerator:
             hypotheses=hypotheses,
             assets=assets,
             run_id=run_id,
+            dataset_profile=dataset_profile,
         )
         path.write_text(report, encoding="utf-8")
         json_report = self.generate_json(
@@ -212,6 +220,7 @@ class ReportGenerator:
             assets=assets,
             run_id=run_id,
             run_metadata=run_metadata,
+            dataset_profile=dataset_profile,
         )
         json_path.write_text(
             json.dumps(json_report, indent=2, sort_keys=True),
@@ -237,6 +246,7 @@ class ReportGenerator:
         assets: ReportAssets | None = None,
         run_id: str | None = None,
         run_metadata: dict[str, object] | None = None,
+        dataset_profile: DatasetProfile | None = None,
     ) -> dict[str, object]:
         """Return a machine-readable ADE discovery report."""
 
@@ -278,6 +288,9 @@ class ReportGenerator:
                 "image_count": int(dataset_summary.image_count),
                 "patch_count": int(dataset_summary.patch_count),
             },
+            "dataset_profile": (
+                dataset_profile.to_dict() if dataset_profile is not None else None
+            ),
             "number_of_images": int(dataset_summary.image_count),
             "number_of_patches": int(dataset_summary.patch_count),
             "number_of_candidate_anomalies": len(candidate_anomalies),
@@ -326,6 +339,7 @@ class ReportGenerator:
         run_index_path: Path,
         candidates: list[CandidateAnomaly],
         evidence_items: list[ConceptEvidence],
+        dataset_profile: DatasetProfile | None = None,
     ) -> dict[str, object]:
         """Build traceable metadata for one ADE analysis run."""
 
@@ -342,6 +356,28 @@ class ReportGenerator:
             number_of_candidate_unknown_concepts=len(evidence_items),
             pipeline_version=self.pipeline_version,
             human_review_required=self.human_review_required,
+            number_of_input_files=(
+                dataset_profile.total_files if dataset_profile is not None else None
+            ),
+            number_of_valid_images=(
+                dataset_profile.valid_images if dataset_profile is not None else None
+            ),
+            number_of_unsupported_files=(
+                len(dataset_profile.unsupported_files)
+                if dataset_profile is not None
+                else None
+            ),
+            number_of_unreadable_files=(
+                len(dataset_profile.unreadable_files)
+                if dataset_profile is not None
+                else None
+            ),
+            estimated_patch_count=(
+                dataset_profile.estimated_patch_count
+                if dataset_profile is not None
+                else None
+            ),
+            input_warnings=dataset_profile.warnings if dataset_profile is not None else [],
         ).to_dict()
 
     def write_run_metadata(
@@ -544,6 +580,39 @@ class ReportGenerator:
         if relative_path is None:
             return "preview unavailable"
         return f"![{alt_text}]({relative_path})"
+
+    @staticmethod
+    def _dataset_profile_lines(dataset_profile: DatasetProfile | None) -> list[str]:
+        """Return concise Markdown lines for a dataset profile."""
+
+        if dataset_profile is None:
+            return ["Dataset profile was not provided for this report."]
+
+        width_range = (
+            f"{dataset_profile.image_width_min}-{dataset_profile.image_width_max}"
+            if dataset_profile.image_width_min is not None
+            else "unavailable"
+        )
+        height_range = (
+            f"{dataset_profile.image_height_min}-{dataset_profile.image_height_max}"
+            if dataset_profile.image_height_min is not None
+            else "unavailable"
+        )
+        lines = [
+            f"- Input type: `{dataset_profile.input_type}`",
+            f"- Valid image count: {dataset_profile.valid_images}",
+            f"- Unsupported file count: {len(dataset_profile.unsupported_files)}",
+            f"- Unreadable file count: {len(dataset_profile.unreadable_files)}",
+            f"- Image width range: {width_range}",
+            f"- Image height range: {height_range}",
+            f"- Estimated patch count: {dataset_profile.estimated_patch_count}",
+        ]
+        if dataset_profile.warnings:
+            lines.append("- Warnings:")
+            lines.extend(f"  - {warning}" for warning in dataset_profile.warnings)
+        else:
+            lines.append("- Warnings: none")
+        return lines
 
     @staticmethod
     def _slugify(value: str) -> str:

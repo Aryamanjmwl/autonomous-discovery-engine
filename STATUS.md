@@ -8,6 +8,7 @@ ADE is a general autonomous discovery platform. The current implementation focus
 - Config system using `configs/default.yaml`
 - Synthetic image demo data generator
 - Image folder adapter
+- Visual input validation and dataset profiling
 - Patch extraction
 - Deterministic statistical embedding backend
 - Novelty scoring
@@ -18,6 +19,7 @@ ADE is a general autonomous discovery platform. The current implementation focus
 - Cautious hypothesis generation
 - Markdown discovery report with patch previews
 - Structured JSON report
+- Dataset profile included in reports and concise run metadata
 - Run metadata files
 - Run history index
 - CLI run listing with optional limit
@@ -27,6 +29,7 @@ ADE is a general autonomous discovery platform. The current implementation focus
 ## Partially Done
 
 - Internal dataclasses exist, but adapter contracts are still visual-data-oriented.
+- Dataset profiling currently covers image folders only.
 - Reporting is useful for the visual MVP, but review annotations and richer export formats are not implemented.
 - Config supports current pipeline parameters, but broader adapter configuration is not designed yet.
 - Run history exists locally, but there is no dashboard, database, user account model, or hosted audit system.
