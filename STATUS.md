@@ -22,6 +22,7 @@ ADE is a general autonomous discovery platform. The current implementation focus
 - Run history index
 - CLI run listing with optional limit
 - Basic tests for config, models, patch extraction, novelty scoring, reports, demo data, and CLI behavior
+- Engineering quality checklist covering coding, testing, documentation, artifact, configuration, review, and release standards
 
 ## Partially Done
 
@@ -48,3 +49,4 @@ ADE is a general autonomous discovery platform. The current implementation focus
 4. Improve report review workflows with human annotations.
 5. Add run comparison tools for candidate anomalies and candidate concepts across experiments.
 6. Continue documenting original decisions and experiments before public disclosure.
+7. Run linting and type checking before a tagged internal release once the development environment includes those optional tools.

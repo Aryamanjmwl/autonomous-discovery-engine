@@ -60,6 +60,13 @@ def run_pipeline(
 ) -> Path:
     """Run the minimal ADE image pipeline and write a Markdown report."""
 
+    _validate_analysis_inputs(
+        input_dir=input_dir,
+        patch_size=patch_size,
+        stride=stride,
+        max_candidates=max_candidates,
+        config_path=config_path,
+    )
     config = load_config(config_path)
     preprocessing = config["preprocessing"]
     discovery = config["discovery"]
@@ -79,6 +86,11 @@ def run_pipeline(
     )
 
     image_records = ImageAdapter(input_dir).load()
+    if not image_records:
+        raise ValueError(
+            f"No supported image files found in input directory: {input_dir}. "
+            "Run `python scripts/create_demo_data.py` or provide a folder of PNG, JPEG, TIFF, BMP, or WebP images."
+        )
     extractor = PatchExtractor(patch_size=effective_patch_size, stride=effective_stride)
     patches = [
         patch
@@ -120,6 +132,31 @@ def run_pipeline(
         confidences=confidences,
         hypotheses=hypotheses,
     )
+
+
+def _validate_analysis_inputs(
+    input_dir: Path,
+    patch_size: int | None,
+    stride: int | None,
+    max_candidates: int | None,
+    config_path: Path | None,
+) -> None:
+    """Validate CLI analysis inputs before running the pipeline."""
+
+    if not input_dir.exists():
+        raise FileNotFoundError(f"Input directory does not exist: {input_dir}")
+    if not input_dir.is_dir():
+        raise NotADirectoryError(f"Input path is not a directory: {input_dir}")
+    if config_path is not None and not config_path.exists():
+        raise FileNotFoundError(f"Config file does not exist: {config_path}")
+    if config_path is not None and not config_path.is_file():
+        raise ValueError(f"Config path is not a file: {config_path}")
+    if patch_size is not None and patch_size <= 0:
+        raise ValueError("--patch-size must be greater than zero.")
+    if stride is not None and stride <= 0:
+        raise ValueError("--stride must be greater than zero.")
+    if max_candidates is not None and max_candidates <= 0:
+        raise ValueError("--max-candidates must be greater than zero.")
 
 
 def format_run_history(
@@ -168,20 +205,32 @@ def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
     if args.list_runs:
-        print(format_run_history(limit=args.limit))
+        try:
+            print(format_run_history(limit=args.limit))
+        except ValueError as error:
+            parser.error(str(error))
         return
 
     if args.input is None or args.output is None:
         parser.error("--input and --output are required unless --list-runs is used.")
 
-    report_path = run_pipeline(
-        input_dir=args.input,
-        output_path=args.output,
-        patch_size=args.patch_size,
-        stride=args.stride,
-        max_candidates=args.max_candidates,
-        config_path=args.config,
-    )
+    try:
+        report_path = run_pipeline(
+            input_dir=args.input,
+            output_path=args.output,
+            patch_size=args.patch_size,
+            stride=args.stride,
+            max_candidates=args.max_candidates,
+            config_path=args.config,
+        )
+    except ModuleNotFoundError as error:
+        if error.name == "PIL":
+            parser.error(
+                "Pillow is required for image loading. Install dependencies with `pip install -e .[dev]`."
+            )
+        raise
+    except (FileNotFoundError, NotADirectoryError, ValueError) as error:
+        parser.error(str(error))
     print(f"ADE report written to {report_path}")
 
 

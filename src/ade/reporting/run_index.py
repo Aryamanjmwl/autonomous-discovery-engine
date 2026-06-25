@@ -6,6 +6,8 @@ from datetime import UTC, datetime
 import json
 from pathlib import Path
 
+from ade.models import RunIndexEntry
+
 
 INDEX_VERSION = "1.0"
 
@@ -16,23 +18,10 @@ def build_run_summary(
 ) -> dict[str, object]:
     """Return a compact run summary for the run history index."""
 
-    return {
-        "run_id": str(run_metadata["run_id"]),
-        "generated_at": str(run_metadata["generated_at"]),
-        "input_path": str(run_metadata["input_path"]),
-        "markdown_report_path": str(run_metadata["markdown_report_path"]),
-        "json_report_path": str(run_metadata["json_report_path"]),
-        "run_metadata_path": run_metadata_path.as_posix(),
-        "number_of_images": int(run_metadata["number_of_images"]),
-        "number_of_patches": int(run_metadata["number_of_patches"]),
-        "number_of_candidate_anomalies": int(
-            run_metadata["number_of_candidate_anomalies"]
-        ),
-        "number_of_candidate_unknown_concepts": int(
-            run_metadata["number_of_candidate_unknown_concepts"]
-        ),
-        "human_review_required": bool(run_metadata["human_review_required"]),
-    }
+    return RunIndexEntry.from_run_metadata(
+        run_metadata=run_metadata,
+        run_metadata_path=run_metadata_path,
+    ).to_dict()
 
 
 def update_run_index(

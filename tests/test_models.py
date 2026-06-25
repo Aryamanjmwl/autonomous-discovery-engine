@@ -8,6 +8,7 @@ from ade.models import (
     EvidenceSummary,
     ImageRecord,
     PatchRecord,
+    RunIndexEntry,
     RunMetadata,
     UnknownConcept,
 )
@@ -137,3 +138,29 @@ def test_run_metadata_round_trip_serialization() -> None:
     assert data["input_path"] == "data/raw/demo_images"
     assert data["run_index_path"] == "data/reports/runs/index.json"
     assert restored == metadata
+
+
+def test_run_index_entry_serializes_from_run_metadata() -> None:
+    metadata = {
+        "run_id": "ade_20260618_143022_a7f3c9",
+        "generated_at": "2026-06-18T14:30:22+00:00",
+        "input_path": "data/raw/demo_images",
+        "markdown_report_path": "data/reports/demo_report.md",
+        "json_report_path": "data/reports/demo_report.json",
+        "number_of_images": 6,
+        "number_of_patches": 96,
+        "number_of_candidate_anomalies": 10,
+        "number_of_candidate_unknown_concepts": 3,
+        "human_review_required": True,
+    }
+
+    entry = RunIndexEntry.from_run_metadata(
+        run_metadata=metadata,
+        run_metadata_path=Path("data/reports/runs/ade_20260618_143022_a7f3c9.json"),
+    )
+    data = entry.to_dict()
+
+    assert data["run_id"] == "ade_20260618_143022_a7f3c9"
+    assert data["input_path"] == "data/raw/demo_images"
+    assert data["run_metadata_path"] == "data/reports/runs/ade_20260618_143022_a7f3c9.json"
+    assert data["human_review_required"] is True

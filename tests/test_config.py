@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from ade.config import DEFAULT_CONFIG, load_config
 
 
@@ -34,3 +36,18 @@ discovery:
     ]
     assert config["discovery"]["max_candidate_anomalies"] == 2
     assert config["preprocessing"]["patch_size"] == 64
+
+
+def test_config_loader_rejects_missing_explicit_config(tmp_path: Path) -> None:
+    missing_config = tmp_path / "missing.yaml"
+
+    with pytest.raises(FileNotFoundError, match="Config file does not exist"):
+        load_config(missing_config)
+
+
+def test_config_loader_rejects_invalid_yaml(tmp_path: Path) -> None:
+    config_path = tmp_path / "invalid.yaml"
+    config_path.write_text("project: [", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="not valid YAML"):
+        load_config(config_path)

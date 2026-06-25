@@ -4,7 +4,7 @@ import importlib.util
 
 import pytest
 
-from ade.cli import format_run_history, main
+from ade.cli import format_run_history, main, run_pipeline
 
 
 def _sample_run(run_id: str) -> dict[str, object]:
@@ -108,6 +108,29 @@ def test_format_run_history_rejects_invalid_limit(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="--limit"):
         format_run_history(index_path=index_path, limit=0)
+
+
+def test_run_pipeline_rejects_empty_input_directory(tmp_path: Path) -> None:
+    input_dir = tmp_path / "empty_images"
+    input_dir.mkdir()
+
+    with pytest.raises(ValueError, match="No supported image files"):
+        run_pipeline(
+            input_dir=input_dir,
+            output_path=tmp_path / "report.md",
+        )
+
+
+def test_run_pipeline_rejects_missing_explicit_config(tmp_path: Path) -> None:
+    input_dir = tmp_path / "images"
+    input_dir.mkdir()
+
+    with pytest.raises(FileNotFoundError, match="Config file does not exist"):
+        run_pipeline(
+            input_dir=input_dir,
+            output_path=tmp_path / "report.md",
+            config_path=tmp_path / "missing.yaml",
+        )
 
 
 def test_cli_analysis_uses_explicit_config(tmp_path: Path, monkeypatch) -> None:

@@ -228,7 +228,12 @@ Additional project docs:
 - `docs/roadmap.md`
 - `docs/development_workflow.md`
 - `docs/research_and_ip_notes.md`
+- `docs/engineering_quality.md`
 - `STATUS.md`
+
+## Artifact Policy
+
+Generated demo images, reports, report assets, run metadata, run indexes, test temp folders, cache folders, bytecode, and package build metadata should not be committed. The repository keeps `.gitkeep` files only to preserve the intended empty data directories.
 
 ## Patent/IP-Aware Development
 

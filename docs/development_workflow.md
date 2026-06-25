@@ -63,3 +63,7 @@ git diff
 ```
 
 Stage only source, tests, config, and docs that you intentionally changed.
+
+## Engineering Quality
+
+Use `docs/engineering_quality.md` as the working checklist for code review, test expectations, documentation quality, artifact policy, configuration changes, and release readiness.

@@ -259,3 +259,67 @@ class RunMetadata:
             pipeline_version=str(data["pipeline_version"]),
             human_review_required=bool(data["human_review_required"]),
         )
+
+
+@dataclass(frozen=True)
+class RunIndexEntry:
+    """Compact summary of one run for the run history index."""
+
+    run_id: str
+    generated_at: str
+    input_path: Path
+    markdown_report_path: Path
+    json_report_path: Path
+    run_metadata_path: Path
+    number_of_images: int
+    number_of_patches: int
+    number_of_candidate_anomalies: int
+    number_of_candidate_unknown_concepts: int
+    human_review_required: bool
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-safe run index entry."""
+
+        return {
+            "run_id": self.run_id,
+            "generated_at": self.generated_at,
+            "input_path": self.input_path.as_posix(),
+            "markdown_report_path": self.markdown_report_path.as_posix(),
+            "json_report_path": self.json_report_path.as_posix(),
+            "run_metadata_path": self.run_metadata_path.as_posix(),
+            "number_of_images": int(self.number_of_images),
+            "number_of_patches": int(self.number_of_patches),
+            "number_of_candidate_anomalies": int(
+                self.number_of_candidate_anomalies
+            ),
+            "number_of_candidate_unknown_concepts": int(
+                self.number_of_candidate_unknown_concepts
+            ),
+            "human_review_required": bool(self.human_review_required),
+        }
+
+    @classmethod
+    def from_run_metadata(
+        cls,
+        run_metadata: dict[str, Any],
+        run_metadata_path: Path,
+    ) -> RunIndexEntry:
+        """Build an index entry from run metadata."""
+
+        return cls(
+            run_id=str(run_metadata["run_id"]),
+            generated_at=str(run_metadata["generated_at"]),
+            input_path=Path(str(run_metadata["input_path"])),
+            markdown_report_path=Path(str(run_metadata["markdown_report_path"])),
+            json_report_path=Path(str(run_metadata["json_report_path"])),
+            run_metadata_path=run_metadata_path,
+            number_of_images=int(run_metadata["number_of_images"]),
+            number_of_patches=int(run_metadata["number_of_patches"]),
+            number_of_candidate_anomalies=int(
+                run_metadata["number_of_candidate_anomalies"]
+            ),
+            number_of_candidate_unknown_concepts=int(
+                run_metadata["number_of_candidate_unknown_concepts"]
+            ),
+            human_review_required=bool(run_metadata["human_review_required"]),
+        )

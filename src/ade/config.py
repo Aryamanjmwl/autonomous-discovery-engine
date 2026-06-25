@@ -45,12 +45,20 @@ DEFAULT_CONFIG: dict[str, Any] = {
 def load_config(config_path: Path | str | None = None) -> dict[str, Any]:
     """Load ADE configuration with defaults for missing optional fields."""
 
-    path = Path(config_path) if config_path is not None else DEFAULT_CONFIG_PATH
+    explicit_path = config_path is not None
+    path = Path(config_path) if explicit_path else DEFAULT_CONFIG_PATH
     config = deepcopy(DEFAULT_CONFIG)
     if not path.exists():
+        if explicit_path:
+            raise FileNotFoundError(f"Config file does not exist: {path}")
         return config
+    if not path.is_file():
+        raise ValueError(f"Config path is not a file: {path}")
 
-    loaded = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    try:
+        loaded = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    except yaml.YAMLError as error:
+        raise ValueError(f"Config file is not valid YAML: {path}") from error
     if not isinstance(loaded, dict):
         raise ValueError(f"Config file must contain a mapping: {path}")
 

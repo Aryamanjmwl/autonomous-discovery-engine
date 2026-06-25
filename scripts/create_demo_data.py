@@ -61,17 +61,29 @@ def _add_brightness_region(image: np.ndarray, index: int) -> None:
     """Add a broad brightness region to create non-anomalous variation."""
 
     if index % 2 == 0:
-        image[0:128, 128:256] = np.clip(image[0:128, 128:256].astype(np.int16) + 28, 0, 255).astype(np.uint8)
+        image[0:128, 128:256] = np.clip(
+            image[0:128, 128:256].astype(np.int16) + 28,
+            0,
+            255,
+        ).astype(np.uint8)
     else:
-        image[128:256, 0:128] = np.clip(image[128:256, 0:128].astype(np.int16) - 22, 0, 255).astype(np.uint8)
+        image[128:256, 0:128] = np.clip(
+            image[128:256, 0:128].astype(np.int16) - 22,
+            0,
+            255,
+        ).astype(np.uint8)
 
 
 def _add_texture_variation(image: np.ndarray, index: int, rng: np.random.Generator) -> None:
     """Add simple texture variation in a consistent patch-sized area."""
 
     texture = rng.integers(low=0, high=38 + index * 2, size=(64, 64, 1), dtype=np.uint8)
-    image[64:128, 0:64] = np.clip(image[64:128, 0:64].astype(np.int16) + texture.astype(np.int16), 0, 255).astype(
-        np.uint8
+    image[64:128, 0:64] = np.clip(
+        image[64:128, 0:64].astype(np.int16) + texture.astype(np.int16),
+        0,
+        255,
+    ).astype(
+        np.uint8,
     )
 
 
