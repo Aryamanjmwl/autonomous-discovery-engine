@@ -11,7 +11,11 @@ from ade.representation.embedding_engine import PatchEmbedding
 class NoveltyScorer:
     """Rank patches by distance from the average embedding."""
 
-    def score(self, embeddings: list[PatchEmbedding], max_candidates: int | None = None) -> list[CandidateAnomaly]:
+    def score(
+        self,
+        embeddings: list[PatchEmbedding],
+        max_candidates: int | None = None,
+    ) -> list[CandidateAnomaly]:
         """Return candidate anomalies sorted by descending novelty score."""
 
         if not embeddings:

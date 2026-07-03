@@ -30,5 +30,7 @@ class ConfidenceScorer:
             novelty_component = item.average_novelty / max_novelty
             count_component = min(item.example_count / 5.0, 1.0)
             score = 0.5 * novelty_component + 0.3 * count_component + 0.2 * item.consistency
-            confidences.append(ConceptConfidence(concept_id=item.concept_id, score=float(min(score, 1.0))))
+            confidences.append(
+                ConceptConfidence(concept_id=item.concept_id, score=float(min(score, 1.0)))
+            )
         return confidences

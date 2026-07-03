@@ -52,7 +52,9 @@ class ConceptClusterer:
             else:
                 existing = concepts[assigned_index]
                 updated_candidates = [*existing.candidates, candidate]
-                updated_centroid = np.vstack([item.embedding.vector for item in updated_candidates]).mean(axis=0)
+                updated_centroid = np.vstack(
+                    [item.embedding.vector for item in updated_candidates]
+                ).mean(axis=0)
                 concepts[assigned_index] = CandidateConcept(
                     concept_id=existing.concept_id,
                     candidates=updated_candidates,
