@@ -1,0 +1,6 @@
+
+# Generated test artifacts
+tests/
+tests/.tmp_*/
+**/.tmp_demo_images/
+**/.tmp_report_outputs/
