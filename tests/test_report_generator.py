@@ -1,6 +1,6 @@
 import json
-from pathlib import Path
 import re
+from pathlib import Path
 
 import numpy as np
 
@@ -34,7 +34,13 @@ def _candidate_patch() -> tuple[Patch, CandidateAnomaly]:
 def _concept_evidence() -> ConceptEvidence:
     return ConceptEvidence(
         concept_id="concept-001",
-        examples=[EvidenceItem(source_path=Path("image.png"), coordinates=(1, 2, 4, 4), novelty_score=0.42)],
+        examples=[
+            EvidenceItem(
+                source_path=Path("image.png"),
+                coordinates=(1, 2, 4, 4),
+                novelty_score=0.42,
+            )
+        ],
         example_count=1,
         average_novelty=0.42,
         consistency=1.0,
