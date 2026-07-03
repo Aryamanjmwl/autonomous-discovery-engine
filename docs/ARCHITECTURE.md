@@ -1,67 +1,56 @@
 # ADE Architecture
 
-ADE is a general autonomous discovery platform. The current implementation focuses on visual data. Computer vision is the first supported adapter, not the final scope of the product.
+ADE is a general autonomous discovery platform. The current implementation is visual-data-first; it supports image-folder profiling, patch extraction, statistical embeddings, novelty scoring, candidate concept grouping, and Markdown/JSON reports.
 
-ADE is organized as a modular discovery pipeline. Each stage has a narrow responsibility and uses simple data structures so future research components can be introduced without rewriting the whole system.
+The long-term architecture is layered so discovery logic does not depend on a single dataset type or a single model backend.
 
-## Pipeline
+## Product Principle
 
-1. Adapters load raw data and produce source records with metadata.
-2. Preprocessing converts source records into patches or other analysis units.
-3. Representation produces embeddings or other comparable feature records.
-4. Discovery ranks candidate anomalies and groups candidate unknown concepts.
-5. Evidence collection summarizes supporting examples.
-6. Reasoning drafts cautious hypotheses from structured evidence.
-7. Reporting creates human-readable and machine-readable review artifacts.
+Discovery with evidence, not only anomaly scores.
 
-## Current Visual Adapter Pipeline
+ADE should produce candidate findings with traceable evidence and reviewable outputs. Scores help rank findings, but evidence makes findings useful.
 
-The current computer vision adapter supports image folders. It profiles the input folder, loads image metadata, extracts fixed-size patches, computes deterministic statistical embeddings, ranks candidate anomalies, groups candidate visual concepts, collects evidence, scores confidence, generates cautious hypotheses, and writes Markdown and JSON reports.
+## Layers
 
-This visual pipeline is intentionally simple. It is a first adapter and a baseline for future stronger visual discovery work.
+1. Data Adapter Layer
+2. Representation / Embedding Layer
+3. Discovery Layer
+4. Evidence and Explanation Layer
+5. Report and Output Layer
+6. API and Product Layer
+7. Enterprise Operations Layer
 
-## Input Validation and Dataset Profiling
+## Core Interfaces
 
-Before analysis, ADE inspects the image folder and creates a dataset profile. The profile records total files, supported image files, unsupported files, unreadable files, valid image counts, image size ranges, unique image sizes, estimated patch count, warnings, and validity.
+- `DataAdapter`: loads traceable source records.
+- `EmbeddingBackend`: converts records or patches into comparable representations.
+- `ScoringBackend`: ranks candidate anomalies or candidate patterns.
+- `ClusteringBackend`: groups related candidates into candidate concepts.
+- `EvidenceRanker`: collects and ranks evidence for candidate concepts.
+- `ReportRenderer`: exports human-readable and machine-readable reports.
 
-Invalid inputs fail before analysis. Valid inputs with warnings continue, and those warnings are included in the reports and run metadata.
+## Core Models
 
-## Future Adapter Interface Concept
+- `ADERecord`
+- `DatasetSummary`
+- `EmbeddingResult`
+- `DiscoveryRun`
+- `Finding`
+- `EvidenceItem`
+- `ReportArtifact`
 
-Future adapters should follow the same pattern:
+## Current Visual Pipeline
 
-- Load a dataset type and emit traceable source records.
-- Convert source records into analysis units.
-- Produce comparable representations through a replaceable backend.
-- Preserve enough metadata to trace every candidate finding back to source data.
-- Feed discovery, evidence, reasoning, reporting, and run tracking without changing the overall platform flow.
+1. Profile image-folder input.
+2. Load valid image metadata.
+3. Extract fixed-size image patches.
+4. Compute deterministic statistical embeddings.
+5. Score candidate anomalies.
+6. Group candidate visual concepts.
+7. Collect evidence and confidence summaries.
+8. Generate cautious hypotheses.
+9. Export Markdown, JSON, preview assets, run metadata, and run index entries.
 
-Future adapters may cover videos, tabular data, time-series data, logs, audio, documents, multimodal datasets, and live streams.
+## Current Boundaries
 
-## Reporting and Run Tracking
-
-Each run writes a Markdown report, structured JSON report, dataset profile, patch preview assets when enabled, one run metadata JSON file, and an updated run history index.
-
-Run tracking records the run ID, timestamp, input path, report paths, result counts, pipeline version, and human-review requirement. This supports future dashboards, APIs, audits, subscription workspaces, and experiment comparison.
-
-## Extension Points
-
-- `adapters`: image folders today; future video, tabular, time-series, log, audio, document, multimodal, and live-stream sources.
-- `representation`: future encoders such as DINOv2, CLIP, domain-specific satellite encoders, or medical image encoders.
-- `discovery`: alternative novelty scoring, clustering, uncertainty estimation, and evidence ranking.
-- `reasoning`: stricter hypothesis templates, literature-aware context, or human-in-the-loop review.
-
-## Design Principles
-
-- Prefer explicit dataclasses and type hints.
-- Keep advanced models behind replaceable interfaces.
-- Avoid overstating results.
-- Preserve traceability from report findings back to source image paths and patch coordinates.
-
-## Internal Data Models
-
-ADE uses typed dataclasses in `src/ade/models.py` for image records, patches,
-embeddings, candidate anomalies, candidate unknown concepts, evidence summaries,
-and run metadata. These models keep internal objects explicit while ensuring
-JSON reports and run metadata serialize paths, counts, scores, and references
-without dumping raw NumPy arrays.
+The current implementation does not include non-visual adapters, deep learning backends, a service API, a dashboard, or enterprise storage. Those are planned extension points, not current capabilities.
