@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
 import json
+from datetime import UTC, datetime
 from pathlib import Path
 
 from ade.models import RunIndexEntry
-
 
 INDEX_VERSION = "1.0"
 

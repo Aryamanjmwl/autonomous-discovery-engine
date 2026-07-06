@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import UTC, datetime
 import json
-from pathlib import Path
 import re
 import struct
 import uuid
 import zlib
+from dataclasses import dataclass
+from datetime import UTC, datetime
+from pathlib import Path
 
 from ade import __version__
 from ade.discovery.confidence_scorer import ConceptConfidence
@@ -78,7 +78,8 @@ class ReportGenerator:
         lines = [
             "# ADE Discovery Report",
             "",
-            "ADE Discovery Report for exploratory review. Findings below are candidate patterns and require human review.",
+            "ADE Discovery Report for exploratory review. Findings below are candidate "
+            "patterns and require human review.",
             "",
             f"**Run ID:** `{run_id}`" if run_id else "**Run ID:** not assigned",
             "",
@@ -131,7 +132,11 @@ class ReportGenerator:
                         f"- Supporting patches: {evidence.example_count}",
                         f"- Average novelty: {evidence.average_novelty:.4f}",
                         f"- Cluster consistency: {evidence.consistency:.4f}",
-                        f"- Confidence score: {confidence.score:.4f}" if confidence else "- Confidence score: unavailable",
+                        (
+                            f"- Confidence score: {confidence.score:.4f}"
+                            if confidence
+                            else "- Confidence score: unavailable"
+                        ),
                         "",
                         "Evidence summary for this possible pattern:",
                     ]
@@ -139,7 +144,9 @@ class ReportGenerator:
                 for example_index, item in enumerate(evidence.examples, start=1):
                     preview = self._markdown_image(
                         alt_text=f"{evidence.concept_id} example {example_index}",
-                        relative_path=assets.concept_previews.get((evidence.concept_id, example_index)),
+                        relative_path=assets.concept_previews.get(
+                            (evidence.concept_id, example_index)
+                        ),
                     )
                     lines.append(
                         f"- {preview} `{item.source_path}` at {item.coordinates}; "
@@ -162,7 +169,10 @@ class ReportGenerator:
                 "",
                 "## Human Expert Review Required",
                 "",
-                "All results are exploratory candidate findings. Candidate anomalies, candidate unknown concepts, possible relationships, and hypotheses require human expert review before any scientific, clinical, operational, commercial, or financial interpretation.",
+                "All results are exploratory candidate findings. Candidate anomalies, "
+                "candidate unknown concepts, possible relationships, and hypotheses "
+                "require human expert review before any scientific, clinical, "
+                "operational, commercial, or financial interpretation.",
                 "",
             ]
         )
@@ -324,8 +334,10 @@ class ReportGenerator:
             "limitations": [
                 "All findings are exploratory candidate findings.",
                 "Candidate anomalies and candidate unknown concepts require human review.",
-                "The current MVP uses deterministic placeholder image statistics, not deep learning.",
-                "Confidence scores are readiness signals, not proof of scientific or operational significance.",
+                "The current MVP uses deterministic placeholder image statistics, "
+                "not deep learning.",
+                "Confidence scores are readiness signals, not proof of scientific "
+                "or operational significance.",
             ],
         }
 
@@ -522,10 +534,9 @@ class ReportGenerator:
                     continue
                 asset_path = assets_dir / f"{concept_slug}_example_{example_index:03d}.png"
                 self._save_patch_image(candidate, asset_path)
-                concept_previews[(evidence.concept_id, example_index)] = self._relative_markdown_path(
-                    asset_path,
-                    path.parent,
-                )
+                concept_previews[
+                    (evidence.concept_id, example_index)
+                ] = self._relative_markdown_path(asset_path, path.parent)
 
         return ReportAssets(anomaly_previews=anomaly_previews, concept_previews=concept_previews)
 
@@ -546,7 +557,10 @@ class ReportGenerator:
         png_bytes = b"".join(
             [
                 b"\x89PNG\r\n\x1a\n",
-                ReportGenerator._png_chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)),
+                ReportGenerator._png_chunk(
+                    b"IHDR",
+                    struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0),
+                ),
                 ReportGenerator._png_chunk(b"IDAT", zlib.compress(scanlines)),
                 ReportGenerator._png_chunk(b"IEND", b""),
             ]

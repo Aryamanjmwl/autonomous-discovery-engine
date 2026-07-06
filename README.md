@@ -1,6 +1,8 @@
 # ADE: Autonomous Discovery Engine
 
-ADE is a general autonomous discovery platform designed to help users discover hidden patterns, anomalies, recurring behaviors, and predictive signals inside their data. Instead of only answering predefined questions, ADE helps users find questions worth asking.
+ADE is a modular unsupervised discovery platform. It ingests datasets, builds representations, discovers candidate anomalies and hidden concepts, groups evidence, explains findings, and exports reviewable reports.
+
+Core principle: discovery with evidence, not only anomaly scores.
 
 The current implementation focuses on visual data. Computer vision is the first supported adapter, not the final scope of the product.
 
@@ -156,6 +158,19 @@ Then run ADE on the generated image folder:
 python -m ade.cli --input data/raw/demo_images --output data/reports/demo_report.md
 ```
 
+## Python Usage
+
+```python
+from pathlib import Path
+
+from ade.cli import run_pipeline
+
+run_pipeline(
+    input_dir=Path("data/raw/demo_images"),
+    output_path=Path("data/reports/demo_report.md"),
+)
+```
+
 ## Configuration
 
 ADE loads default pipeline settings from:
@@ -235,12 +250,19 @@ ade/
 
 Additional project docs:
 
-- `docs/product_scope.md`
-- `docs/architecture.md`
-- `docs/roadmap.md`
+- `docs/ARCHITECTURE.md`
+- `docs/ROADMAP.md`
+- `docs/IMPLEMENTATION_PLAN.md`
+- `docs/ADAPTER_BACKEND_GUIDE.md`
+- `docs/ENTERPRISE_READINESS.md`
+- `docs/SECURITY_MODEL.md`
+- `docs/RELEASE_CHECKLIST.md`
 - `docs/development_workflow.md`
 - `docs/research_and_ip_notes.md`
 - `docs/engineering_quality.md`
+- `CHANGELOG.md`
+- `CONTRIBUTING.md`
+- `SECURITY.md`
 - `STATUS.md`
 
 ## Artifact Policy

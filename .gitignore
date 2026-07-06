@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 __pycache__/
 **/__pycache__/
 *.py[cod]
@@ -35,3 +36,22 @@ data/reports/runs/*
 !data/processed/.gitkeep
 !data/embeddings/.gitkeep
 !data/reports/.gitkeep
+=======
+
+# Generated test artifacts
+tests/.tmp_*/
+**/.tmp_demo_images/
+**/.tmp_report_outputs/
+>>>>>>> ebc7698 (chore: add ADE enterprise roadmap foundation)
+
+# Generated test artifacts
+tests/.tmp_*/
+**/.tmp_demo_images/
+**/.tmp_report_outputs/
+
+# Generated test artifacts
+tests/.tmp_*/
+tests/.tmp_pytest/
+tests/.tmp_demo_images/
+tests/.tmp_report_outputs/
+tests/__pycache__/

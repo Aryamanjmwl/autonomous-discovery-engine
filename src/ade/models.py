@@ -64,6 +64,26 @@ class ImageRecord:
 
 
 @dataclass(frozen=True)
+class ADERecord:
+    """Generic source record for future non-visual adapters."""
+
+    record_id: str
+    source_path: Path | None = None
+    media_type: str = "unknown"
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-safe source record."""
+
+        return {
+            "record_id": self.record_id,
+            "source_path": self.source_path.as_posix() if self.source_path else None,
+            "media_type": self.media_type,
+            "metadata": _json_safe_metadata(self.metadata),
+        }
+
+
+@dataclass(frozen=True)
 class DatasetProfile:
     """Profile and validation summary for one input dataset."""
 
@@ -107,6 +127,26 @@ class DatasetProfile:
             "estimated_patch_count": int(self.estimated_patch_count),
             "warnings": list(self.warnings),
             "is_valid": bool(self.is_valid),
+        }
+
+
+@dataclass(frozen=True)
+class DatasetSummary:
+    """Stable summary of an input dataset for public interfaces."""
+
+    input_path: Path
+    input_type: str
+    record_count: int
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-safe dataset summary."""
+
+        return {
+            "input_path": self.input_path.as_posix(),
+            "input_type": self.input_type,
+            "record_count": int(self.record_count),
+            "metadata": _json_safe_metadata(self.metadata),
         }
 
 
@@ -166,6 +206,26 @@ class EmbeddingRecord:
 
 
 @dataclass(frozen=True)
+class EmbeddingResult:
+    """Backend-neutral embedding result metadata."""
+
+    record_id: str
+    vector_length: int
+    backend_name: str
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return JSON-safe embedding result metadata."""
+
+        return {
+            "record_id": self.record_id,
+            "vector_length": int(self.vector_length),
+            "backend_name": self.backend_name,
+            "metadata": _json_safe_metadata(self.metadata),
+        }
+
+
+@dataclass(frozen=True)
 class CandidateAnomaly:
     """A patch ranked as a candidate anomaly."""
 
@@ -189,6 +249,52 @@ class CandidateAnomaly:
             "height": int(patch.height),
             "novelty_score": float(self.novelty_score),
             "preview_path": self.preview_path,
+            "metadata": _json_safe_metadata(self.metadata),
+        }
+
+
+@dataclass(frozen=True)
+class EvidenceItem:
+    """One traceable evidence item attached to a finding."""
+
+    evidence_id: str
+    source_path: Path | None
+    description: str
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-safe evidence item."""
+
+        return {
+            "evidence_id": self.evidence_id,
+            "source_path": self.source_path.as_posix() if self.source_path else None,
+            "description": self.description,
+            "metadata": _json_safe_metadata(self.metadata),
+        }
+
+
+@dataclass(frozen=True)
+class Finding:
+    """Evidence-backed candidate finding produced by a discovery run."""
+
+    finding_id: str
+    finding_type: str
+    score: float
+    summary: str
+    evidence: list[EvidenceItem] = field(default_factory=list)
+    requires_human_review: bool = True
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-safe finding."""
+
+        return {
+            "finding_id": self.finding_id,
+            "finding_type": self.finding_type,
+            "score": float(self.score),
+            "summary": self.summary,
+            "evidence": [item.to_dict() for item in self.evidence],
+            "requires_human_review": bool(self.requires_human_review),
             "metadata": _json_safe_metadata(self.metadata),
         }
 
@@ -350,6 +456,44 @@ class RunMetadata:
             ),
             input_warnings=[str(item) for item in data.get("input_warnings", [])],
         )
+
+
+@dataclass(frozen=True)
+class DiscoveryRun:
+    """Public run-level summary for future APIs and report artifacts."""
+
+    run_id: str
+    dataset: DatasetSummary
+    findings: list[Finding] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-safe discovery run summary."""
+
+        return {
+            "run_id": self.run_id,
+            "dataset": self.dataset.to_dict(),
+            "findings": [finding.to_dict() for finding in self.findings],
+            "metadata": _json_safe_metadata(self.metadata),
+        }
+
+
+@dataclass(frozen=True)
+class ReportArtifact:
+    """Reference to a generated report or export artifact."""
+
+    artifact_type: str
+    path: Path
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-safe report artifact reference."""
+
+        return {
+            "artifact_type": self.artifact_type,
+            "path": self.path.as_posix(),
+            "metadata": _json_safe_metadata(self.metadata),
+        }
 
 
 @dataclass(frozen=True)

@@ -24,7 +24,9 @@ class EmbeddingEngine:
         channel_std = array.std(axis=(0, 1))
         brightness = np.array([array.mean()], dtype=np.float32)
         edge_density = np.array([self._edge_density(array)], dtype=np.float32)
-        vector = np.concatenate([channel_mean, channel_std, brightness, edge_density]).astype(np.float32)
+        vector = np.concatenate(
+            [channel_mean, channel_std, brightness, edge_density]
+        ).astype(np.float32)
         return PatchEmbedding(patch=patch, vector=vector)
 
     def embed_patches(self, patches: list[Patch]) -> list[PatchEmbedding]:

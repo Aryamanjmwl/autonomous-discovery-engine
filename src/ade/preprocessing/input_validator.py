@@ -79,7 +79,8 @@ def profile_image_folder(
         )
     elif valid_images < warn_if_images_below:
         warnings.append(
-            f"Small visual dataset: {valid_images} valid image(s); review candidate findings cautiously."
+            f"Small visual dataset: {valid_images} valid image(s); "
+            "review candidate findings cautiously."
         )
     if widths and (min(widths) < min_image_width or min(heights) < min_image_height):
         warnings.append(

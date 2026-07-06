@@ -19,7 +19,6 @@ from ade.reporting.report_generator import DatasetSummary, ReportGenerator
 from ade.reporting.run_index import load_run_index
 from ade.representation.embedding_engine import EmbeddingEngine
 
-
 DEFAULT_RUN_INDEX_PATH = Path("data/reports/runs/index.json")
 
 
@@ -30,8 +29,18 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--input", type=Path, help="Directory containing input images.")
     parser.add_argument("--output", type=Path, help="Markdown report output path.")
     parser.add_argument("--patch-size", default=None, type=int, help="Square patch size in pixels.")
-    parser.add_argument("--stride", default=None, type=int, help="Patch stride in pixels. Defaults to patch size.")
-    parser.add_argument("--max-candidates", default=None, type=int, help="Maximum candidate anomalies to report.")
+    parser.add_argument(
+        "--stride",
+        default=None,
+        type=int,
+        help="Patch stride in pixels. Defaults to patch size.",
+    )
+    parser.add_argument(
+        "--max-candidates",
+        default=None,
+        type=int,
+        help="Maximum candidate anomalies to report.",
+    )
     parser.add_argument(
         "--config",
         default=None,
@@ -106,7 +115,8 @@ def run_pipeline(
     if not image_records:
         raise ValueError(
             f"No supported image files found in input directory: {input_dir}. "
-            "Run `python scripts/create_demo_data.py` or provide a folder of PNG, JPEG, TIFF, BMP, or WebP images."
+            "Run `python scripts/create_demo_data.py` or provide a folder of PNG, JPEG, "
+            "TIFF, BMP, or WebP images."
         )
     extractor = PatchExtractor(patch_size=effective_patch_size, stride=effective_stride)
     patches = [
@@ -269,7 +279,8 @@ def main() -> None:
     except ModuleNotFoundError as error:
         if error.name == "PIL":
             parser.error(
-                "Pillow is required for image loading. Install dependencies with `pip install -e .[dev]`."
+                "Pillow is required for image loading. "
+                "Install dependencies with `pip install -e .[dev]`."
             )
         raise
     except (FileNotFoundError, NotADirectoryError, ValueError) as error:
