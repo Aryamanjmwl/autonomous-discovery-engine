@@ -7,6 +7,8 @@ from pathlib import Path
 
 from ade.adapters.image_adapter import ImageAdapter
 from ade.config import load_config
+from ade.dashboard import generate_dashboard
+from ade.dashboard.service import DEFAULT_DASHBOARD_DIR
 from ade.discovery.confidence_scorer import ConfidenceScorer
 from ade.discovery.evidence_collector import EvidenceCollector
 from ade.discovery.registry import create_clustering_backend, create_scoring_backend
@@ -25,6 +27,12 @@ def build_parser() -> argparse.ArgumentParser:
     """Create the ADE command-line parser."""
 
     parser = argparse.ArgumentParser(description="Run the ADE prototype image pipeline.")
+    parser.add_argument(
+        "command",
+        nargs="?",
+        choices=["dashboard"],
+        help="Optional command. Use `dashboard` to generate a local static dashboard.",
+    )
     parser.add_argument("--input", type=Path, help="Directory containing input images.")
     parser.add_argument("--output", type=Path, help="Markdown report output path.")
     parser.add_argument("--patch-size", default=None, type=int, help="Square patch size in pixels.")
@@ -56,6 +64,12 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         default=None,
         help="Limit run history output to the most recent N runs.",
+    )
+    parser.add_argument(
+        "--dashboard-output",
+        type=Path,
+        default=DEFAULT_DASHBOARD_DIR,
+        help="Output directory for `ade dashboard` static HTML files.",
     )
     return parser
 
@@ -271,6 +285,13 @@ def main() -> None:
 
     parser = build_parser()
     args = parser.parse_args()
+    if args.command == "dashboard":
+        result = generate_dashboard(output_dir=args.dashboard_output)
+        print(f"ADE dashboard written to {result.index_path}")
+        print(f"Runs included: {result.run_count}")
+        print(f"Open locally: {result.index_path.resolve().as_uri()}")
+        return
+
     if args.list_runs:
         try:
             print(format_run_history(limit=args.limit))
