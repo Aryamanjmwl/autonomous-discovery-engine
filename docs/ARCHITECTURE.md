@@ -71,6 +71,17 @@ contracts so candidate ranking can evolve independently from evidence
 presentation. ADE should continue to produce candidate findings with traceable
 evidence rather than only returning anomaly scores.
 
+## Backend Selection
+
+The current discovery registry supports lightweight scoring backends selected
+by `discovery.scoring_backend`: centroid distance, nearest-neighbor distance,
+and robust z-score distance. The default remains centroid distance for backward
+compatibility.
+
+The current clustering backend is a threshold-based concept grouper selected by
+`discovery.clustering_backend`. Backend names are validated when configuration
+is loaded, so unsupported names fail before the pipeline starts processing data.
+
 ## Current Boundaries
 
 The current implementation does not include non-visual adapters, deep learning backends, a service API, a dashboard, or enterprise storage. Those are planned extension points, not current capabilities.

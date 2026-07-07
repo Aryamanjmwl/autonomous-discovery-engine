@@ -7,10 +7,9 @@ from pathlib import Path
 
 from ade.adapters.image_adapter import ImageAdapter
 from ade.config import load_config
-from ade.discovery.concept_clusterer import ConceptClusterer
 from ade.discovery.confidence_scorer import ConfidenceScorer
 from ade.discovery.evidence_collector import EvidenceCollector
-from ade.discovery.novelty_scorer import NoveltyScorer
+from ade.discovery.registry import create_clustering_backend, create_scoring_backend
 from ade.models import DatasetProfile
 from ade.preprocessing.input_validator import profile_image_folder
 from ade.preprocessing.patch_extractor import PatchExtractor
@@ -94,7 +93,7 @@ def run_pipeline(
     effective_max_candidates = (
         max_candidates
         if max_candidates is not None
-        else int(discovery["max_candidate_anomalies"])
+        else int(discovery.get("top_k") or discovery["max_candidate_anomalies"])
     )
     supported_extensions = [
         str(extension) for extension in validation["supported_image_extensions"]
@@ -126,14 +125,17 @@ def run_pipeline(
     ]
 
     embeddings = EmbeddingEngine().embed_patches(patches)
-    candidates = NoveltyScorer().score(
+    scoring_backend = create_scoring_backend(str(discovery["scoring_backend"]))
+    candidates = scoring_backend.score(
         embeddings,
         max_candidates=effective_max_candidates,
     )
-    concepts = ConceptClusterer(
+    clustering_backend = create_clustering_backend(
+        str(discovery["clustering_backend"]),
         distance_threshold=float(discovery["cluster_distance_threshold"]),
         max_concepts=int(discovery["max_concepts"]),
-    ).cluster(candidates)
+    )
+    concepts = clustering_backend.cluster(candidates)
     evidence_items = EvidenceCollector().collect(concepts)
     confidences = ConfidenceScorer().score(evidence_items)
     hypotheses = HypothesisGenerator().generate(evidence_items)
@@ -159,6 +161,18 @@ def run_pipeline(
         confidences=confidences,
         hypotheses=hypotheses,
         dataset_profile=dataset_profile,
+        backend_metadata={
+            "scoring_backend": getattr(scoring_backend, "name", str(discovery["scoring_backend"])),
+            "clustering_backend": getattr(
+                clustering_backend,
+                "name",
+                str(discovery["clustering_backend"]),
+            ),
+            "top_k": effective_max_candidates,
+            "random_seed": discovery.get("random_seed"),
+            "feature_vector_count": len(embeddings),
+            "feature_vector_length": int(embeddings[0].vector.size) if embeddings else 0,
+        },
     )
 
 

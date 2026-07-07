@@ -27,6 +27,14 @@ def _candidate_patch() -> tuple[Patch, CandidateAnomaly]:
     candidate = CandidateAnomaly(
         embedding=PatchEmbedding(patch=patch, vector=np.zeros(8, dtype=np.float32)),
         novelty_score=0.42,
+        anomaly_id="anomaly-0001",
+        metadata={
+            "rank": 1,
+            "scoring_backend": "centroid_distance",
+            "nearest_neighbor_id": "nearby-patch",
+            "feature_deviations": [{"feature": "feature_1", "deviation": 0.2}],
+            "reason": "Feature profile is farther from the dataset center than most records.",
+        },
     )
     return patch, candidate
 
@@ -39,11 +47,22 @@ def _concept_evidence() -> ConceptEvidence:
                 source_path=Path("image.png"),
                 coordinates=(1, 2, 4, 4),
                 novelty_score=0.42,
+                anomaly_id="anomaly-0001",
+                rank=1,
+                scoring_backend="centroid_distance",
+                normalized_score=1.0,
+                concept_id="concept-001",
+                nearest_neighbor_id="nearby-patch",
+                feature_deviations=[{"feature": "feature_1", "deviation": 0.2}],
+                reason="Feature profile is farther from the dataset center than most records.",
             )
         ],
         example_count=1,
         average_novelty=0.42,
         consistency=1.0,
+        representative_anomaly_id="anomaly-0001",
+        item_count=1,
+        summary="Single candidate anomaly in this concept group.",
     )
 
 
@@ -78,6 +97,14 @@ def _write_sample_report(output_path: Path) -> None:
         confidences=[ConceptConfidence(concept_id="concept-001", score=0.7)],
         hypotheses=[Hypothesis(concept_id="concept-001", text="A cautious hypothesis.")],
         dataset_profile=_dataset_profile(),
+        backend_metadata={
+            "scoring_backend": "centroid_distance",
+            "clustering_backend": "threshold_candidate_grouping",
+            "top_k": 10,
+            "random_seed": 42,
+            "feature_vector_count": 1,
+            "feature_vector_length": 8,
+        },
     )
 
 
@@ -92,6 +119,14 @@ def test_report_generator_includes_required_sections() -> None:
         confidences=[ConceptConfidence(concept_id="concept-001", score=0.7)],
         hypotheses=[Hypothesis(concept_id="concept-001", text="A cautious hypothesis.")],
         dataset_profile=_dataset_profile(),
+        backend_metadata={
+            "scoring_backend": "centroid_distance",
+            "clustering_backend": "threshold_candidate_grouping",
+            "top_k": 10,
+            "random_seed": 42,
+            "feature_vector_count": 1,
+            "feature_vector_length": 8,
+        },
     )
 
     assert "# ADE Discovery Report" in report
@@ -101,6 +136,8 @@ def test_report_generator_includes_required_sections() -> None:
     assert "Number of candidate unknown concepts: 1" in report
     assert "Top Candidate Anomalies" in report
     assert "Input Dataset Profile" in report
+    assert "Discovery Backend Metadata" in report
+    assert "Scoring backend: `centroid_distance`" in report
     assert "Unsupported files found: 1" in report
     assert "Candidate Unknown Concepts" in report
     assert "Human Expert Review Required" in report
@@ -135,6 +172,7 @@ def test_report_generator_writes_structured_json_report(tmp_path: Path) -> None:
         "generated_at",
         "input_summary",
         "dataset_profile",
+        "backend_metadata",
         "number_of_images",
         "number_of_patches",
         "number_of_candidate_anomalies",
@@ -155,8 +193,15 @@ def test_report_generator_writes_structured_json_report(tmp_path: Path) -> None:
     assert report_data["human_review_required"] is True
     assert report_data["dataset_profile"]["input_type"] == "image_folder"
     assert report_data["dataset_profile"]["unsupported_file_count"] == 1
+    assert report_data["backend_metadata"]["scoring_backend"] == "centroid_distance"
+    assert report_data["backend_metadata"]["top_k"] == 10
     assert report_data["candidate_anomalies"][0]["preview_path"] == "assets/anomaly_0001.png"
+    assert report_data["candidate_anomalies"][0]["scoring_backend"] == "centroid_distance"
+    assert report_data["candidate_anomalies"][0]["nearest_neighbor_id"] == "nearby-patch"
     assert report_data["candidate_unknown_concepts"][0]["confidence_score"] == 0.7
+    assert report_data["candidate_unknown_concepts"][0]["item_count"] == 1
+    assert report_data["candidate_unknown_concepts"][0]["examples"][0]["rank"] == 1
+    assert report_data["candidate_unknown_concepts"][0]["examples"][0]["normalized_score"] == 1.0
 
 
 def test_report_generator_tracks_run_metadata(tmp_path: Path) -> None:

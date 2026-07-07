@@ -49,6 +49,15 @@ A scoring backend ranks candidate anomalies or candidate patterns. Scores should
 Scoring backends should be deterministic where practical and should avoid
 returning NaN or infinite scores.
 
+Current lightweight scoring backends:
+
+- `centroid_distance`: ranks records by distance from the dataset center.
+- `nearest_neighbor_distance`: ranks records by distance to the closest comparable record.
+- `robust_z_score`: ranks records by median absolute deviation distance.
+
+Backends are selected through `discovery.scoring_backend` in the config. Unknown
+backend names fail with a clear validation error.
+
 ## ClusteringBackend
 
 A clustering backend groups related candidates into candidate concepts.
@@ -57,6 +66,10 @@ The current implementation uses a simple threshold-based method. More advanced
 clustering can be added later behind the same contract if it is justified by
 tests and data.
 
+The current clustering backend is `threshold_candidate_grouping`. It keeps
+existing behavior while exposing concept summaries such as item count,
+representative candidate, average score, and consistency.
+
 ## EvidenceRanker
 
 An evidence ranker selects examples that make a finding reviewable.
@@ -64,9 +77,20 @@ An evidence ranker selects examples that make a finding reviewable.
 Evidence should include enough context for review: source records, coordinates
 when available, scores, cluster membership, and conservative reason text.
 
+Current evidence records include rank, scoring backend name, concept id,
+nearest-neighbor id when available, feature deviations, preview path when
+available, and concise reason text.
+
 ## ReportRenderer
 
 A report renderer exports review artifacts. Markdown and JSON exist today; HTML is a planned format.
 
 Report renderers should return artifact references and preserve human-review
 language. They should not convert candidate findings into unsupported claims.
+
+Reports include selected backend names, `top_k`, random seed when configured,
+and feature vector counts so runs can be reviewed and compared.
+
+Optional future backends such as CLIP, DINOv2, FAISS, HDBSCAN, or
+scikit-learn-based scorers should plug into these contracts without becoming
+default dependencies.

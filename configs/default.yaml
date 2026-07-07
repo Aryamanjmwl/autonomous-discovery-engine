@@ -8,9 +8,13 @@ preprocessing:
 
 discovery:
   max_candidate_anomalies: 10
+  top_k:
   max_concepts: 5
   novelty_metric: "euclidean"
+  scoring_backend: "centroid_distance"
+  clustering_backend: "threshold_candidate_grouping"
   cluster_distance_threshold: 0.35
+  random_seed: 42
 
 reporting:
   report_version: "1.0"
