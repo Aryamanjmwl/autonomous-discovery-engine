@@ -10,11 +10,11 @@ ADE is a general autonomous discovery platform. The current implementation focus
 - Image folder adapter
 - Visual input validation and dataset profiling
 - Patch extraction
-- Deterministic statistical embedding backend
-- Novelty scoring
+- Deterministic lightweight visual embedding backend with named feature metadata
+- Normalized novelty scoring with nearest-neighbor context
 - Candidate anomaly selection
 - Candidate concept grouping
-- Evidence collection
+- Evidence collection with feature deviations and conservative reason text
 - Confidence scoring
 - Cautious hypothesis generation
 - Markdown discovery report with patch previews
@@ -23,7 +23,7 @@ ADE is a general autonomous discovery platform. The current implementation focus
 - Run metadata files
 - Run history index
 - CLI run listing with optional limit
-- Basic tests for config, models, patch extraction, novelty scoring, reports, demo data, and CLI behavior
+- Basic tests for config, models, feature extraction, patch extraction, novelty scoring, evidence, reports, demo data, and CLI behavior
 - Engineering quality checklist covering coding, testing, documentation, artifact, configuration, review, and release standards
 
 ## Partially Done

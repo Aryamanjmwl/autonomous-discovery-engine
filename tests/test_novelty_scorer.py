@@ -30,7 +30,37 @@ def test_novelty_scorer_ranks_far_embedding_first() -> None:
 
     assert candidates[0].embedding.vector.tolist() == [10.0, 10.0]
     assert candidates[0].novelty_score > candidates[-1].novelty_score
+    assert candidates[0].metadata["nearest_neighbor_patch_id"] is not None
+    assert candidates[0].metadata["rank"] == 1
+    assert candidates[0].metadata["reason"]
 
 
 def test_novelty_scorer_handles_empty_input() -> None:
     assert NoveltyScorer().score([]) == []
+
+
+def test_novelty_scorer_handles_constant_columns_without_nan() -> None:
+    embeddings = [
+        _embedding([1.0, 2.0, 5.0]),
+        _embedding([1.0, 2.0, 5.0]),
+        _embedding([1.0, 2.0, 5.0]),
+    ]
+
+    candidates = NoveltyScorer().score(embeddings)
+
+    assert len(candidates) == 3
+    assert all(np.isfinite(candidate.novelty_score) for candidate in candidates)
+    assert all(candidate.novelty_score == 0.0 for candidate in candidates)
+
+
+def test_novelty_scorer_supports_cosine_distance() -> None:
+    embeddings = [
+        _embedding([1.0, 0.0]),
+        _embedding([0.9, 0.1]),
+        _embedding([-1.0, 0.0]),
+    ]
+
+    candidates = NoveltyScorer(metric="cosine").score(embeddings)
+
+    assert len(candidates) == 3
+    assert all(np.isfinite(candidate.novelty_score) for candidate in candidates)

@@ -23,7 +23,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "max_candidate_anomalies": 10,
         "max_concepts": 5,
         "novelty_metric": "euclidean",
-        "cluster_distance_threshold": 0.35,
+        "cluster_distance_threshold": 2.5,
     },
     "reporting": {
         "report_version": "1.0",

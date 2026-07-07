@@ -68,6 +68,7 @@ class ReportGenerator:
         assets: ReportAssets | None = None,
         run_id: str | None = None,
         dataset_profile: DatasetProfile | None = None,
+        configuration_used: dict[str, object] | None = None,
     ) -> str:
         """Return an ADE Discovery Report in Markdown format."""
 
@@ -95,6 +96,14 @@ class ReportGenerator:
             "",
             *self._dataset_profile_lines(dataset_profile),
             "",
+            "## Configuration Used",
+            "",
+            *self._configuration_lines(configuration_used),
+            "",
+            "## Feature Extraction Summary",
+            "",
+            *self._feature_summary_lines(candidates),
+            "",
             "## Top Candidate Anomalies",
             "",
         ]
@@ -102,8 +111,8 @@ class ReportGenerator:
         if candidates:
             lines.extend(
                 [
-                    "| Rank | Preview | Source | Coordinates | Novelty score |",
-                    "| --- | --- | --- | --- | ---: |",
+                    "| Rank | Preview | Source | Coordinates | Novelty score | Reason |",
+                    "| --- | --- | --- | --- | ---: | --- |",
                 ]
             )
             for index, candidate in enumerate(candidates, start=1):
@@ -114,10 +123,18 @@ class ReportGenerator:
                 )
                 lines.append(
                     f"| {index} | {preview} | `{patch.source_path}` | "
-                    f"`{patch.coordinates}` | {candidate.novelty_score:.4f} |"
+                    f"`{patch.coordinates}` | {candidate.novelty_score:.4f} | "
+                    f"{candidate.metadata.get('reason', 'Less similar to dataset center.')} |"
                 )
         else:
             lines.append("No candidate anomalies were identified by the placeholder scorer.")
+
+        lines.extend(["", "## Evidence Items", ""])
+        if candidates:
+            for index, candidate in enumerate(candidates, start=1):
+                lines.extend(self._candidate_evidence_lines(index, candidate, assets))
+        else:
+            lines.append("No evidence items were available.")
 
         lines.extend(["", "## Candidate Unknown Concepts", ""])
 
@@ -132,6 +149,9 @@ class ReportGenerator:
                         f"- Supporting patches: {evidence.example_count}",
                         f"- Average novelty: {evidence.average_novelty:.4f}",
                         f"- Cluster consistency: {evidence.consistency:.4f}",
+                        "- Representative anomaly: "
+                        f"{evidence.representative_anomaly_id or 'unavailable'}",
+                        f"- Concept summary: {evidence.summary or 'No summary available.'}",
                         (
                             f"- Confidence score: {confidence.score:.4f}"
                             if confidence
@@ -150,7 +170,8 @@ class ReportGenerator:
                     )
                     lines.append(
                         f"- {preview} `{item.source_path}` at {item.coordinates}; "
-                        f"novelty score {item.novelty_score:.4f}"
+                        f"novelty score {item.novelty_score:.4f}. "
+                        f"{item.reason or 'Requires review.'}"
                     )
                 lines.extend(
                     [
@@ -174,6 +195,13 @@ class ReportGenerator:
                 "require human expert review before any scientific, clinical, "
                 "operational, commercial, or financial interpretation.",
                 "",
+                "## Reproducibility Notes",
+                "",
+                "This report uses deterministic lightweight visual features and configured "
+                "pipeline settings. Re-running with the same input files and configuration "
+                "should produce stable rankings, apart from unique run identifiers and "
+                "timestamps.",
+                "",
             ]
         )
         return "\n".join(lines)
@@ -187,6 +215,7 @@ class ReportGenerator:
         confidences: list[ConceptConfidence],
         hypotheses: list[Hypothesis],
         dataset_profile: DatasetProfile | None = None,
+        configuration_used: dict[str, object] | None = None,
     ) -> Path:
         """Write a Markdown report and return the output path."""
 
@@ -219,6 +248,7 @@ class ReportGenerator:
             assets=assets,
             run_id=run_id,
             dataset_profile=dataset_profile,
+            configuration_used=configuration_used,
         )
         path.write_text(report, encoding="utf-8")
         json_report = self.generate_json(
@@ -231,6 +261,7 @@ class ReportGenerator:
             run_id=run_id,
             run_metadata=run_metadata,
             dataset_profile=dataset_profile,
+            configuration_used=configuration_used,
         )
         json_path.write_text(
             json.dumps(json_report, indent=2, sort_keys=True),
@@ -257,6 +288,7 @@ class ReportGenerator:
         run_id: str | None = None,
         run_metadata: dict[str, object] | None = None,
         dataset_profile: DatasetProfile | None = None,
+        configuration_used: dict[str, object] | None = None,
     ) -> dict[str, object]:
         """Return a machine-readable ADE discovery report."""
 
@@ -301,18 +333,30 @@ class ReportGenerator:
             "dataset_profile": (
                 dataset_profile.to_dict() if dataset_profile is not None else None
             ),
+            "configuration_used": configuration_used or {},
+            "feature_extraction_summary": self._feature_summary_json(candidates),
             "number_of_images": int(dataset_summary.image_count),
             "number_of_patches": int(dataset_summary.patch_count),
             "number_of_candidate_anomalies": len(candidate_anomalies),
             "number_of_candidate_unknown_concepts": len(candidate_unknown_concepts),
+            "top_discoveries": candidate_anomalies,
             "candidate_anomalies": candidate_anomalies,
             "candidate_unknown_concepts": candidate_unknown_concepts,
+            "report_assets": {
+                "anomaly_previews": assets.anomaly_previews,
+                "concept_previews": {
+                    f"{concept_id}:{index}": path
+                    for (concept_id, index), path in assets.concept_previews.items()
+                },
+            },
             "evidence_summary": [
                 {
                     "concept_id": evidence.concept_id,
                     "example_count": int(evidence.example_count),
                     "average_novelty": float(evidence.average_novelty),
                     "cluster_consistency": float(evidence.consistency),
+                    "representative_anomaly_id": evidence.representative_anomaly_id,
+                    "summary": evidence.summary,
                 }
                 for evidence in evidence_items
             ],
@@ -431,9 +475,20 @@ class ReportGenerator:
         ).to_dict()
         return {
             "rank": int(rank),
+            "anomaly_id": candidate.anomaly_id or f"anomaly-{rank:04d}",
             "source_path": anomaly["source_path"],
             "coordinates": [int(value) for value in patch.coordinates],
             "novelty_score": anomaly["novelty_score"],
+            "centroid_distance": float(candidate.metadata.get("centroid_distance", 0.0)),
+            "nearest_neighbor_distance": float(
+                candidate.metadata.get("nearest_neighbor_distance", 0.0)
+            ),
+            "nearest_neighbor_patch_id": candidate.metadata.get("nearest_neighbor_patch_id"),
+            "feature_deviations": candidate.metadata.get("feature_deviations", []),
+            "reason": candidate.metadata.get(
+                "reason",
+                "Patch summary is less similar to the dataset center.",
+            ),
             "preview_path": anomaly["preview_path"],
             "label": "candidate anomaly",
             "requires_human_review": self.human_review_required,
@@ -455,6 +510,11 @@ class ReportGenerator:
                     "source_path": str(item.source_path),
                     "coordinates": [int(value) for value in item.coordinates],
                     "novelty_score": float(item.novelty_score),
+                    "anomaly_id": item.anomaly_id,
+                    "rank": item.rank,
+                    "nearest_neighbor_patch_id": item.nearest_neighbor_patch_id,
+                    "feature_deviations": item.feature_deviations or [],
+                    "reason": item.reason,
                     "preview_path": assets.concept_previews.get(
                         (evidence.concept_id, example_index)
                     ),
@@ -469,13 +529,16 @@ class ReportGenerator:
                 for item in evidence.examples
             ],
             representative_anomaly_id=(
-                f"{Path(str(evidence.examples[0].source_path)).stem}_"
-                f"{evidence.examples[0].coordinates[0]}_"
-                f"{evidence.examples[0].coordinates[1]}_"
-                f"{evidence.examples[0].coordinates[2]}_"
-                f"{evidence.examples[0].coordinates[3]}"
-                if evidence.examples
-                else None
+                evidence.representative_anomaly_id
+                or (
+                    f"{Path(str(evidence.examples[0].source_path)).stem}_"
+                    f"{evidence.examples[0].coordinates[0]}_"
+                    f"{evidence.examples[0].coordinates[1]}_"
+                    f"{evidence.examples[0].coordinates[2]}_"
+                    f"{evidence.examples[0].coordinates[3]}"
+                    if evidence.examples
+                    else None
+                )
             ),
             average_novelty_score=evidence.average_novelty,
             confidence_score=confidence.score if confidence else None,
@@ -494,6 +557,8 @@ class ReportGenerator:
             "example_count": int(evidence.example_count),
             "average_novelty": concept_data["average_novelty_score"],
             "cluster_consistency": float(evidence.consistency),
+            "representative_anomaly_id": evidence.representative_anomaly_id,
+            "summary": evidence.summary,
             "confidence_score": concept_data["confidence_score"],
             "possible_pattern": hypothesis.text if hypothesis else None,
             "examples": examples,
@@ -626,6 +691,90 @@ class ReportGenerator:
             lines.extend(f"  - {warning}" for warning in dataset_profile.warnings)
         else:
             lines.append("- Warnings: none")
+        return lines
+
+    @staticmethod
+    def _configuration_lines(configuration_used: dict[str, object] | None) -> list[str]:
+        """Return concise Markdown lines for reproducibility settings."""
+
+        if not configuration_used:
+            return ["Configuration was not provided for this report."]
+
+        lines: list[str] = []
+        for key in sorted(configuration_used):
+            value = configuration_used[key]
+            if isinstance(value, dict):
+                lines.append(f"- {key}:")
+                for nested_key in sorted(value):
+                    lines.append(f"  - {nested_key}: `{value[nested_key]}`")
+            else:
+                lines.append(f"- {key}: `{value}`")
+        return lines
+
+    @staticmethod
+    def _feature_summary_lines(candidates: list[CandidateAnomaly]) -> list[str]:
+        """Return Markdown lines describing the active visual feature backend."""
+
+        summary = ReportGenerator._feature_summary_json(candidates)
+        if not summary:
+            return ["No feature extraction summary is available."]
+        return [
+            f"- Backend: `{summary['backend_name']}`",
+            f"- Feature count: {summary['feature_count']}",
+            "- Strategy: deterministic lightweight visual statistics; no deep learning backend.",
+        ]
+
+    @staticmethod
+    def _feature_summary_json(candidates: list[CandidateAnomaly]) -> dict[str, object]:
+        """Return machine-readable feature extraction metadata."""
+
+        if not candidates:
+            return {}
+        metadata = candidates[0].embedding.metadata
+        feature_names = metadata.get("feature_names", [])
+        if not isinstance(feature_names, list):
+            feature_names = []
+        return {
+            "backend_name": str(metadata.get("backend_name", "unknown")),
+            "feature_count": int(metadata.get("feature_count", len(feature_names))),
+            "feature_names": [str(feature) for feature in feature_names],
+            "uses_deep_learning": False,
+        }
+
+    def _candidate_evidence_lines(
+        self,
+        rank: int,
+        candidate: CandidateAnomaly,
+        assets: ReportAssets,
+    ) -> list[str]:
+        """Return Markdown lines for one ranked evidence item."""
+
+        patch = candidate.embedding.patch
+        preview = self._markdown_image(
+            alt_text=f"candidate anomaly {rank}",
+            relative_path=assets.anomaly_previews.get(rank),
+        )
+        lines = [
+            f"### Candidate anomaly {rank}",
+            "",
+            f"- Preview: {preview}",
+            f"- Source: `{patch.source_path}`",
+            f"- Coordinates: `{patch.coordinates}`",
+            f"- Novelty score: {candidate.novelty_score:.4f}",
+            "- Nearest neighbor patch: "
+            f"{candidate.metadata.get('nearest_neighbor_patch_id') or 'unavailable'}",
+            f"- Reason: {candidate.metadata.get('reason', 'Requires review.')}",
+        ]
+        deviations = candidate.metadata.get("feature_deviations", [])
+        if isinstance(deviations, list) and deviations:
+            lines.append("- Largest feature deviations:")
+            for deviation in deviations:
+                if not isinstance(deviation, dict):
+                    continue
+                feature = str(deviation.get("feature", "feature"))
+                z_deviation = float(deviation.get("z_deviation", 0.0))
+                lines.append(f"  - `{feature}`: {z_deviation:.3f} z")
+        lines.append("")
         return lines
 
     @staticmethod

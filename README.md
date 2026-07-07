@@ -56,7 +56,7 @@ The current pipeline performs:
 9. Cautious hypothesis generation
 10. Markdown and JSON discovery report generation
 
-The embedding system currently uses simple image statistics such as color means, standard deviations, brightness, and edge density. This is intentionally basic so the architecture can later support stronger encoders for specific domains.
+The embedding system currently uses deterministic lightweight visual statistics: size and aspect ratio features, brightness and contrast summaries, color channel statistics, color histograms, simple texture estimates, and gradient-based edge features. This is intentionally dependency-light so the architecture can later support stronger encoders such as CLIP, DINOv2, or custom domain models behind the same representation boundary.
 
 ## Example Use Cases
 
@@ -84,12 +84,13 @@ ADE is designed to grow into a cross-industry discovery platform. Example future
 - Return image path and metadata
 - Split images into fixed-size patches
 - Create deterministic placeholder embeddings from image statistics
-- Rank candidate anomalies by distance from the dataset average
+- Rank candidate anomalies with normalized centroid and nearest-neighbor distance signals
 - Group similar candidate anomalies into candidate unknown concepts
-- Collect supporting patches and basic statistics
+- Collect supporting patches, feature deviations, nearest-neighbor context, and factual evidence reasons
 - Produce a simple confidence score from novelty strength, example count, and cluster consistency
 - Generate cautious template-based hypotheses
 - Write a Markdown ADE Discovery Report and a structured JSON sidecar report
+- Include run metadata, configuration used, feature extraction summary, evidence items, limitations, and reproducibility notes in reports
 
 Current supported image formats are configured in `configs/default.yaml` and include `.jpg`, `.jpeg`, `.png`, `.bmp`, and `.webp`.
 

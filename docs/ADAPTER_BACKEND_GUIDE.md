@@ -21,9 +21,11 @@ Future adapters:
 
 ## EmbeddingBackend
 
-An embedding backend converts records or patches into comparable representations. The default visual implementation uses deterministic statistical features.
+An embedding backend converts records or patches into comparable representations. The default visual implementation uses deterministic lightweight statistics: patch geometry, brightness and contrast summaries, color channel statistics, histograms, simple texture estimates, and gradient features.
 
 Future backends should be optional and should not add heavy dependencies to the default install.
+
+Deep-learning backends such as CLIP, DINOv2, or custom domain encoders are intentionally delayed until the baseline pipeline, evidence reporting, and backend contracts are stable. A future backend should emit traceable metadata, preserve deterministic evaluation where practical, and remain replaceable behind the representation interface.
 
 ## ScoringBackend
 
@@ -36,6 +38,8 @@ A clustering backend groups related candidates into candidate concepts.
 ## EvidenceRanker
 
 An evidence ranker selects examples that make a finding reviewable.
+
+Current evidence records include rank, anomaly score, source path, coordinates, nearest-neighbor context, feature deviations, preview asset paths when available, and conservative reason text.
 
 ## ReportRenderer
 

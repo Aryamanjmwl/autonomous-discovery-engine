@@ -1,13 +1,18 @@
-<<<<<<< HEAD
 __pycache__/
 **/__pycache__/
 *.py[cod]
 *.pyc
 *.egg-info/
+
 .pytest_cache/
-.pytest-tmp/
 .mypy_cache/
 .ruff_cache/
+.pytest-tmp/
+.tmp_*/
+**/.tmp_demo_images/
+**/.tmp_report_outputs/
+**/.tmp_report_assets/
+**/.tmp_pytest/
 tests/.tmp*/
 tests/.tmp_pytest/
 tests/.tmp_cli_outputs/
@@ -15,6 +20,7 @@ tests/.tmp_config_outputs/
 tests/.tmp_report_assets/
 tests/.tmp_report_outputs/
 tests/.tmp_demo_images/
+
 .venv/
 venv/
 build/
@@ -36,22 +42,3 @@ data/reports/runs/*
 !data/processed/.gitkeep
 !data/embeddings/.gitkeep
 !data/reports/.gitkeep
-=======
-
-# Generated test artifacts
-tests/.tmp_*/
-**/.tmp_demo_images/
-**/.tmp_report_outputs/
->>>>>>> ebc7698 (chore: add ADE enterprise roadmap foundation)
-
-# Generated test artifacts
-tests/.tmp_*/
-**/.tmp_demo_images/
-**/.tmp_report_outputs/
-
-# Generated test artifacts
-tests/.tmp_*/
-tests/.tmp_pytest/
-tests/.tmp_demo_images/
-tests/.tmp_report_outputs/
-tests/__pycache__/

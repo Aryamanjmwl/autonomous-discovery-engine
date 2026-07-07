@@ -126,7 +126,7 @@ def run_pipeline(
     ]
 
     embeddings = EmbeddingEngine().embed_patches(patches)
-    candidates = NoveltyScorer().score(
+    candidates = NoveltyScorer(metric=str(discovery.get("novelty_metric", "euclidean"))).score(
         embeddings,
         max_candidates=effective_max_candidates,
     )
@@ -159,7 +159,36 @@ def run_pipeline(
         confidences=confidences,
         hypotheses=hypotheses,
         dataset_profile=dataset_profile,
+        configuration_used=_report_config_summary(
+            patch_size=effective_patch_size,
+            stride=effective_stride,
+            max_candidates=effective_max_candidates,
+            novelty_metric=str(discovery.get("novelty_metric", "euclidean")),
+            cluster_distance_threshold=float(discovery["cluster_distance_threshold"]),
+        ),
     )
+
+
+def _report_config_summary(
+    patch_size: int,
+    stride: int,
+    max_candidates: int,
+    novelty_metric: str,
+    cluster_distance_threshold: float,
+) -> dict[str, object]:
+    """Return concise run settings for reports."""
+
+    return {
+        "preprocessing": {
+            "patch_size": patch_size,
+            "patch_stride": stride,
+        },
+        "discovery": {
+            "max_candidate_anomalies": max_candidates,
+            "novelty_metric": novelty_metric,
+            "cluster_distance_threshold": cluster_distance_threshold,
+        },
+    }
 
 
 def _raise_for_invalid_profile(dataset_profile: DatasetProfile) -> None:
@@ -285,7 +314,34 @@ def main() -> None:
         raise
     except (FileNotFoundError, NotADirectoryError, ValueError) as error:
         parser.error(str(error))
-    print(f"ADE report written to {report_path}")
+    print(_format_completed_run(report_path))
+
+
+def _format_completed_run(report_path: Path) -> str:
+    """Return concise terminal output for a completed analysis."""
+
+    json_path = report_path.with_suffix(".json")
+    if not json_path.exists():
+        return f"ADE report written to {report_path}"
+
+    import json
+
+    report_data = json.loads(json_path.read_text(encoding="utf-8"))
+    run_id = report_data.get("run_id", "unavailable")
+    input_dir = report_data.get("input_summary", {}).get("input_dir", "unavailable")
+    image_count = report_data.get("number_of_images", "unavailable")
+    finding_count = report_data.get("number_of_candidate_anomalies", "unavailable")
+    return "\n".join(
+        [
+            "ADE analysis complete.",
+            f"Run ID: {run_id}",
+            f"Dataset: {input_dir}",
+            f"Images processed: {image_count}",
+            f"Candidate anomalies: {finding_count}",
+            f"Markdown report: {report_path}",
+            f"JSON report: {json_path}",
+        ]
+    )
 
 
 if __name__ == "__main__":

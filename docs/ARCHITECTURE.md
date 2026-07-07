@@ -44,12 +44,18 @@ ADE should produce candidate findings with traceable evidence and reviewable out
 1. Profile image-folder input.
 2. Load valid image metadata.
 3. Extract fixed-size image patches.
-4. Compute deterministic statistical embeddings.
-5. Score candidate anomalies.
-6. Group candidate visual concepts.
-7. Collect evidence and confidence summaries.
+4. Compute deterministic lightweight visual embeddings.
+5. Score candidate anomalies with normalized global and nearest-neighbor distance signals.
+6. Group candidate visual concepts with dependency-light normalized vector clustering.
+7. Collect evidence, feature deviations, nearest-neighbor context, and confidence summaries.
 8. Generate cautious hypotheses.
 9. Export Markdown, JSON, preview assets, run metadata, and run index entries.
+
+## Current Visual Feature Strategy
+
+The current visual representation backend is intentionally lightweight and deterministic. It combines patch size and aspect ratio, brightness and contrast statistics, RGB channel summaries, normalized color and brightness histograms, simple texture estimates, and gradient-based edge features.
+
+This is not a replacement for CLIP, DINOv2, domain-specific encoders, or validated scientific models. It gives the current image adapter a more useful baseline while keeping the default install small and making future embedding backends easier to compare against.
 
 ## Current Boundaries
 
