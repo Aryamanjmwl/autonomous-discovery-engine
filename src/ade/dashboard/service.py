@@ -346,18 +346,21 @@ def _concepts_section(report: dict[str, Any], run: DashboardRun) -> str:
                     f"rank={escape(_string(example.get('rank')))}</span>"
                     "</li>"
                 )
+        concept_metadata = {
+            "Example count": concept.get("example_count"),
+            "Average novelty": concept.get("average_novelty"),
+            "Confidence score": concept.get("confidence_score"),
+            "Representative anomaly": concept.get("representative_anomaly_id"),
+            "Summary": concept.get("summary"),
+            "Possible pattern": concept.get("possible_pattern"),
+        }
+        concept_metadata_html = _metadata_list(concept_metadata)
+        evidence_html = "".join(example_items) or "<li>No examples recorded.</li>"
         blocks.append(
             "<article class=\"concept\">"
             f"<h3>{escape(_string(concept.get('concept_id')))}</h3>"
-            f"{_metadata_list({
-                'Example count': concept.get('example_count'),
-                'Average novelty': concept.get('average_novelty'),
-                'Confidence score': concept.get('confidence_score'),
-                'Representative anomaly': concept.get('representative_anomaly_id'),
-                'Summary': concept.get('summary'),
-                'Possible pattern': concept.get('possible_pattern'),
-            })}"
-            f"<ul class=\"evidence-list\">{''.join(example_items) or '<li>No examples recorded.</li>'}</ul>"
+            f"{concept_metadata_html}"
+            f"<ul class=\"evidence-list\">{evidence_html}</ul>"
             "</article>"
         )
     return "<section><h2>Concept Groups</h2>" + "".join(blocks) + "</section>"
