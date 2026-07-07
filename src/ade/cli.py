@@ -6,19 +6,23 @@ import argparse
 from pathlib import Path
 
 from ade.adapters.image_adapter import ImageAdapter
+from ade.adapters.tabular_adapter import TabularAdapter
 from ade.config import load_config
 from ade.dashboard import generate_dashboard
 from ade.dashboard.service import DEFAULT_DASHBOARD_DIR
 from ade.discovery.confidence_scorer import ConfidenceScorer
 from ade.discovery.evidence_collector import EvidenceCollector
 from ade.discovery.registry import create_clustering_backend, create_scoring_backend
+from ade.discovery.tabular import TabularConceptGrouper, TabularNoveltyScorer
 from ade.models import DatasetProfile
 from ade.preprocessing.input_validator import profile_image_folder
 from ade.preprocessing.patch_extractor import PatchExtractor
 from ade.reasoning.hypothesis_generator import HypothesisGenerator
 from ade.reporting.report_generator import DatasetSummary, ReportGenerator
 from ade.reporting.run_index import load_run_index
+from ade.reporting.tabular_report_generator import TabularReportGenerator
 from ade.representation.embedding_engine import EmbeddingEngine
+from ade.representation.tabular_engine import TabularFeatureEngine
 
 DEFAULT_RUN_INDEX_PATH = Path("data/reports/runs/index.json")
 
@@ -33,7 +37,11 @@ def build_parser() -> argparse.ArgumentParser:
         choices=["dashboard"],
         help="Optional command. Use `dashboard` to generate a local static dashboard.",
     )
-    parser.add_argument("--input", type=Path, help="Directory containing input images.")
+    parser.add_argument(
+        "--input",
+        type=Path,
+        help="Directory containing input images, or a CSV file for tabular discovery.",
+    )
     parser.add_argument("--output", type=Path, help="Markdown report output path.")
     parser.add_argument("--patch-size", default=None, type=int, help="Square patch size in pixels.")
     parser.add_argument(
@@ -82,7 +90,15 @@ def run_pipeline(
     max_candidates: int | None = None,
     config_path: Path | None = None,
 ) -> Path:
-    """Run the minimal ADE image pipeline and write a Markdown report."""
+    """Run an ADE discovery pipeline and write a Markdown report."""
+
+    if input_dir.suffix.lower() == ".csv":
+        return run_tabular_pipeline(
+            input_path=input_dir,
+            output_path=output_path,
+            max_candidates=max_candidates,
+            config_path=config_path,
+        )
 
     _validate_analysis_inputs(
         input_dir=input_dir,
@@ -186,6 +202,82 @@ def run_pipeline(
             "random_seed": discovery.get("random_seed"),
             "feature_vector_count": len(embeddings),
             "feature_vector_length": int(embeddings[0].vector.size) if embeddings else 0,
+        },
+    )
+
+
+def run_tabular_pipeline(
+    input_path: Path,
+    output_path: Path,
+    max_candidates: int | None = None,
+    config_path: Path | None = None,
+) -> Path:
+    """Run the lightweight ADE CSV pipeline and write a Markdown report."""
+
+    if config_path is not None and not config_path.exists():
+        raise FileNotFoundError(f"Config file does not exist: {config_path}")
+    if config_path is not None and not config_path.is_file():
+        raise ValueError(f"Config path is not a file: {config_path}")
+    if max_candidates is not None and max_candidates <= 0:
+        raise ValueError("--max-candidates must be greater than zero.")
+
+    config = load_config(config_path)
+    discovery = config["discovery"]
+    reporting = config["reporting"]
+    project = config["project"]
+    tabular_config = config.get("tabular", {})
+    missing_tokens = {
+        str(token)
+        for token in tabular_config.get(
+            "missing_value_tokens",
+            ["", "na", "n/a", "nan", "null", "none"],
+        )
+    }
+    effective_max_candidates = (
+        max_candidates
+        if max_candidates is not None
+        else int(discovery.get("top_k") or discovery["max_candidate_anomalies"])
+    )
+    adapter = TabularAdapter(
+        input_path=input_path,
+        missing_value_tokens=missing_tokens,
+        max_categorical_cardinality=int(tabular_config.get("max_categorical_cardinality", 50)),
+    )
+    profile = adapter.profile()
+    if not profile.is_valid:
+        raise ValueError(
+            f"CSV input is not valid for tabular discovery: {input_path}. "
+            f"Warnings: {'; '.join(profile.warnings)}"
+        )
+    records = adapter.load()
+    embeddings = TabularFeatureEngine(missing_value_tokens=missing_tokens).embed(
+        records=records,
+        profile=profile,
+    )
+    findings = TabularNoveltyScorer().score(
+        embeddings,
+        max_candidates=effective_max_candidates,
+    )
+    concepts = TabularConceptGrouper(max_concepts=int(discovery["max_concepts"])).group(findings)
+    feature_vector_length = int(embeddings[0].vector.size) if embeddings else 0
+    return TabularReportGenerator(
+        project_name=str(project["name"]),
+        pipeline_version=str(project["pipeline_version"]),
+        report_version=str(reporting["report_version"]),
+        human_review_required=bool(reporting["human_review_required"]),
+        runs_dir_name=str(reporting["runs_dir_name"]),
+    ).write(
+        output_path=output_path,
+        profile=profile,
+        findings=findings,
+        concepts=concepts,
+        backend_metadata={
+            "embedding_backend": TabularFeatureEngine.name,
+            "scoring_backend": TabularNoveltyScorer.name,
+            "clustering_backend": TabularConceptGrouper.name,
+            "top_k": effective_max_candidates,
+            "feature_vector_count": len(embeddings),
+            "feature_vector_length": feature_vector_length,
         },
     )
 

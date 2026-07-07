@@ -1,6 +1,10 @@
 # ADE Architecture
 
-ADE is a general autonomous discovery platform. The current implementation is visual-data-first; it supports image-folder profiling, patch extraction, statistical embeddings, novelty scoring, candidate concept grouping, and Markdown/JSON reports.
+ADE is a general autonomous discovery platform. The current implementation
+supports a visual-data-first image pipeline and a lightweight CSV/tabular
+foundation. Image folders remain the most complete adapter; CSV support adds
+row-level profiling, deterministic tabular features, novelty ranking, concept
+grouping, and Markdown/JSON reports.
 
 The long-term architecture is layered so discovery logic does not depend on a single dataset type or a single model backend.
 
@@ -55,11 +59,27 @@ to protect module boundaries without requiring a large plugin framework.
 8. Generate cautious hypotheses.
 9. Export Markdown, JSON, preview assets, run metadata, and run index entries.
 
+## Current Tabular Pipeline
+
+1. Validate a local `.csv` file.
+2. Profile rows, columns, numeric fields, categorical fields, and missing values.
+3. Yield stable row-level records.
+4. Compute deterministic row-level features from numeric scaling, missing-value
+   indicators, categorical rarity, and completeness.
+5. Score candidate row anomalies by distance from the tabular feature center.
+6. Group candidate rows into simple reason-based candidate concepts.
+7. Export Markdown, JSON, run metadata, and run index entries.
+
+The tabular path is intentionally row-level only. It does not apply
+time-series semantics, supervised learning, relational joins, or database
+ingestion.
+
 ## Extension Points
 
 Future adapters should implement `DataAdapter` and keep data loading separate
-from discovery logic. A tabular adapter, for example, should validate and yield
-records; it should not run anomaly scoring itself.
+from discovery logic. The current image and CSV adapters follow that boundary:
+they validate inputs and yield records without running anomaly scoring inside
+the adapter.
 
 Future embedding backends should implement `EmbeddingBackend` behind the same
 boundary used by the current deterministic visual backend. CLIP, DINOv2, custom
@@ -84,7 +104,10 @@ is loaded, so unsupported names fail before the pipeline starts processing data.
 
 ## Current Boundaries
 
-The current implementation does not include non-visual adapters, deep learning backends, a service API, a dashboard, or enterprise storage. Those are planned extension points, not current capabilities.
+The current implementation includes image-folder and CSV-file inputs. It does
+not include video, audio, document, log, database, live-stream, or time-series
+adapters. Deep learning backends and enterprise storage are planned extension
+points, not current capabilities.
 
 Heavy model dependencies are intentionally delayed until the lightweight
 pipeline, report schema, and backend contracts are stable.

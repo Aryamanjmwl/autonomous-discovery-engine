@@ -35,11 +35,11 @@ This version is a minimal working MVP for image-folder input. It demonstrates a 
 Current supported inputs:
 
 - Image folders
+- CSV files for lightweight row-level tabular discovery
 
 Planned future supported data types:
 
 - Videos
-- Tabular data
 - Time-series data
 - Logs
 - Audio
@@ -61,6 +61,11 @@ The current pipeline performs:
 8. Confidence scoring
 9. Cautious hypothesis generation
 10. Markdown and JSON discovery report generation
+
+For CSV files, ADE uses a separate lightweight tabular path: CSV validation,
+numeric/categorical profiling, deterministic row-level feature extraction,
+row-level novelty ranking, simple candidate concept grouping, and Markdown/JSON
+reports with tabular metadata.
 
 The embedding system currently uses simple image statistics such as color means, standard deviations, brightness, and edge density. This is intentionally basic so the architecture can later support stronger encoders for specific domains.
 
@@ -91,7 +96,9 @@ ADE is designed to grow into a cross-industry discovery platform. Example future
 ## What This Version Can Do
 
 - Load images from a folder through the first visual data adapter
+- Load CSV files through the first non-visual adapter
 - Profile visual input folders before analysis
+- Profile CSV files for row count, column count, numeric/categorical columns, and missing values
 - Warn about unsupported files, unreadable images, small datasets, small images, and high estimated patch counts
 - Return image path and metadata
 - Split images into fixed-size patches
@@ -169,6 +176,18 @@ Then run ADE on the generated image folder:
 ```bash
 python -m ade.cli --input data/raw/demo_images --output data/reports/demo_report.md
 ```
+
+## CSV Demo Command
+
+Run ADE on a CSV file by passing the file path as `--input`:
+
+```bash
+python -m ade.cli --input data/raw/example.csv --output data/reports/tabular_report.md
+```
+
+The current tabular implementation performs row-level discovery only. Findings
+are candidate row anomalies and candidate tabular concepts that require human
+review.
 
 ## Python Usage
 
@@ -284,6 +303,7 @@ Additional project docs:
 - `docs/IMPLEMENTATION_PLAN.md`
 - `docs/ADAPTER_BACKEND_GUIDE.md`
 - `docs/DASHBOARD.md`
+- `docs/TABULAR.md`
 - `docs/ENTERPRISE_READINESS.md`
 - `docs/SECURITY_MODEL.md`
 - `docs/RELEASE_CHECKLIST.md`

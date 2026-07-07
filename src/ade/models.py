@@ -85,6 +85,83 @@ class ADERecord:
 
 
 @dataclass(frozen=True)
+class TabularRecord:
+    """One row from a tabular dataset."""
+
+    record_id: str
+    source_path: Path
+    row_index: int
+    values: dict[str, str]
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+    def to_ade_record(self) -> ADERecord:
+        """Return this row as a generic ADE record."""
+
+        return ADERecord(
+            record_id=self.record_id,
+            source_path=self.source_path,
+            media_type="tabular_row",
+            metadata={
+                "row_index": self.row_index,
+                "values": dict(self.values),
+                **_json_safe_metadata(self.metadata),
+            },
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-safe row record."""
+
+        return {
+            "record_id": self.record_id,
+            "source_path": self.source_path.as_posix(),
+            "row_index": int(self.row_index),
+            "values": dict(self.values),
+            "metadata": _json_safe_metadata(self.metadata),
+        }
+
+
+@dataclass(frozen=True)
+class TabularProfile:
+    """Profile and validation summary for a CSV dataset."""
+
+    input_path: Path
+    row_count: int
+    column_count: int
+    columns: list[str]
+    numeric_columns: list[str]
+    categorical_columns: list[str]
+    missing_value_summary: dict[str, int]
+    column_metadata: dict[str, dict[str, Any]]
+    warnings: list[str] = field(default_factory=list)
+    is_valid: bool = False
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-safe tabular profile."""
+
+        return {
+            "input_path": self.input_path.as_posix(),
+            "input_type": "tabular_csv",
+            "modality": "tabular",
+            "row_count": int(self.row_count),
+            "column_count": int(self.column_count),
+            "columns": list(self.columns),
+            "numeric_columns": list(self.numeric_columns),
+            "categorical_columns": list(self.categorical_columns),
+            "numeric_column_count": len(self.numeric_columns),
+            "categorical_column_count": len(self.categorical_columns),
+            "missing_value_summary": {
+                str(key): int(value) for key, value in self.missing_value_summary.items()
+            },
+            "column_metadata": {
+                str(column): _json_safe_metadata(metadata)
+                for column, metadata in self.column_metadata.items()
+            },
+            "warnings": list(self.warnings),
+            "is_valid": bool(self.is_valid),
+        }
+
+
+@dataclass(frozen=True)
 class DatasetProfile:
     """Profile and validation summary for one input dataset."""
 
