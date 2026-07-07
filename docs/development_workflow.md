@@ -47,6 +47,19 @@ python -m ade.cli --list-runs --limit 5
 
 Run history is read from `data/reports/runs/index.json`.
 
+## Generate Local Dashboard
+
+After creating one or more runs, generate a static local dashboard:
+
+```bash
+ade dashboard
+```
+
+The default dashboard entry point is `data/reports/dashboard/index.html`.
+The command prints a local `file://` URL. The dashboard reads the existing run
+index, JSON reports, Markdown report paths, and preview asset references. It
+does not create a server, database, upload system, or hosted application.
+
 ## Use Config
 
 Default settings live in `configs/default.yaml`. Current settings cover project metadata, patch extraction, discovery limits, reporting behavior, asset folders, run metadata folders, and demo data generation.

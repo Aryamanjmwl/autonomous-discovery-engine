@@ -240,6 +240,23 @@ Show only the most recent runs:
 python -m ade.cli --list-runs --limit 5
 ```
 
+## Local Dashboard
+
+ADE can generate a lightweight static dashboard from existing local run history
+and JSON reports:
+
+```bash
+ade dashboard
+```
+
+The dashboard is written to `data/reports/dashboard/index.html` by default and
+the command prints a local `file://` URL. It shows run history, report paths,
+dataset summaries, top candidate findings, candidate concept groups, evidence
+items, and available preview assets.
+
+This is a local review tool only. It does not add authentication, uploads,
+multi-user support, a database, or production hosting assumptions.
+
 ## Repository Structure
 
 ```text
@@ -266,6 +283,7 @@ Additional project docs:
 - `docs/ROADMAP.md`
 - `docs/IMPLEMENTATION_PLAN.md`
 - `docs/ADAPTER_BACKEND_GUIDE.md`
+- `docs/DASHBOARD.md`
 - `docs/ENTERPRISE_READINESS.md`
 - `docs/SECURITY_MODEL.md`
 - `docs/RELEASE_CHECKLIST.md`
