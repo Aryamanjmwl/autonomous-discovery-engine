@@ -31,6 +31,25 @@ class ConceptEvidence:
 class EvidenceCollector:
     """Collect supporting patches and simple statistics for concepts."""
 
+    name = "concept_evidence_collector"
+
+    def rank(
+        self,
+        records: list[object],
+        scores: list[object],
+        clusters: list[CandidateConcept] | None = None,
+        embeddings: list[object] | None = None,
+    ) -> list[ConceptEvidence]:
+        """Return evidence for candidate concepts.
+
+        The current visual implementation ranks evidence after concept grouping,
+        so ``clusters`` is the meaningful input. The broader signature keeps the
+        backend boundary ready for future evidence rankers.
+        """
+
+        del records, scores, embeddings
+        return self.collect(clusters or [])
+
     def collect(self, concepts: list[CandidateConcept]) -> list[ConceptEvidence]:
         """Return evidence summaries for candidate concepts."""
 

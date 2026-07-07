@@ -22,6 +22,12 @@ ADE is intended to be a discovery assistant, not a single-purpose prediction mod
 
 This modular design allows ADE to grow across domains and data types without being locked to one model, one industry, or one question format. Future implementations can add new dataset adapters and replace the current placeholder visual embedding engine with stronger domain-specific models while keeping the review-oriented discovery workflow intact.
 
+The codebase exposes small pluggable contracts for data adapters, embedding
+backends, scoring backends, clustering backends, evidence ranking, and report
+rendering. These contracts are intentionally lightweight: they prepare ADE for
+future CLIP, DINOv2, custom visual models, and non-visual adapters without
+adding those heavy dependencies to the current prototype.
+
 ## Current Prototype Status
 
 This version is a minimal working MVP for image-folder input. It demonstrates a visual-data-first end-to-end discovery pipeline without using advanced AI, proprietary models, or deep learning.

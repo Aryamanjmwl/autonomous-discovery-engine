@@ -10,12 +10,19 @@ import zlib
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 from ade import __version__
 from ade.discovery.confidence_scorer import ConceptConfidence
 from ade.discovery.evidence_collector import ConceptEvidence
 from ade.discovery.novelty_scorer import CandidateAnomaly
-from ade.models import DatasetProfile, EvidenceSummary, RunMetadata, UnknownConcept
+from ade.models import (
+    DatasetProfile,
+    EvidenceSummary,
+    ReportArtifact,
+    RunMetadata,
+    UnknownConcept,
+)
 from ade.reasoning.hypothesis_generator import Hypothesis
 from ade.reporting.run_index import build_run_summary, update_run_index
 
@@ -40,6 +47,8 @@ class ReportAssets:
 class ReportGenerator:
     """Generate Markdown and JSON reports for human review."""
 
+    name = "markdown_json_report"
+
     def __init__(
         self,
         project_name: str = "ADE",
@@ -57,6 +66,33 @@ class ReportGenerator:
         self.save_patch_previews = save_patch_previews
         self.assets_dir_name = assets_dir_name
         self.runs_dir_name = runs_dir_name
+
+    def render(
+        self,
+        run_result: dict[str, Any],
+        output_dir: Path | str,
+    ) -> list[ReportArtifact]:
+        """Render a structured run result into Markdown and JSON artifacts.
+
+        ``write`` remains the main API for the current CLI. This method gives
+        future orchestration code a small renderer contract without changing the
+        established report format.
+        """
+
+        output_path = Path(output_dir) / str(run_result.get("filename", "ade_report.md"))
+        markdown_path = self.write(
+            output_path=output_path,
+            dataset_summary=run_result["dataset_summary"],
+            candidates=run_result.get("candidates", []),
+            evidence_items=run_result.get("evidence_items", []),
+            confidences=run_result.get("confidences", []),
+            hypotheses=run_result.get("hypotheses", []),
+            dataset_profile=run_result.get("dataset_profile"),
+        )
+        return [
+            ReportArtifact(artifact_type="markdown", path=markdown_path),
+            ReportArtifact(artifact_type="json", path=markdown_path.with_suffix(".json")),
+        ]
 
     def generate(
         self,
