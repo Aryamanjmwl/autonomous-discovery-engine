@@ -22,12 +22,15 @@ ADE should produce candidate findings with traceable evidence and reviewable out
 
 ## Core Interfaces
 
-- `DataAdapter`: loads traceable source records.
+- `DataAdapter`: validates an input source, summarizes it, and yields traceable records.
 - `EmbeddingBackend`: converts records or patches into comparable representations.
-- `ScoringBackend`: ranks candidate anomalies or candidate patterns.
+- `ScoringBackend`: ranks embeddings as candidate anomalies or candidate patterns.
 - `ClusteringBackend`: groups related candidates into candidate concepts.
-- `EvidenceRanker`: collects and ranks evidence for candidate concepts.
-- `ReportRenderer`: exports human-readable and machine-readable reports.
+- `EvidenceRanker`: selects or summarizes evidence for reviewable findings.
+- `ReportRenderer`: exports human-readable and machine-readable report artifacts.
+
+The interfaces are implemented as small structural protocols. They are intended
+to protect module boundaries without requiring a large plugin framework.
 
 ## Core Models
 
@@ -37,6 +40,7 @@ ADE should produce candidate findings with traceable evidence and reviewable out
 - `DiscoveryRun`
 - `Finding`
 - `EvidenceItem`
+- `ConceptGroup`
 - `ReportArtifact`
 
 ## Current Visual Pipeline
@@ -51,6 +55,25 @@ ADE should produce candidate findings with traceable evidence and reviewable out
 8. Generate cautious hypotheses.
 9. Export Markdown, JSON, preview assets, run metadata, and run index entries.
 
+## Extension Points
+
+Future adapters should implement `DataAdapter` and keep data loading separate
+from discovery logic. A tabular adapter, for example, should validate and yield
+records; it should not run anomaly scoring itself.
+
+Future embedding backends should implement `EmbeddingBackend` behind the same
+boundary used by the current deterministic visual backend. CLIP, DINOv2, custom
+satellite encoders, or medical research encoders can be added later as optional
+backends without making them default dependencies.
+
+Scoring, clustering, evidence ranking, and report rendering are separate
+contracts so candidate ranking can evolve independently from evidence
+presentation. ADE should continue to produce candidate findings with traceable
+evidence rather than only returning anomaly scores.
+
 ## Current Boundaries
 
 The current implementation does not include non-visual adapters, deep learning backends, a service API, a dashboard, or enterprise storage. Those are planned extension points, not current capabilities.
+
+Heavy model dependencies are intentionally delayed until the lightweight
+pipeline, report schema, and backend contracts are stable.

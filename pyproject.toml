@@ -41,6 +41,7 @@ addopts = "--basetemp=tests/.tmp_pytest --strict-config --strict-markers"
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+exclude = ["ade"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
