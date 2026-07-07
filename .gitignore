@@ -7,6 +7,8 @@ __pycache__/
 .pytest-tmp/
 .mypy_cache/
 .ruff_cache/
+.tmp_*/
+**/.tmp_*/
 tests/.tmp*/
 tests/.tmp_pytest/
 tests/.tmp_cli_outputs/
@@ -14,6 +16,10 @@ tests/.tmp_config_outputs/
 tests/.tmp_report_assets/
 tests/.tmp_report_outputs/
 tests/.tmp_demo_images/
+**/.tmp_demo_images/
+**/.tmp_report_outputs/
+**/.tmp_report_assets/
+**/.tmp_pytest/
 .venv/
 venv/
 build/

@@ -133,8 +133,18 @@ def run_pipeline(
     concepts = ConceptClusterer(
         distance_threshold=float(discovery["cluster_distance_threshold"]),
         max_concepts=int(discovery["max_concepts"]),
+        min_supporting_examples=int(
+            discovery.get("concepts", {}).get("min_supporting_examples", 2)
+        ),
+        max_supporting_examples=int(
+            discovery.get("concepts", {}).get("max_supporting_examples", 5)
+        ),
     ).cluster(candidates)
-    evidence_items = EvidenceCollector().collect(concepts)
+    evidence_items = EvidenceCollector(
+        max_supporting_examples=int(
+            discovery.get("concepts", {}).get("max_supporting_examples", 5)
+        )
+    ).collect(concepts)
     confidences = ConfidenceScorer().score(evidence_items)
     hypotheses = HypothesisGenerator().generate(evidence_items)
 

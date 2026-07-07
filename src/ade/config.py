@@ -24,6 +24,11 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "max_concepts": 5,
         "novelty_metric": "euclidean",
         "cluster_distance_threshold": 0.35,
+        "concepts": {
+            "min_supporting_examples": 2,
+            "max_supporting_examples": 5,
+            "min_confidence_to_highlight": 0.5,
+        },
     },
     "reporting": {
         "report_version": "1.0",

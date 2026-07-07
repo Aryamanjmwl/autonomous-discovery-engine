@@ -27,6 +27,26 @@ def _json_safe_metadata(metadata: dict[str, Any]) -> dict[str, Any]:
     return safe
 
 
+def _json_safe_evidence_items(items: list[Any]) -> list[Any]:
+    """Return JSON-safe evidence items while preserving legacy scalar IDs."""
+
+    safe_items: list[Any] = []
+    for item in items:
+        if isinstance(item, dict):
+            safe_items.append(_json_safe_metadata(item))
+        elif isinstance(item, Path):
+            safe_items.append(item.as_posix())
+        elif isinstance(item, np.integer):
+            safe_items.append(int(item))
+        elif isinstance(item, np.floating):
+            safe_items.append(float(item))
+        elif isinstance(item, np.bool_):
+            safe_items.append(bool(item))
+        else:
+            safe_items.append(item)
+    return safe_items
+
+
 @dataclass(frozen=True)
 class ImageRecord:
     """Metadata describing an image available for ADE processing."""
@@ -303,17 +323,31 @@ class Finding:
 class EvidenceSummary:
     """Structured evidence attached to a candidate unknown concept."""
 
-    supporting_examples: list[str] = field(default_factory=list)
-    contradicting_examples: list[str] = field(default_factory=list)
+    supporting_examples: list[Any] = field(default_factory=list)
+    representative_examples: list[Any] = field(default_factory=list)
+    near_matches: list[Any] = field(default_factory=list)
+    normal_comparisons: list[Any] = field(default_factory=list)
+    contradicting_examples: list[Any] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         """Return a JSON-safe evidence summary."""
 
         return {
-            "supporting_examples": list(self.supporting_examples),
-            "contradicting_examples": list(self.contradicting_examples),
+            "supporting_examples": _json_safe_evidence_items(self.supporting_examples),
+            "representative_examples": _json_safe_evidence_items(
+                self.representative_examples
+            ),
+            "near_matches": _json_safe_evidence_items(self.near_matches),
+            "normal_comparisons": _json_safe_evidence_items(
+                self.normal_comparisons
+            ),
+            "contradicting_examples": _json_safe_evidence_items(
+                self.contradicting_examples
+            ),
             "notes": list(self.notes),
+            "warnings": list(self.warnings),
         }
 
 
@@ -327,6 +361,10 @@ class UnknownConcept:
     average_novelty_score: float
     confidence_score: float | None
     evidence: EvidenceSummary
+    consistency_score: float | None = None
+    diversity_score: float | None = None
+    confidence_breakdown: dict[str, float] = field(default_factory=dict)
+    notes: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         """Return a JSON-safe candidate unknown concept representation."""
@@ -336,12 +374,27 @@ class UnknownConcept:
             "anomaly_ids": list(self.anomaly_ids),
             "representative_anomaly_id": self.representative_anomaly_id,
             "average_novelty_score": float(self.average_novelty_score),
+            "consistency_score": (
+                float(self.consistency_score)
+                if self.consistency_score is not None
+                else None
+            ),
+            "diversity_score": (
+                float(self.diversity_score)
+                if self.diversity_score is not None
+                else None
+            ),
             "confidence_score": (
                 float(self.confidence_score)
                 if self.confidence_score is not None
                 else None
             ),
+            "confidence_breakdown": {
+                str(key): float(value)
+                for key, value in self.confidence_breakdown.items()
+            },
             "evidence": self.evidence.to_dict(),
+            "notes": list(self.notes),
         }
 
 
@@ -366,6 +419,8 @@ class RunMetadata:
     number_of_unsupported_files: int | None = None
     number_of_unreadable_files: int | None = None
     estimated_patch_count: int | None = None
+    average_concept_confidence: float | None = None
+    average_concept_consistency: float | None = None
     input_warnings: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
@@ -400,6 +455,10 @@ class RunMetadata:
             data["number_of_unreadable_files"] = int(self.number_of_unreadable_files)
         if self.estimated_patch_count is not None:
             data["estimated_patch_count"] = int(self.estimated_patch_count)
+        if self.average_concept_confidence is not None:
+            data["average_concept_confidence"] = float(self.average_concept_confidence)
+        if self.average_concept_consistency is not None:
+            data["average_concept_consistency"] = float(self.average_concept_consistency)
         if self.input_warnings:
             data["input_warnings"] = list(self.input_warnings)
         return data
@@ -452,6 +511,16 @@ class RunMetadata:
             estimated_patch_count=(
                 int(data["estimated_patch_count"])
                 if data.get("estimated_patch_count") is not None
+                else None
+            ),
+            average_concept_confidence=(
+                float(data["average_concept_confidence"])
+                if data.get("average_concept_confidence") is not None
+                else None
+            ),
+            average_concept_consistency=(
+                float(data["average_concept_consistency"])
+                if data.get("average_concept_consistency") is not None
                 else None
             ),
             input_warnings=[str(item) for item in data.get("input_warnings", [])],

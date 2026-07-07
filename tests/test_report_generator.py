@@ -39,11 +39,64 @@ def _concept_evidence() -> ConceptEvidence:
                 source_path=Path("image.png"),
                 coordinates=(1, 2, 4, 4),
                 novelty_score=0.42,
+                anomaly_id="anomaly-0001",
+                rank=1,
+                concept_id="concept-001",
             )
         ],
         example_count=1,
         average_novelty=0.42,
         consistency=1.0,
+        representative_anomaly_id="anomaly-0001",
+        item_count=1,
+        source_image_count=1,
+        diversity_score=1.0,
+        confidence_breakdown={
+            "novelty_strength": 0.42,
+            "support_count": 0.2,
+            "consistency": 1.0,
+            "source_diversity": 1.0,
+            "data_quality": 1.0,
+            "final_confidence": 0.68,
+        },
+        confidence_score=0.68,
+        evidence_summary={
+            "supporting_examples": [
+                {
+                    "anomaly_id": "anomaly-0001",
+                    "source_path": "image.png",
+                    "x": 1,
+                    "y": 2,
+                    "width": 4,
+                    "height": 4,
+                    "patch_size": 4,
+                    "novelty_score": 0.42,
+                    "rank": 1,
+                    "concept_id": "concept-001",
+                    "preview_path": None,
+                }
+            ],
+            "representative_examples": [
+                {
+                    "anomaly_id": "anomaly-0001",
+                    "source_path": "image.png",
+                    "x": 1,
+                    "y": 2,
+                    "width": 4,
+                    "height": 4,
+                    "patch_size": 4,
+                    "novelty_score": 0.42,
+                    "rank": 1,
+                    "concept_id": "concept-001",
+                    "preview_path": None,
+                }
+            ],
+            "near_matches": [],
+            "normal_comparisons": [],
+            "notes": ["Candidate concept is based on similar anomaly embeddings."],
+            "warnings": [],
+        },
+        summary="Single candidate anomaly retained for human review.",
     )
 
 
@@ -103,6 +156,10 @@ def test_report_generator_includes_required_sections() -> None:
     assert "Input Dataset Profile" in report
     assert "Unsupported files found: 1" in report
     assert "Candidate Unknown Concepts" in report
+    assert "Representative anomaly: anomaly-0001" in report
+    assert "Consistency score: 1.0000" in report
+    assert "Confidence breakdown:" in report
+    assert "Evidence bundle for this candidate concept" in report
     assert "Human Expert Review Required" in report
     assert "A cautious hypothesis." in report
 
@@ -156,7 +213,14 @@ def test_report_generator_writes_structured_json_report(tmp_path: Path) -> None:
     assert report_data["dataset_profile"]["input_type"] == "image_folder"
     assert report_data["dataset_profile"]["unsupported_file_count"] == 1
     assert report_data["candidate_anomalies"][0]["preview_path"] == "assets/anomaly_0001.png"
-    assert report_data["candidate_unknown_concepts"][0]["confidence_score"] == 0.7
+    concept = report_data["candidate_unknown_concepts"][0]
+    assert concept["confidence_score"] == 0.7
+    assert concept["representative_anomaly_id"] == "anomaly-0001"
+    assert concept["consistency_score"] == 1.0
+    assert concept["confidence_breakdown"]["final_confidence"] == 0.68
+    assert concept["evidence_summary"]["supporting_examples"][0]["anomaly_id"] == "anomaly-0001"
+    assert concept["evidence_summary"]["representative_examples"][0]["patch_size"] == 4
+    assert report_data["evidence_summary"][0]["confidence_breakdown"]["final_confidence"] == 0.68
 
 
 def test_report_generator_tracks_run_metadata(tmp_path: Path) -> None:
@@ -193,6 +257,8 @@ def test_report_generator_tracks_run_metadata(tmp_path: Path) -> None:
     assert run_metadata["number_of_unreadable_files"] == 0
     assert run_metadata["estimated_patch_count"] == 1
     assert run_metadata["input_warnings"] == ["Unsupported files found: 1"]
+    assert run_metadata["average_concept_confidence"] == 0.68
+    assert run_metadata["average_concept_consistency"] == 1.0
     assert run_metadata["pipeline_version"]
     assert run_metadata["human_review_required"] is True
     assert json_report["human_review_required"] is True

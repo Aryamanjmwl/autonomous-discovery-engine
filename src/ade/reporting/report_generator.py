@@ -129,16 +129,26 @@ class ReportGenerator:
                     [
                         f"### {evidence.concept_id}",
                         "",
+                        "- Representative anomaly: "
+                        f"{evidence.representative_anomaly_id or 'unavailable'}",
                         f"- Supporting patches: {evidence.example_count}",
+                        f"- Source images represented: {evidence.source_image_count}",
                         f"- Average novelty: {evidence.average_novelty:.4f}",
-                        f"- Cluster consistency: {evidence.consistency:.4f}",
+                        f"- Consistency score: {evidence.consistency:.4f}",
+                        f"- Diversity score: {evidence.diversity_score:.4f}",
                         (
                             f"- Confidence score: {confidence.score:.4f}"
                             if confidence
                             else "- Confidence score: unavailable"
                         ),
+                        "- Confidence breakdown:",
+                        *self._confidence_breakdown_lines(
+                            confidence.breakdown
+                            if confidence and confidence.breakdown
+                            else evidence.confidence_breakdown
+                        ),
                         "",
-                        "Evidence summary for this possible pattern:",
+                        "Evidence bundle for this candidate concept:",
                     ]
                 )
                 for example_index, item in enumerate(evidence.examples, start=1):
@@ -150,7 +160,8 @@ class ReportGenerator:
                     )
                     lines.append(
                         f"- {preview} `{item.source_path}` at {item.coordinates}; "
-                        f"novelty score {item.novelty_score:.4f}"
+                        f"novelty score {item.novelty_score:.4f}; "
+                        f"anomaly `{item.anomaly_id or 'unassigned'}`"
                     )
                 lines.extend(
                     [
@@ -313,6 +324,12 @@ class ReportGenerator:
                     "example_count": int(evidence.example_count),
                     "average_novelty": float(evidence.average_novelty),
                     "cluster_consistency": float(evidence.consistency),
+                    "consistency_score": float(evidence.consistency),
+                    "confidence_score": float(evidence.confidence_score),
+                    "confidence_breakdown": self._json_confidence_breakdown(
+                        evidence.confidence_breakdown
+                    ),
+                    "evidence_summary": self._evidence_summary_json(evidence, assets),
                 }
                 for evidence in evidence_items
             ],
@@ -320,6 +337,9 @@ class ReportGenerator:
                 {
                     "concept_id": confidence.concept_id,
                     "confidence_score": float(confidence.score),
+                    "confidence_breakdown": self._json_confidence_breakdown(
+                        confidence.breakdown
+                    ),
                 }
                 for confidence in confidences
             ],
@@ -368,6 +388,8 @@ class ReportGenerator:
             number_of_candidate_unknown_concepts=len(evidence_items),
             pipeline_version=self.pipeline_version,
             human_review_required=self.human_review_required,
+            average_concept_confidence=self._average_concept_confidence(evidence_items),
+            average_concept_consistency=self._average_concept_consistency(evidence_items),
             number_of_input_files=(
                 dataset_profile.total_files if dataset_profile is not None else None
             ),
@@ -431,6 +453,7 @@ class ReportGenerator:
         ).to_dict()
         return {
             "rank": int(rank),
+            "anomaly_id": candidate.anomaly_id or f"anomaly-{rank:04d}",
             "source_path": anomaly["source_path"],
             "coordinates": [int(value) for value in patch.coordinates],
             "novelty_score": anomaly["novelty_score"],
@@ -450,51 +473,68 @@ class ReportGenerator:
 
         examples = []
         for example_index, item in enumerate(evidence.examples, start=1):
+            preview_path = assets.concept_previews.get((evidence.concept_id, example_index))
             examples.append(
                 {
+                    "anomaly_id": item.anomaly_id,
                     "source_path": str(item.source_path),
                     "coordinates": [int(value) for value in item.coordinates],
+                    "x": int(item.coordinates[0]),
+                    "y": int(item.coordinates[1]),
+                    "patch_size": int(item.patch_size),
                     "novelty_score": float(item.novelty_score),
-                    "preview_path": assets.concept_previews.get(
-                        (evidence.concept_id, example_index)
-                    ),
+                    "preview_path": preview_path,
                 }
             )
+        anomaly_ids = [str(example["anomaly_id"]) for example in examples if example["anomaly_id"]]
+        evidence_summary = self._evidence_summary_json(evidence, assets)
+        confidence_breakdown = self._json_confidence_breakdown(
+            confidence.breakdown
+            if confidence and confidence.breakdown
+            else evidence.confidence_breakdown
+        )
 
         concept_model = UnknownConcept(
             concept_id=evidence.concept_id,
-            anomaly_ids=[
-                f"{Path(str(item.source_path)).stem}_{item.coordinates[0]}_"
-                f"{item.coordinates[1]}_{item.coordinates[2]}_{item.coordinates[3]}"
-                for item in evidence.examples
-            ],
-            representative_anomaly_id=(
-                f"{Path(str(evidence.examples[0].source_path)).stem}_"
-                f"{evidence.examples[0].coordinates[0]}_"
-                f"{evidence.examples[0].coordinates[1]}_"
-                f"{evidence.examples[0].coordinates[2]}_"
-                f"{evidence.examples[0].coordinates[3]}"
-                if evidence.examples
-                else None
-            ),
+            anomaly_ids=anomaly_ids,
+            representative_anomaly_id=evidence.representative_anomaly_id,
             average_novelty_score=evidence.average_novelty,
             confidence_score=confidence.score if confidence else None,
+            consistency_score=evidence.consistency,
+            diversity_score=evidence.diversity_score,
+            confidence_breakdown=confidence_breakdown,
             evidence=EvidenceSummary(
-                supporting_examples=[
-                    str(item.source_path) for item in evidence.examples
-                ],
-                notes=["candidate unknown concept requires human review"],
+                supporting_examples=evidence_summary["supporting_examples"],
+                representative_examples=evidence_summary["representative_examples"],
+                near_matches=evidence_summary["near_matches"],
+                normal_comparisons=evidence_summary["normal_comparisons"],
+                notes=evidence_summary["notes"],
+                warnings=evidence_summary["warnings"],
             ),
+            notes=[
+                "Candidate concept may indicate a recurring visual pattern.",
+                "Requires human review before interpretation.",
+            ],
         )
         concept_data = concept_model.to_dict()
 
         return {
             "concept_id": evidence.concept_id,
             "label": "candidate unknown concept",
+            "anomaly_ids": concept_data["anomaly_ids"],
+            "representative_anomaly_id": concept_data["representative_anomaly_id"],
             "example_count": int(evidence.example_count),
+            "supporting_example_count": int(evidence.item_count or evidence.example_count),
+            "source_image_count": int(evidence.source_image_count),
             "average_novelty": concept_data["average_novelty_score"],
+            "average_novelty_score": concept_data["average_novelty_score"],
             "cluster_consistency": float(evidence.consistency),
+            "consistency_score": concept_data["consistency_score"],
+            "diversity_score": concept_data["diversity_score"],
             "confidence_score": concept_data["confidence_score"],
+            "confidence_breakdown": concept_data["confidence_breakdown"],
+            "evidence_summary": concept_data["evidence"],
+            "summary": evidence.summary,
             "possible_pattern": hypothesis.text if hypothesis else None,
             "examples": examples,
             "requires_human_review": self.human_review_required,
@@ -627,6 +667,91 @@ class ReportGenerator:
         else:
             lines.append("- Warnings: none")
         return lines
+
+    @staticmethod
+    def _confidence_breakdown_lines(
+        breakdown: dict[str, float] | None,
+    ) -> list[str]:
+        """Return Markdown lines for a concept confidence breakdown."""
+
+        if not breakdown:
+            return ["  - unavailable"]
+        labels = [
+            ("novelty_strength", "Novelty strength"),
+            ("support_count", "Support count"),
+            ("consistency", "Consistency"),
+            ("source_diversity", "Source diversity"),
+            ("data_quality", "Data quality"),
+            ("final_confidence", "Final confidence"),
+        ]
+        return [
+            f"  - {label}: {float(breakdown.get(key, 0.0)):.4f}"
+            for key, label in labels
+        ]
+
+    @staticmethod
+    def _json_confidence_breakdown(
+        breakdown: dict[str, float] | None,
+    ) -> dict[str, float]:
+        """Return JSON-safe confidence breakdown values."""
+
+        if not breakdown:
+            return {}
+        return {str(key): float(value) for key, value in breakdown.items()}
+
+    @staticmethod
+    def _evidence_summary_json(
+        evidence: ConceptEvidence,
+        assets: ReportAssets,
+    ) -> dict[str, object]:
+        """Return a JSON-safe structured evidence bundle."""
+
+        supporting_examples = []
+        for example_index, item in enumerate(evidence.examples, start=1):
+            example = item.to_dict()
+            example["preview_path"] = assets.concept_previews.get(
+                (evidence.concept_id, example_index)
+            )
+            supporting_examples.append(example)
+        bundle = evidence.evidence_summary or {}
+        return {
+            "supporting_examples": supporting_examples,
+            "representative_examples": supporting_examples[:1],
+            "near_matches": list(bundle.get("near_matches", [])),
+            "normal_comparisons": list(bundle.get("normal_comparisons", [])),
+            "notes": list(
+                bundle.get(
+                    "notes",
+                    [
+                        "Candidate concept is based on visually similar candidate anomalies.",
+                        "Requires human review.",
+                    ],
+                )
+            ),
+            "warnings": list(bundle.get("warnings", [])),
+        }
+
+    @staticmethod
+    def _average_concept_confidence(
+        evidence_items: list[ConceptEvidence],
+    ) -> float | None:
+        """Return average concept confidence for concise run metadata."""
+
+        if not evidence_items:
+            return None
+        return float(
+            sum(item.confidence_score for item in evidence_items) / len(evidence_items)
+        )
+
+    @staticmethod
+    def _average_concept_consistency(
+        evidence_items: list[ConceptEvidence],
+    ) -> float | None:
+        """Return average concept consistency for concise run metadata."""
+
+        if not evidence_items:
+            return None
+        return float(sum(item.consistency for item in evidence_items) / len(evidence_items))
 
     @staticmethod
     def _slugify(value: str) -> str:

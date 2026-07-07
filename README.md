@@ -51,8 +51,8 @@ The current pipeline performs:
 4. Deterministic statistical embeddings
 5. Novelty ranking
 6. Simple candidate concept grouping
-7. Evidence collection
-8. Confidence scoring
+7. Evidence bundle collection
+8. Concept consistency and confidence scoring
 9. Cautious hypothesis generation
 10. Markdown and JSON discovery report generation
 
@@ -86,8 +86,8 @@ ADE is designed to grow into a cross-industry discovery platform. Example future
 - Create deterministic placeholder embeddings from image statistics
 - Rank candidate anomalies by distance from the dataset average
 - Group similar candidate anomalies into candidate unknown concepts
-- Collect supporting patches and basic statistics
-- Produce a simple confidence score from novelty strength, example count, and cluster consistency
+- Collect structured supporting evidence with anomaly IDs, coordinates, ranks, and preview paths
+- Produce bounded consistency, diversity, and confidence signals for review prioritization
 - Generate cautious template-based hypotheses
 - Write a Markdown ADE Discovery Report and a structured JSON sidecar report
 
@@ -137,10 +137,10 @@ For example, this command creates both:
 - `data/reports/demo_report.json`
 
 The Markdown report is for human review. The JSON report stores structured
-candidate anomalies, candidate unknown concepts, confidence scores,
-hypotheses, evidence summaries, limitations, and the human-review requirement
-so future dashboards, APIs, databases, subscription workflows, or comparison
-tools can consume the same discovery results.
+candidate anomalies, candidate unknown concepts, evidence bundles,
+confidence breakdowns, hypotheses, limitations, and the human-review
+requirement so future dashboards, APIs, databases, subscription workflows,
+or comparison tools can consume the same discovery results.
 
 ## Generate Demo Data
 
@@ -186,9 +186,10 @@ python -m ade.cli --input data/raw/demo_images --output data/reports/demo_report
 ```
 
 The current config covers settings such as patch size, patch stride, maximum
-candidate anomaly count, concept limits, report version, human-review
-requirement, report asset folders, run metadata folders, input validation
-thresholds, supported image extensions, and synthetic demo data settings.
+candidate anomaly count, concept limits, concept evidence thresholds, report
+version, human-review requirement, report asset folders, run metadata
+folders, input validation thresholds, supported image extensions, and
+synthetic demo data settings.
 These settings are intended to make ADE runs easier to
 reproduce and compare as the project grows.
 

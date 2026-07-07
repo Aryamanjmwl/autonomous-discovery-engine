@@ -6,6 +6,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from ade.discovery.concept_scorer import ConceptScorer
 from ade.discovery.novelty_scorer import CandidateAnomaly
 
 
@@ -17,6 +18,13 @@ class CandidateConcept:
     candidates: list[CandidateAnomaly]
     centroid: np.ndarray
     consistency: float
+    representative_anomaly_id: str | None = None
+    average_score: float = 0.0
+    item_count: int = 0
+    diversity_score: float = 0.0
+    confidence_breakdown: dict[str, float] | None = None
+    confidence_score: float = 0.0
+    summary: str = ""
 
 
 class ConceptClusterer:
@@ -26,6 +34,8 @@ class ConceptClusterer:
         self,
         distance_threshold: float = 0.35,
         max_concepts: int | None = None,
+        min_supporting_examples: int = 2,
+        max_supporting_examples: int = 5,
     ) -> None:
         if distance_threshold <= 0:
             raise ValueError("distance_threshold must be positive")
@@ -33,6 +43,10 @@ class ConceptClusterer:
             raise ValueError("max_concepts must be positive")
         self.distance_threshold = distance_threshold
         self.max_concepts = max_concepts
+        self.scorer = ConceptScorer(
+            min_supporting_examples=min_supporting_examples,
+            max_supporting_examples=max_supporting_examples,
+        )
 
     def cluster(self, candidates: list[CandidateAnomaly]) -> list[CandidateConcept]:
         """Return candidate unknown concepts grouped by embedding distance."""
@@ -42,28 +56,44 @@ class ConceptClusterer:
             assigned_index = self._nearest_concept_index(candidate, concepts)
             if assigned_index is None:
                 concepts.append(
-                    CandidateConcept(
+                    self._build_concept(
                         concept_id=f"concept-{len(concepts) + 1:03d}",
                         candidates=[candidate],
-                        centroid=candidate.embedding.vector.copy(),
-                        consistency=1.0,
                     )
                 )
             else:
                 existing = concepts[assigned_index]
                 updated_candidates = [*existing.candidates, candidate]
-                updated_centroid = np.vstack(
-                    [item.embedding.vector for item in updated_candidates]
-                ).mean(axis=0)
-                concepts[assigned_index] = CandidateConcept(
+                concepts[assigned_index] = self._build_concept(
                     concept_id=existing.concept_id,
                     candidates=updated_candidates,
-                    centroid=updated_centroid,
-                    consistency=self._consistency(updated_candidates, updated_centroid),
                 )
         if self.max_concepts is not None:
             return concepts[: self.max_concepts]
         return concepts
+
+    def _build_concept(
+        self,
+        concept_id: str,
+        candidates: list[CandidateAnomaly],
+    ) -> CandidateConcept:
+        """Build a scored candidate concept."""
+
+        centroid = np.vstack([item.embedding.vector for item in candidates]).mean(axis=0)
+        concept_score = self.scorer.score(candidates)
+        return CandidateConcept(
+            concept_id=concept_id,
+            candidates=candidates,
+            centroid=centroid,
+            consistency=concept_score.consistency_score,
+            representative_anomaly_id=self._representative_id(candidates),
+            average_score=self._average_score(candidates),
+            item_count=len(candidates),
+            diversity_score=concept_score.diversity_score,
+            confidence_breakdown=concept_score.confidence_breakdown,
+            confidence_score=concept_score.confidence_score,
+            summary=self._summary(candidates),
+        )
 
     def _nearest_concept_index(
         self,
@@ -85,13 +115,29 @@ class ConceptClusterer:
         return None
 
     @staticmethod
-    def _consistency(candidates: list[CandidateAnomaly], centroid: np.ndarray) -> float:
-        """Estimate cluster consistency on a bounded 0 to 1 scale."""
+    def _representative_id(candidates: list[CandidateAnomaly]) -> str | None:
+        """Return the highest-scoring candidate id for a concept."""
 
-        if len(candidates) <= 1:
-            return 1.0
-        distances = np.array(
-            [np.linalg.norm(candidate.embedding.vector - centroid) for candidate in candidates],
-            dtype=np.float32,
+        if not candidates:
+            return None
+        representative = max(candidates, key=lambda candidate: candidate.novelty_score)
+        return representative.anomaly_id
+
+    @staticmethod
+    def _average_score(candidates: list[CandidateAnomaly]) -> float:
+        """Return average candidate novelty score."""
+
+        if not candidates:
+            return 0.0
+        return float(sum(candidate.novelty_score for candidate in candidates) / len(candidates))
+
+    @staticmethod
+    def _summary(candidates: list[CandidateAnomaly]) -> str:
+        """Return a cautious concept summary."""
+
+        if len(candidates) == 1:
+            return "Single candidate anomaly retained for human review."
+        return (
+            f"{len(candidates)} candidate anomalies grouped as a possible shared "
+            "visual structure."
         )
-        return float(1.0 / (1.0 + distances.mean()))

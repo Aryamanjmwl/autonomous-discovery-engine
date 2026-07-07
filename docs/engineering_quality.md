@@ -12,6 +12,7 @@ ADE is a general autonomous discovery platform with a visual-data-first implemen
 - Prefer small functions over hidden control flow.
 - Avoid broad exception handling unless the error is converted into a clear user-facing message.
 - Do not add deep learning, dashboard, or adapter features before the relevant design boundary is documented.
+- Treat scores as review-prioritization signals. Reports should expose supporting evidence and component breakdowns where practical.
 
 ## Test Standards
 
@@ -21,6 +22,7 @@ ADE is a general autonomous discovery platform with a visual-data-first implemen
 - Test behavior and output contracts, not incidental implementation details.
 - Cover CLI errors for invalid input paths, missing config files, empty datasets, and invalid limits.
 - Cover input profiling for valid folders, empty folders, unsupported files, unreadable images, and warning behavior.
+- Cover concept scoring, evidence ordering, JSON-safe evidence bundles, and report schema changes when discovery outputs change.
 
 ## Documentation Standards
 
@@ -63,6 +65,7 @@ Keep `.gitkeep` files only where they preserve intended empty directory structur
 
 - Are product claims careful and accurate?
 - Are candidate findings traceable to source data?
+- Do concept findings include supporting evidence, consistency/confidence context, and cautious wording?
 - Are outputs marked as requiring human review?
 - Are new paths ignored if they are generated?
 - Do tests pass from a clean environment?

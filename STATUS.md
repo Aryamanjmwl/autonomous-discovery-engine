@@ -13,12 +13,12 @@ ADE is a general autonomous discovery platform. The current implementation focus
 - Deterministic statistical embedding backend
 - Novelty scoring
 - Candidate anomaly selection
-- Candidate concept grouping
-- Evidence collection
-- Confidence scoring
+- Candidate concept grouping with bounded consistency and diversity signals
+- Structured evidence collection for supporting patches
+- Confidence scoring with component breakdowns for review prioritization
 - Cautious hypothesis generation
 - Markdown discovery report with patch previews
-- Structured JSON report
+- Structured JSON report with concept evidence bundles and confidence breakdowns
 - Dataset profile included in reports and concise run metadata
 - Run metadata files
 - Run history index
@@ -30,7 +30,7 @@ ADE is a general autonomous discovery platform. The current implementation focus
 
 - Internal dataclasses exist, but adapter contracts are still visual-data-oriented.
 - Dataset profiling currently covers image folders only.
-- Reporting is useful for the visual MVP, but review annotations and richer export formats are not implemented.
+- Reporting is useful for the visual MVP, but review annotations, user feedback, and richer export formats are not implemented.
 - Config supports current pipeline parameters, but broader adapter configuration is not designed yet.
 - Run history exists locally, but there is no dashboard, database, user account model, or hosted audit system.
 
@@ -49,7 +49,8 @@ ADE is a general autonomous discovery platform. The current implementation focus
 1. Keep generated artifacts out of version control.
 2. Add explicit adapter interfaces before adding non-visual data types.
 3. Add stronger visual feature backends behind the existing representation interface.
-4. Improve report review workflows with human annotations.
-5. Add run comparison tools for candidate anomalies and candidate concepts across experiments.
-6. Continue documenting original decisions and experiments before public disclosure.
-7. Run linting and type checking before a tagged internal release once the development environment includes those optional tools.
+4. Add near-match and normal-comparison evidence once baseline/reference selection is designed.
+5. Improve report review workflows with human annotations.
+6. Add run comparison tools for candidate anomalies and candidate concepts across experiments.
+7. Continue documenting original decisions and experiments before public disclosure.
+8. Run linting and type checking before a tagged internal release once the development environment includes those optional tools.
