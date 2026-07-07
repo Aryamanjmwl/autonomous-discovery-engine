@@ -2,9 +2,10 @@
 
 ADE is a general autonomous discovery platform. The current implementation
 supports a visual-data-first image pipeline and a lightweight CSV/tabular
-foundation. Image folders remain the most complete adapter; CSV support adds
-row-level profiling, deterministic tabular features, novelty ranking, concept
-grouping, and Markdown/JSON reports.
+foundation plus explicit CSV time-series support. Image folders remain the most
+complete adapter; CSV support adds row-level profiling, deterministic tabular
+or time-series features, novelty ranking, concept grouping, and Markdown/JSON
+reports.
 
 The long-term architecture is layered so discovery logic does not depend on a single dataset type or a single model backend.
 
@@ -74,12 +75,31 @@ The tabular path is intentionally row-level only. It does not apply
 time-series semantics, supervised learning, relational joins, or database
 ingestion.
 
+## Current Time-Series Pipeline
+
+1. Validate a local `.csv` file in explicit time-series mode.
+2. Detect or use a configured timestamp column.
+3. Profile rows, time range, numeric signal columns, missing timestamps,
+   malformed timestamps, duplicate timestamps, and sampling intervals.
+4. Yield stable timestamped records.
+5. Compute deterministic point/window-style features from normalized signal
+   values, missing indicators, deltas, rolling summaries, spike indicators,
+   time-gap indicators, and completeness.
+6. Score candidate unusual points by distance from the time-series feature
+   center.
+7. Group candidate points into simple reason-based candidate concepts.
+8. Export Markdown, JSON, run metadata, and run index entries.
+
+The time-series path is intentionally lightweight. It does not include
+forecasting, streaming ingestion, production alerting, supervised learning, or
+database ingestion.
+
 ## Extension Points
 
 Future adapters should implement `DataAdapter` and keep data loading separate
-from discovery logic. The current image and CSV adapters follow that boundary:
-they validate inputs and yield records without running anomaly scoring inside
-the adapter.
+from discovery logic. The current image, tabular CSV, and time-series CSV
+adapters follow that boundary: they validate inputs and yield records without
+running anomaly scoring inside the adapter.
 
 Future embedding backends should implement `EmbeddingBackend` behind the same
 boundary used by the current deterministic visual backend. CLIP, DINOv2, custom
@@ -104,10 +124,11 @@ is loaded, so unsupported names fail before the pipeline starts processing data.
 
 ## Current Boundaries
 
-The current implementation includes image-folder and CSV-file inputs. It does
-not include video, audio, document, log, database, live-stream, or time-series
-adapters. Deep learning backends and enterprise storage are planned extension
-points, not current capabilities.
+The current implementation includes image-folder inputs, plain CSV tabular
+inputs, and explicit timestamped CSV time-series inputs. It does not include
+video, audio, document, log, database, live-stream, forecasting, or production
+monitoring adapters. Deep learning backends and enterprise storage are planned
+extension points, not current capabilities.
 
 Heavy model dependencies are intentionally delayed until the lightweight
 pipeline, report schema, and backend contracts are stable.

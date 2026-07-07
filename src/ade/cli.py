@@ -7,6 +7,7 @@ from pathlib import Path
 
 from ade.adapters.image_adapter import ImageAdapter
 from ade.adapters.tabular_adapter import TabularAdapter
+from ade.adapters.timeseries_adapter import TimeSeriesAdapter
 from ade.config import load_config
 from ade.dashboard import generate_dashboard
 from ade.dashboard.service import DEFAULT_DASHBOARD_DIR
@@ -14,6 +15,7 @@ from ade.discovery.confidence_scorer import ConfidenceScorer
 from ade.discovery.evidence_collector import EvidenceCollector
 from ade.discovery.registry import create_clustering_backend, create_scoring_backend
 from ade.discovery.tabular import TabularConceptGrouper, TabularNoveltyScorer
+from ade.discovery.timeseries import TimeSeriesConceptGrouper, TimeSeriesNoveltyScorer
 from ade.models import DatasetProfile
 from ade.preprocessing.input_validator import profile_image_folder
 from ade.preprocessing.patch_extractor import PatchExtractor
@@ -21,8 +23,10 @@ from ade.reasoning.hypothesis_generator import HypothesisGenerator
 from ade.reporting.report_generator import DatasetSummary, ReportGenerator
 from ade.reporting.run_index import load_run_index
 from ade.reporting.tabular_report_generator import TabularReportGenerator
+from ade.reporting.timeseries_report_generator import TimeSeriesReportGenerator
 from ade.representation.embedding_engine import EmbeddingEngine
 from ade.representation.tabular_engine import TabularFeatureEngine
+from ade.representation.timeseries_engine import TimeSeriesFeatureEngine
 
 DEFAULT_RUN_INDEX_PATH = Path("data/reports/runs/index.json")
 
@@ -43,6 +47,22 @@ def build_parser() -> argparse.ArgumentParser:
         help="Directory containing input images, or a CSV file for tabular discovery.",
     )
     parser.add_argument("--output", type=Path, help="Markdown report output path.")
+    parser.add_argument(
+        "--modality",
+        choices=["image", "tabular", "timeseries"],
+        default=None,
+        help="Optional input modality. CSV defaults to tabular unless set to timeseries.",
+    )
+    parser.add_argument(
+        "--timestamp-column",
+        default=None,
+        help="Timestamp column for --modality timeseries.",
+    )
+    parser.add_argument(
+        "--entity-column",
+        default=None,
+        help="Optional entity/group column for --modality timeseries.",
+    )
     parser.add_argument("--patch-size", default=None, type=int, help="Square patch size in pixels.")
     parser.add_argument(
         "--stride",
@@ -89,10 +109,23 @@ def run_pipeline(
     stride: int | None = None,
     max_candidates: int | None = None,
     config_path: Path | None = None,
+    modality: str | None = None,
+    timestamp_column: str | None = None,
+    entity_column: str | None = None,
 ) -> Path:
     """Run an ADE discovery pipeline and write a Markdown report."""
 
-    if input_dir.suffix.lower() == ".csv":
+    if modality == "timeseries":
+        return run_timeseries_pipeline(
+            input_path=input_dir,
+            output_path=output_path,
+            max_candidates=max_candidates,
+            config_path=config_path,
+            timestamp_column=timestamp_column,
+            entity_column=entity_column,
+        )
+
+    if input_dir.suffix.lower() == ".csv" or modality == "tabular":
         return run_tabular_pipeline(
             input_path=input_dir,
             output_path=output_path,
@@ -202,6 +235,93 @@ def run_pipeline(
             "random_seed": discovery.get("random_seed"),
             "feature_vector_count": len(embeddings),
             "feature_vector_length": int(embeddings[0].vector.size) if embeddings else 0,
+        },
+    )
+
+
+def run_timeseries_pipeline(
+    input_path: Path,
+    output_path: Path,
+    max_candidates: int | None = None,
+    config_path: Path | None = None,
+    timestamp_column: str | None = None,
+    entity_column: str | None = None,
+) -> Path:
+    """Run the lightweight ADE time-series CSV pipeline and write a report."""
+
+    if config_path is not None and not config_path.exists():
+        raise FileNotFoundError(f"Config file does not exist: {config_path}")
+    if config_path is not None and not config_path.is_file():
+        raise ValueError(f"Config path is not a file: {config_path}")
+    if max_candidates is not None and max_candidates <= 0:
+        raise ValueError("--max-candidates must be greater than zero.")
+
+    config = load_config(config_path)
+    discovery = config["discovery"]
+    reporting = config["reporting"]
+    project = config["project"]
+    timeseries_config = config.get("timeseries", {})
+    missing_tokens = {
+        str(token)
+        for token in timeseries_config.get(
+            "missing_value_tokens",
+            ["", "na", "n/a", "nan", "null", "none"],
+        )
+    }
+    effective_timestamp_column = timestamp_column or timeseries_config.get("timestamp_column")
+    effective_entity_column = entity_column or timeseries_config.get("entity_column")
+    effective_max_candidates = (
+        max_candidates
+        if max_candidates is not None
+        else int(discovery.get("top_k") or discovery["max_candidate_anomalies"])
+    )
+    window_size = int(timeseries_config.get("window_size", 3))
+    adapter = TimeSeriesAdapter(
+        input_path=input_path,
+        timestamp_column=(
+            str(effective_timestamp_column) if effective_timestamp_column else None
+        ),
+        entity_column=str(effective_entity_column) if effective_entity_column else None,
+        missing_value_tokens=missing_tokens,
+    )
+    profile = adapter.profile()
+    if not profile.is_valid:
+        raise ValueError(
+            f"CSV input is not valid for time-series discovery: {input_path}. "
+            f"Warnings: {'; '.join(profile.warnings)}"
+        )
+    records = adapter.load()
+    embeddings = TimeSeriesFeatureEngine(
+        window_size=window_size,
+        missing_value_tokens=missing_tokens,
+    ).embed(records=records, profile=profile)
+    findings = TimeSeriesNoveltyScorer().score(
+        embeddings,
+        max_candidates=effective_max_candidates,
+    )
+    concepts = TimeSeriesConceptGrouper(max_concepts=int(discovery["max_concepts"])).group(
+        findings
+    )
+    feature_vector_length = int(embeddings[0].vector.size) if embeddings else 0
+    return TimeSeriesReportGenerator(
+        project_name=str(project["name"]),
+        pipeline_version=str(project["pipeline_version"]),
+        report_version=str(reporting["report_version"]),
+        human_review_required=bool(reporting["human_review_required"]),
+        runs_dir_name=str(reporting["runs_dir_name"]),
+    ).write(
+        output_path=output_path,
+        profile=profile,
+        findings=findings,
+        concepts=concepts,
+        backend_metadata={
+            "embedding_backend": TimeSeriesFeatureEngine.name,
+            "scoring_backend": TimeSeriesNoveltyScorer.name,
+            "clustering_backend": TimeSeriesConceptGrouper.name,
+            "top_k": effective_max_candidates,
+            "feature_vector_count": len(embeddings),
+            "feature_vector_length": feature_vector_length,
+            "window_size": window_size,
         },
     )
 
@@ -402,6 +522,9 @@ def main() -> None:
             stride=args.stride,
             max_candidates=args.max_candidates,
             config_path=args.config,
+            modality=args.modality,
+            timestamp_column=args.timestamp_column,
+            entity_column=args.entity_column,
         )
     except ModuleNotFoundError as error:
         if error.name == "PIL":

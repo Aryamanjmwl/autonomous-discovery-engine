@@ -36,11 +36,11 @@ Current supported inputs:
 
 - Image folders
 - CSV files for lightweight row-level tabular discovery
+- CSV files with explicit time-series mode for timestamped point/window discovery
 
 Planned future supported data types:
 
 - Videos
-- Time-series data
 - Logs
 - Audio
 - Documents
@@ -66,6 +66,11 @@ For CSV files, ADE uses a separate lightweight tabular path: CSV validation,
 numeric/categorical profiling, deterministic row-level feature extraction,
 row-level novelty ranking, simple candidate concept grouping, and Markdown/JSON
 reports with tabular metadata.
+
+For timestamped CSV files, ADE supports an explicit lightweight time-series
+path with timestamp profiling, numeric signal detection, deterministic
+point/window-style features, point-level novelty ranking, simple candidate
+concept grouping, and Markdown/JSON reports with time-series metadata.
 
 The embedding system currently uses simple image statistics such as color means, standard deviations, brightness, and edge density. This is intentionally basic so the architecture can later support stronger encoders for specific domains.
 
@@ -97,8 +102,10 @@ ADE is designed to grow into a cross-industry discovery platform. Example future
 
 - Load images from a folder through the first visual data adapter
 - Load CSV files through the first non-visual adapter
+- Run explicit time-series discovery on timestamped CSV files
 - Profile visual input folders before analysis
 - Profile CSV files for row count, column count, numeric/categorical columns, and missing values
+- Profile timestamped CSV files for time range, signal columns, duplicate timestamps, missing timestamps, and sampling intervals
 - Warn about unsupported files, unreadable images, small datasets, small images, and high estimated patch counts
 - Return image path and metadata
 - Split images into fixed-size patches
@@ -177,7 +184,7 @@ Then run ADE on the generated image folder:
 python -m ade.cli --input data/raw/demo_images --output data/reports/demo_report.md
 ```
 
-## CSV Demo Command
+## CSV Demo Commands
 
 Run ADE on a CSV file by passing the file path as `--input`:
 
@@ -188,6 +195,16 @@ python -m ade.cli --input data/raw/example.csv --output data/reports/tabular_rep
 The current tabular implementation performs row-level discovery only. Findings
 are candidate row anomalies and candidate tabular concepts that require human
 review.
+
+Run ADE on a timestamped CSV file by explicitly selecting time-series mode:
+
+```bash
+python -m ade.cli --input data/raw/series.csv --output data/reports/timeseries_report.md --modality timeseries --timestamp-column timestamp
+```
+
+The current time-series implementation performs point/window-feature discovery
+only. It does not perform forecasting, streaming ingestion, or production
+monitoring.
 
 ## Python Usage
 
@@ -304,6 +321,7 @@ Additional project docs:
 - `docs/ADAPTER_BACKEND_GUIDE.md`
 - `docs/DASHBOARD.md`
 - `docs/TABULAR.md`
+- `docs/TIME_SERIES.md`
 - `docs/ENTERPRISE_READINESS.md`
 - `docs/SECURITY_MODEL.md`
 - `docs/RELEASE_CHECKLIST.md`
