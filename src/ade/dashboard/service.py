@@ -236,16 +236,27 @@ def _dataset_section(report: dict[str, Any]) -> str:
 
     input_summary = _dict(report.get("input_summary"))
     profile = _dict(report.get("dataset_profile"))
-    rows = {
-        "Input directory": input_summary.get("input_dir"),
-        "Images": report.get("number_of_images"),
-        "Patches": report.get("number_of_patches"),
-        "Input type": profile.get("input_type"),
-        "Valid images": profile.get("valid_images"),
-        "Unsupported files": profile.get("unsupported_file_count"),
-        "Unreadable files": profile.get("unreadable_file_count"),
-        "Estimated patches": profile.get("estimated_patch_count"),
-    }
+    if report.get("modality") == "tabular" or profile.get("modality") == "tabular":
+        rows = {
+            "Input path": input_summary.get("input_path") or input_summary.get("input_dir"),
+            "Modality": "tabular",
+            "Rows": input_summary.get("row_count") or report.get("number_of_rows"),
+            "Columns": input_summary.get("column_count") or report.get("number_of_columns"),
+            "Numeric columns": input_summary.get("numeric_column_count"),
+            "Categorical columns": input_summary.get("categorical_column_count"),
+            "Input type": profile.get("input_type"),
+        }
+    else:
+        rows = {
+            "Input directory": input_summary.get("input_dir"),
+            "Images": report.get("number_of_images"),
+            "Patches": report.get("number_of_patches"),
+            "Input type": profile.get("input_type"),
+            "Valid images": profile.get("valid_images"),
+            "Unsupported files": profile.get("unsupported_file_count"),
+            "Unreadable files": profile.get("unreadable_file_count"),
+            "Estimated patches": profile.get("estimated_patch_count"),
+        }
     warnings = profile.get("warnings")
     warning_html = _list_items(warnings) if isinstance(warnings, list) and warnings else "<p>None.</p>"
     return (
@@ -289,7 +300,7 @@ def _findings_section(report: dict[str, Any], run: DashboardRun) -> str:
             "<tr>"
             f"<td>{escape(_string(candidate.get('rank')))}</td>"
             f"<td>{preview}</td>"
-            f"<td>{escape(_string(candidate.get('source_path')))}</td>"
+            f"<td>{escape(_candidate_item_label(candidate))}</td>"
             f"<td>{escape(_string(candidate.get('novelty_score')))}</td>"
             f"<td>{escape(_string(candidate.get('reason')))}</td>"
             f"<td>{escape(_string(candidate.get('nearest_neighbor_id')))}</td>"
@@ -335,18 +346,21 @@ def _concepts_section(report: dict[str, Any], run: DashboardRun) -> str:
                     f"rank={escape(_string(example.get('rank')))}</span>"
                     "</li>"
                 )
+        concept_metadata = {
+            "Example count": concept.get("example_count"),
+            "Average novelty": concept.get("average_novelty"),
+            "Confidence score": concept.get("confidence_score"),
+            "Representative anomaly": concept.get("representative_anomaly_id"),
+            "Summary": concept.get("summary"),
+            "Possible pattern": concept.get("possible_pattern"),
+        }
+        concept_metadata_html = _metadata_list(concept_metadata)
+        evidence_html = "".join(example_items) or "<li>No examples recorded.</li>"
         blocks.append(
             "<article class=\"concept\">"
             f"<h3>{escape(_string(concept.get('concept_id')))}</h3>"
-            f"{_metadata_list({
-                'Example count': concept.get('example_count'),
-                'Average novelty': concept.get('average_novelty'),
-                'Confidence score': concept.get('confidence_score'),
-                'Representative anomaly': concept.get('representative_anomaly_id'),
-                'Summary': concept.get('summary'),
-                'Possible pattern': concept.get('possible_pattern'),
-            })}"
-            f"<ul class=\"evidence-list\">{''.join(example_items) or '<li>No examples recorded.</li>'}</ul>"
+            f"{concept_metadata_html}"
+            f"<ul class=\"evidence-list\">{evidence_html}</ul>"
             "</article>"
         )
     return "<section><h2>Concept Groups</h2>" + "".join(blocks) + "</section>"
@@ -520,6 +534,14 @@ def _status_for_run(run: DashboardRun) -> str:
     if run.report_error:
         return "report unavailable"
     return "report available"
+
+
+def _candidate_item_label(candidate: dict[str, Any]) -> str:
+    """Return a concise item label for visual or tabular findings."""
+
+    if candidate.get("row_index") is not None:
+        return f"{_string(candidate.get('source_path'))} row {_string(candidate.get('row_index'))}"
+    return _string(candidate.get("source_path"))
 
 
 def _slugify(value: str) -> str:

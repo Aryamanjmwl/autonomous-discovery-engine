@@ -16,6 +16,17 @@ discovery:
   cluster_distance_threshold: 0.35
   random_seed: 42
 
+tabular:
+  id_column:
+  max_categorical_cardinality: 50
+  missing_value_tokens:
+    - ""
+    - "na"
+    - "n/a"
+    - "nan"
+    - "null"
+    - "none"
+
 reporting:
   report_version: "1.0"
   human_review_required: true

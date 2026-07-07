@@ -38,6 +38,17 @@ With an explicit config:
 python -m ade.cli --input data/raw/demo_images --output data/reports/demo_report.md --config configs/default.yaml
 ```
 
+For CSV input, pass a `.csv` file as `--input`:
+
+```bash
+python -m ade.cli --input data/raw/example.csv --output data/reports/tabular_report.md
+```
+
+The current tabular workflow is row-level only. It profiles numeric and
+categorical columns, extracts deterministic lightweight features, ranks
+candidate row anomalies, groups candidate tabular concepts, and writes
+Markdown/JSON reports.
+
 ## List Runs
 
 ```bash
