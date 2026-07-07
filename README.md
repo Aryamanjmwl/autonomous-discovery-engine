@@ -240,6 +240,19 @@ Show only the most recent runs:
 python -m ade.cli --list-runs --limit 5
 ```
 
+## Local API
+
+ADE includes a small optional FastAPI service for local runs:
+
+```bash
+pip install -e .[api]
+uvicorn ade.api.app:app --host 0.0.0.0 --port 8000
+```
+
+The API calls the same local discovery pipeline used by the CLI. It supports
+health/version checks, synchronous local run execution, run listing, run
+metadata lookup, and report path lookup. See `docs/API.md` and `docs/DOCKER.md`.
+
 ## Repository Structure
 
 ```text
@@ -266,6 +279,8 @@ Additional project docs:
 - `docs/ROADMAP.md`
 - `docs/IMPLEMENTATION_PLAN.md`
 - `docs/ADAPTER_BACKEND_GUIDE.md`
+- `docs/API.md`
+- `docs/DOCKER.md`
 - `docs/ENTERPRISE_READINESS.md`
 - `docs/SECURITY_MODEL.md`
 - `docs/RELEASE_CHECKLIST.md`
