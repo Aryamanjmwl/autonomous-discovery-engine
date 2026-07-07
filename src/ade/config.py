@@ -25,6 +25,14 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "max_candidate_anomalies": 10,
         "max_concepts": 5,
         "novelty_metric": "euclidean",
+        "novelty_strategy": "hybrid",
+        "memory_aware_scoring": {
+            "enabled": True,
+            "neighbor_top_k": 5,
+            "exclude_same_source": False,
+            "weight_global_distance": 0.5,
+            "weight_neighbor_distance": 0.5,
+        },
         "cluster_distance_threshold": 0.35,
         "diversity": {
             "enabled": True,
@@ -89,7 +97,9 @@ def load_config(config_path: Path | str | None = None) -> dict[str, Any]:
         raise ValueError(f"Config file must contain a mapping: {path}")
 
     merged = _deep_merge(config, loaded)
-    return _normalize_preprocessing_config(merged, loaded)
+    _normalize_preprocessing_config(merged, loaded)
+    _validate_discovery_config(merged)
+    return merged
 
 
 def _deep_merge(
@@ -134,3 +144,26 @@ def _normalize_preprocessing_config(
         elif "patch_sizes" not in loaded_preprocessing and "patch_size" in loaded_preprocessing:
             preprocessing["patch_strides"] = [int(preprocessing["patch_size"])]
     return config
+
+
+def _validate_discovery_config(config: dict[str, Any]) -> None:
+    """Validate discovery scoring settings."""
+
+    discovery = config["discovery"]
+    strategy = str(discovery.get("novelty_strategy", "global_distance"))
+    valid_strategies = {"global_distance", "memory_neighbor_distance", "hybrid"}
+    if strategy not in valid_strategies:
+        expected = ", ".join(sorted(valid_strategies))
+        raise ValueError(f"discovery.novelty_strategy must be one of: {expected}")
+
+    scoring = discovery.get("memory_aware_scoring", {})
+    neighbor_top_k = int(scoring.get("neighbor_top_k", 5))
+    if neighbor_top_k <= 0:
+        raise ValueError("discovery.memory_aware_scoring.neighbor_top_k must be positive")
+
+    global_weight = float(scoring.get("weight_global_distance", 0.5))
+    neighbor_weight = float(scoring.get("weight_neighbor_distance", 0.5))
+    if global_weight < 0 or neighbor_weight < 0:
+        raise ValueError("memory-aware scoring weights must be non-negative")
+    if strategy == "hybrid" and global_weight + neighbor_weight == 0:
+        raise ValueError("hybrid novelty scoring weights must not sum to zero")

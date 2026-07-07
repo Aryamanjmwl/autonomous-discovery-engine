@@ -1,6 +1,6 @@
 # ADE Architecture
 
-ADE is a general autonomous discovery platform. The current implementation is visual-data-first; it supports image-folder profiling, single-scale or configured multi-scale patch extraction, statistical embeddings, local visual memory, novelty scoring, diversity-aware candidate anomaly selection, candidate concept grouping, and Markdown/JSON reports.
+ADE is a general autonomous discovery platform. The current implementation is visual-data-first; it supports image-folder profiling, single-scale or configured multi-scale patch extraction, statistical embeddings, local visual memory, strategy-based novelty scoring, diversity-aware candidate anomaly selection, candidate concept grouping, and Markdown/JSON reports.
 
 The long-term architecture is layered so discovery logic does not depend on a single dataset type or a single model backend.
 
@@ -47,7 +47,7 @@ ADE should produce candidate findings with traceable evidence and reviewable out
 3. Extract fixed-size image patches across one or more configured scales.
 4. Compute deterministic statistical embeddings.
 5. Build an optional local vector memory for patch retrieval.
-6. Score candidate anomalies.
+6. Score candidate anomalies with global, memory-neighbor, or hybrid scoring.
 7. Select a diverse candidate anomaly set across source images, spatial regions, and patch scales.
 8. Group candidate visual concepts.
 9. Score concept consistency, source diversity, and confidence components.
@@ -68,6 +68,22 @@ After novelty scoring, the diversity selector can limit repeated candidates from
 The current pipeline indexes patch embeddings during a run and uses the memory layer to add near-match evidence to candidate concept bundles. This supports review and debugging today while keeping the path open for future normal memory banks, PatchCore-style nearest-neighbor anomaly scoring, coreset selection, FAISS, or a vector database backend.
 
 The current memory is not persistent and does not replace the run metadata, JSON report, or future storage layers.
+
+## Current Novelty Scoring
+
+`NoveltyScorer` supports three deterministic strategies:
+
+- `global_distance`: distance from the dataset average embedding
+- `memory_neighbor_distance`: nearest-neighbor distance from local vector memory
+- `hybrid`: weighted normalized combination of global and neighbor-distance scores
+
+The scorer records a per-candidate score breakdown and concise run metadata,
+including whether memory-aware scoring fell back to global distance. The fallback
+path is intentional: if no memory or no neighbors are available, ADE still
+produces candidate findings rather than failing a run.
+
+These scores prioritize review. They are not proof that a candidate anomaly is
+scientifically, operationally, or commercially significant.
 
 ## Current Concept and Evidence Layer
 

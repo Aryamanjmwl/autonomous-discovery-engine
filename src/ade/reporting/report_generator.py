@@ -68,6 +68,7 @@ class ReportGenerator:
         assets: ReportAssets | None = None,
         run_id: str | None = None,
         dataset_profile: DatasetProfile | None = None,
+        analysis_metadata: dict[str, object] | None = None,
     ) -> str:
         """Return an ADE Discovery Report in Markdown format."""
 
@@ -90,6 +91,8 @@ class ReportGenerator:
             f"- Number of extracted patches: {dataset_summary.patch_count}",
             f"- Number of candidate anomalies: {len(candidates)}",
             f"- Number of candidate unknown concepts: {len(evidence_items)}",
+            "- Novelty scoring strategy: "
+            f"`{self._scoring_strategy(analysis_metadata, candidates)}`",
             "",
             "## Input Dataset Profile",
             "",
@@ -239,6 +242,7 @@ class ReportGenerator:
             assets=assets,
             run_id=run_id,
             dataset_profile=dataset_profile,
+            analysis_metadata=analysis_metadata,
         )
         path.write_text(report, encoding="utf-8")
         json_report = self.generate_json(
@@ -251,6 +255,7 @@ class ReportGenerator:
             run_id=run_id,
             run_metadata=run_metadata,
             dataset_profile=dataset_profile,
+            analysis_metadata=analysis_metadata,
         )
         json_path.write_text(
             json.dumps(json_report, indent=2, sort_keys=True),
@@ -277,6 +282,7 @@ class ReportGenerator:
         run_id: str | None = None,
         run_metadata: dict[str, object] | None = None,
         dataset_profile: DatasetProfile | None = None,
+        analysis_metadata: dict[str, object] | None = None,
     ) -> dict[str, object]:
         """Return a machine-readable ADE discovery report."""
 
@@ -320,6 +326,10 @@ class ReportGenerator:
             },
             "dataset_profile": (
                 dataset_profile.to_dict() if dataset_profile is not None else None
+            ),
+            "scoring_metadata": self._scoring_metadata_json(
+                analysis_metadata,
+                candidates,
             ),
             "number_of_images": int(dataset_summary.image_count),
             "number_of_patches": int(dataset_summary.patch_count),
@@ -436,6 +446,36 @@ class ReportGenerator:
                 and analysis_metadata.get("anomaly_selection_strategy") is not None
                 else None
             ),
+            novelty_strategy=(
+                str(analysis_metadata.get("novelty_strategy"))
+                if analysis_metadata is not None
+                and analysis_metadata.get("novelty_strategy") is not None
+                else None
+            ),
+            memory_aware_scoring_enabled=(
+                bool(analysis_metadata.get("memory_aware_scoring_enabled"))
+                if analysis_metadata is not None
+                and analysis_metadata.get("memory_aware_scoring_enabled") is not None
+                else None
+            ),
+            neighbor_top_k=(
+                int(analysis_metadata.get("neighbor_top_k"))
+                if analysis_metadata is not None
+                and analysis_metadata.get("neighbor_top_k") is not None
+                else None
+            ),
+            scoring_fallback_used=(
+                bool(analysis_metadata.get("scoring_fallback_used"))
+                if analysis_metadata is not None
+                and analysis_metadata.get("scoring_fallback_used") is not None
+                else None
+            ),
+            scoring_fallback_reason=(
+                str(analysis_metadata.get("scoring_fallback_reason"))
+                if analysis_metadata is not None
+                and analysis_metadata.get("scoring_fallback_reason") is not None
+                else None
+            ),
             number_of_input_files=(
                 dataset_profile.total_files if dataset_profile is not None else None
             ),
@@ -510,6 +550,7 @@ class ReportGenerator:
             "preview_path": anomaly["preview_path"],
             "selection_reason": candidate.metadata.get("selection_reason"),
             "selection_rank": candidate.metadata.get("selection_rank"),
+            "score_breakdown": candidate.metadata.get("score_breakdown", {}),
             "label": "candidate anomaly",
             "requires_human_review": self.human_review_required,
         }
@@ -723,6 +764,57 @@ class ReportGenerator:
         else:
             lines.append("- Warnings: none")
         return lines
+
+    @staticmethod
+    def _scoring_strategy(
+        analysis_metadata: dict[str, object] | None,
+        candidates: list[CandidateAnomaly],
+    ) -> str:
+        """Return the effective scoring strategy for display."""
+
+        if analysis_metadata and analysis_metadata.get("novelty_strategy") is not None:
+            return str(analysis_metadata["novelty_strategy"])
+        if candidates:
+            breakdown = candidates[0].metadata.get("score_breakdown")
+            if isinstance(breakdown, dict) and breakdown.get("strategy") is not None:
+                return str(breakdown["strategy"])
+        return "global_distance"
+
+    @staticmethod
+    def _scoring_metadata_json(
+        analysis_metadata: dict[str, object] | None,
+        candidates: list[CandidateAnomaly],
+    ) -> dict[str, object]:
+        """Return JSON-safe scoring metadata."""
+
+        strategy = ReportGenerator._scoring_strategy(analysis_metadata, candidates)
+        return {
+            "novelty_strategy": strategy,
+            "memory_aware_scoring_enabled": (
+                bool(analysis_metadata.get("memory_aware_scoring_enabled"))
+                if analysis_metadata is not None
+                and analysis_metadata.get("memory_aware_scoring_enabled") is not None
+                else strategy != "global_distance"
+            ),
+            "neighbor_top_k": (
+                int(analysis_metadata.get("neighbor_top_k"))
+                if analysis_metadata is not None
+                and analysis_metadata.get("neighbor_top_k") is not None
+                else None
+            ),
+            "scoring_fallback_used": (
+                bool(analysis_metadata.get("scoring_fallback_used"))
+                if analysis_metadata is not None
+                and analysis_metadata.get("scoring_fallback_used") is not None
+                else False
+            ),
+            "scoring_fallback_reason": (
+                str(analysis_metadata.get("scoring_fallback_reason"))
+                if analysis_metadata is not None
+                and analysis_metadata.get("scoring_fallback_reason") is not None
+                else None
+            ),
+        }
 
     @staticmethod
     def _confidence_breakdown_lines(

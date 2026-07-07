@@ -87,6 +87,7 @@ def run_pipeline(
     project = config["project"]
     validation = config["validation"]
     memory_config = config["memory"]
+    scoring_config = discovery["memory_aware_scoring"]
 
     patch_sizes, patch_strides = _resolve_patch_scales(
         preprocessing=preprocessing,
@@ -137,7 +138,27 @@ def run_pipeline(
     ]
 
     embeddings = EmbeddingEngine().embed_patches(patches)
-    scored_candidates = NoveltyScorer().score(embeddings)
+    memory = (
+        _build_vector_memory(
+            embeddings=embeddings,
+            candidates=[],
+            metric=str(memory_config["metric"]),
+        )
+        if bool(memory_config["enabled"])
+        else None
+    )
+    novelty_scorer = NoveltyScorer(
+        strategy=(
+            str(discovery["novelty_strategy"])
+            if bool(scoring_config["enabled"])
+            else "global_distance"
+        ),
+        neighbor_top_k=int(scoring_config["neighbor_top_k"]),
+        exclude_same_source=bool(scoring_config["exclude_same_source"]),
+        weight_global_distance=float(scoring_config["weight_global_distance"]),
+        weight_neighbor_distance=float(scoring_config["weight_neighbor_distance"]),
+    )
+    scored_candidates = novelty_scorer.score(embeddings, memory=memory)
     candidates = AnomalySelector(
         enabled=bool(discovery.get("diversity", {}).get("enabled", False)),
         min_spatial_distance=float(
@@ -151,15 +172,12 @@ def run_pipeline(
         candidates=scored_candidates,
         max_candidates=effective_max_candidates,
     )
-    memory = (
-        _build_vector_memory(
+    if memory is not None:
+        memory = _build_vector_memory(
             embeddings=embeddings,
             candidates=candidates,
             metric=str(memory_config["metric"]),
         )
-        if bool(memory_config["enabled"])
-        else None
-    )
     concepts = ConceptClusterer(
         distance_threshold=float(discovery["cluster_distance_threshold"]),
         max_concepts=int(discovery["max_concepts"]),
@@ -215,6 +233,7 @@ def run_pipeline(
                 if bool(discovery.get("diversity", {}).get("enabled", False))
                 else "top-novelty"
             ),
+            **novelty_scorer.last_metadata.to_dict(),
         },
     )
 

@@ -15,6 +15,7 @@ ADE is a general autonomous discovery platform with a visual-data-first implemen
 - Avoid broad exception handling unless the error is converted into a clear user-facing message.
 - Do not add deep learning, dashboard, or adapter features before the relevant design boundary is documented.
 - Treat scores as review-prioritization signals. Reports should expose supporting evidence and component breakdowns where practical.
+- Keep novelty strategy fallbacks explicit in metadata rather than hiding them.
 
 ## Test Standards
 
@@ -27,6 +28,7 @@ ADE is a general autonomous discovery platform with a visual-data-first implemen
 - Cover concept scoring, evidence ordering, JSON-safe evidence bundles, and report schema changes when discovery outputs change.
 - Cover vector memory metrics, deterministic neighbor ordering, filters, and empty-index behavior when retrieval changes.
 - Cover multi-scale patch counts, invalid scale config, and diversity selection behavior when patch extraction or anomaly selection changes.
+- Cover novelty scoring strategies, normalization edge cases, invalid weights, and memory fallback behavior when scoring changes.
 
 ## Documentation Standards
 
@@ -58,6 +60,7 @@ Keep `.gitkeep` files only where they preserve intended empty directory structur
 - Input validation thresholds and supported extensions belong in config.
 - New configuration keys should have tests and documentation.
 - Memory configuration should remain lightweight and should not imply persistent vector storage unless that storage exists.
+- Memory-aware scoring weights and strategy names should be validated at config load time.
 - Multi-scale defaults should remain conservative unless runtime and report quality are reviewed.
 
 ## Commit Discipline
@@ -74,6 +77,7 @@ Keep `.gitkeep` files only where they preserve intended empty directory structur
 - Do concept findings include supporting evidence, consistency/confidence context, and cautious wording?
 - If memory is enabled, are nearest-neighbor results bounded, deterministic, and traceable to source patches?
 - Are reported candidate anomalies diverse enough to avoid obvious duplicate regions from one image?
+- Do candidate anomalies include a JSON-safe score breakdown and effective scoring strategy?
 - Are outputs marked as requiring human review?
 - Are new paths ignored if they are generated?
 - Do tests pass from a clean environment?

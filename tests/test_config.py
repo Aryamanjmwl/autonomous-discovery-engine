@@ -21,6 +21,8 @@ def test_default_config_loads_expected_sections() -> None:
     assert config["preprocessing"]["patch_size"] == 64
     assert config["preprocessing"]["patch_sizes"] == [64]
     assert config["preprocessing"]["patch_strides"] == [64]
+    assert config["discovery"]["novelty_strategy"] == "hybrid"
+    assert config["discovery"]["memory_aware_scoring"]["enabled"] is True
     assert config["discovery"]["diversity"]["enabled"] is True
     assert config["reporting"]["human_review_required"] is True
     assert ".png" in config["validation"]["supported_image_extensions"]
@@ -95,4 +97,50 @@ def test_config_loader_rejects_invalid_yaml(tmp_path: Path) -> None:
     config_path.write_text("project: [", encoding="utf-8")
 
     with pytest.raises(ValueError, match="not valid YAML"):
+        load_config(config_path)
+
+
+def test_config_loader_rejects_invalid_novelty_strategy(tmp_path: Path) -> None:
+    config_path = tmp_path / "invalid_strategy.yaml"
+    config_path.write_text(
+        """
+discovery:
+  novelty_strategy: "unknown"
+""".strip(),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="novelty_strategy"):
+        load_config(config_path)
+
+
+def test_config_loader_rejects_invalid_memory_scoring_weights(tmp_path: Path) -> None:
+    config_path = tmp_path / "invalid_weights.yaml"
+    config_path.write_text(
+        """
+discovery:
+  novelty_strategy: "hybrid"
+  memory_aware_scoring:
+    weight_global_distance: 0
+    weight_neighbor_distance: 0
+""".strip(),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="weights"):
+        load_config(config_path)
+
+
+def test_config_loader_rejects_invalid_neighbor_top_k(tmp_path: Path) -> None:
+    config_path = tmp_path / "invalid_top_k.yaml"
+    config_path.write_text(
+        """
+discovery:
+  memory_aware_scoring:
+    neighbor_top_k: 0
+""".strip(),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="neighbor_top_k"):
         load_config(config_path)

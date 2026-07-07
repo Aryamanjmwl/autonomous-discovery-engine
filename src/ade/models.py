@@ -484,6 +484,11 @@ class RunMetadata:
     total_patches: int | None = None
     patch_scales_used: list[str] = field(default_factory=list)
     anomaly_selection_strategy: str | None = None
+    novelty_strategy: str | None = None
+    memory_aware_scoring_enabled: bool | None = None
+    neighbor_top_k: int | None = None
+    scoring_fallback_used: bool | None = None
+    scoring_fallback_reason: str | None = None
     input_warnings: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
@@ -534,6 +539,18 @@ class RunMetadata:
             data["patch_scales_used"] = list(self.patch_scales_used)
         if self.anomaly_selection_strategy is not None:
             data["anomaly_selection_strategy"] = self.anomaly_selection_strategy
+        if self.novelty_strategy is not None:
+            data["novelty_strategy"] = self.novelty_strategy
+        if self.memory_aware_scoring_enabled is not None:
+            data["memory_aware_scoring_enabled"] = bool(
+                self.memory_aware_scoring_enabled
+            )
+        if self.neighbor_top_k is not None:
+            data["neighbor_top_k"] = int(self.neighbor_top_k)
+        if self.scoring_fallback_used is not None:
+            data["scoring_fallback_used"] = bool(self.scoring_fallback_used)
+        if self.scoring_fallback_reason is not None:
+            data["scoring_fallback_reason"] = self.scoring_fallback_reason
         if self.input_warnings:
             data["input_warnings"] = list(self.input_warnings)
         return data
@@ -624,6 +641,31 @@ class RunMetadata:
             anomaly_selection_strategy=(
                 str(data["anomaly_selection_strategy"])
                 if data.get("anomaly_selection_strategy") is not None
+                else None
+            ),
+            novelty_strategy=(
+                str(data["novelty_strategy"])
+                if data.get("novelty_strategy") is not None
+                else None
+            ),
+            memory_aware_scoring_enabled=(
+                bool(data["memory_aware_scoring_enabled"])
+                if data.get("memory_aware_scoring_enabled") is not None
+                else None
+            ),
+            neighbor_top_k=(
+                int(data["neighbor_top_k"])
+                if data.get("neighbor_top_k") is not None
+                else None
+            ),
+            scoring_fallback_used=(
+                bool(data["scoring_fallback_used"])
+                if data.get("scoring_fallback_used") is not None
+                else None
+            ),
+            scoring_fallback_reason=(
+                str(data["scoring_fallback_reason"])
+                if data.get("scoring_fallback_reason") is not None
                 else None
             ),
             input_warnings=[str(item) for item in data.get("input_warnings", [])],

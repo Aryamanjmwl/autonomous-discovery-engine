@@ -34,7 +34,17 @@ def _candidate_patch() -> tuple[Patch, CandidateAnomaly]:
     candidate = CandidateAnomaly(
         embedding=PatchEmbedding(patch=patch, vector=np.zeros(8, dtype=np.float32)),
         novelty_score=0.42,
-        metadata={"selection_reason": "diversity selected", "selection_rank": 1},
+        metadata={
+            "selection_reason": "diversity selected",
+            "selection_rank": 1,
+            "score_breakdown": {
+                "global_distance_score": 0.3,
+                "neighbor_distance_score": 0.5,
+                "hybrid_score": 0.4,
+                "strategy": "hybrid",
+                "nearest_neighbor_count": 2,
+            },
+        },
     )
     return patch, candidate
 
@@ -174,6 +184,11 @@ def _write_sample_report(output_path: Path) -> None:
             "total_patches": 1,
             "patch_scales_used": ["s4"],
             "anomaly_selection_strategy": "diversity-aware",
+            "novelty_strategy": "hybrid",
+            "memory_aware_scoring_enabled": True,
+            "neighbor_top_k": 5,
+            "scoring_fallback_used": False,
+            "scoring_fallback_reason": None,
         },
     )
 
@@ -196,6 +211,7 @@ def test_report_generator_includes_required_sections() -> None:
     assert "Number of extracted patches: 1" in report
     assert "Number of candidate anomalies: 1" in report
     assert "Number of candidate unknown concepts: 1" in report
+    assert "Novelty scoring strategy: `hybrid`" in report
     assert "Top Candidate Anomalies" in report
     assert "Patch scale" in report
     assert "`s4` / 4px" in report
@@ -240,6 +256,7 @@ def test_report_generator_writes_structured_json_report(tmp_path: Path) -> None:
         "generated_at",
         "input_summary",
         "dataset_profile",
+        "scoring_metadata",
         "number_of_images",
         "number_of_patches",
         "number_of_candidate_anomalies",
@@ -260,11 +277,15 @@ def test_report_generator_writes_structured_json_report(tmp_path: Path) -> None:
     assert report_data["human_review_required"] is True
     assert report_data["dataset_profile"]["input_type"] == "image_folder"
     assert report_data["dataset_profile"]["unsupported_file_count"] == 1
+    assert report_data["scoring_metadata"]["novelty_strategy"] == "hybrid"
+    assert report_data["scoring_metadata"]["neighbor_top_k"] == 5
     assert report_data["candidate_anomalies"][0]["preview_path"] == "assets/anomaly_0001.png"
     assert report_data["candidate_anomalies"][0]["patch_size"] == 4
     assert report_data["candidate_anomalies"][0]["patch_stride"] == 4
     assert report_data["candidate_anomalies"][0]["scale_label"] == "s4"
     assert report_data["candidate_anomalies"][0]["selection_reason"] == "diversity selected"
+    assert report_data["candidate_anomalies"][0]["score_breakdown"]["strategy"] == "hybrid"
+    assert report_data["candidate_anomalies"][0]["score_breakdown"]["hybrid_score"] == 0.4
     concept = report_data["candidate_unknown_concepts"][0]
     assert concept["confidence_score"] == 0.7
     assert concept["representative_anomaly_id"] == "anomaly-0001"
@@ -318,6 +339,10 @@ def test_report_generator_tracks_run_metadata(tmp_path: Path) -> None:
     assert run_metadata["total_patches"] == 1
     assert run_metadata["patch_scales_used"] == ["s4"]
     assert run_metadata["anomaly_selection_strategy"] == "diversity-aware"
+    assert run_metadata["novelty_strategy"] == "hybrid"
+    assert run_metadata["memory_aware_scoring_enabled"] is True
+    assert run_metadata["neighbor_top_k"] == 5
+    assert run_metadata["scoring_fallback_used"] is False
     assert run_metadata["pipeline_version"]
     assert run_metadata["human_review_required"] is True
     assert json_report["human_review_required"] is True

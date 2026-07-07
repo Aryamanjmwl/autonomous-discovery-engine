@@ -30,6 +30,7 @@ Core product principle: discovery with evidence, not only anomaly scores.
 - Edge and shape features
 - Multi-scale patch presets
 - Diversity-aware candidate selection
+- Memory-aware novelty scoring
 - Patch-level evidence
 - Similarity search
 - Lightweight visual memory
@@ -57,6 +58,7 @@ Core product principle: discovery with evidence, not only anomaly scores.
 - Optional `ResNetBackend`
 - `CustomBackend` interface
 - Distance-based novelty
+- PatchCore-style normal-memory scoring
 - Isolation Forest
 - Local Outlier Factor
 - HDBSCAN outlier scoring

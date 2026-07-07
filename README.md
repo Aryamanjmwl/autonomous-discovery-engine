@@ -49,7 +49,7 @@ The current pipeline performs:
 2. Image loading from a local folder
 3. Single-scale or configured multi-scale patch extraction
 4. Deterministic statistical embeddings
-5. Novelty ranking
+5. Strategy-based novelty ranking
 6. Diversity-aware candidate anomaly selection
 7. Simple candidate concept grouping
 8. Evidence bundle collection
@@ -86,7 +86,7 @@ ADE is designed to grow into a cross-industry discovery platform. Example future
 - Return image path and metadata
 - Split images into fixed-size or configured multi-scale patches
 - Create deterministic placeholder embeddings from image statistics
-- Rank candidate anomalies by distance from the dataset average
+- Rank candidate anomalies with global-distance, memory-neighbor, or hybrid scoring
 - Select a diverse candidate anomaly set across images, regions, and scales
 - Group similar candidate anomalies into candidate unknown concepts
 - Collect structured supporting evidence with anomaly IDs, coordinates, ranks, and preview paths
@@ -234,6 +234,32 @@ discovery:
 The selector still starts from novelty ranking. Diversity settings only affect
 which candidate anomalies are surfaced for review.
 
+### Novelty Scoring Strategies
+
+ADE supports configurable novelty scoring strategies for the current visual
+pipeline:
+
+- `global_distance`: distance from the dataset average embedding
+- `memory_neighbor_distance`: distance from nearest neighbors in local visual memory
+- `hybrid`: weighted combination of global and neighbor-distance scores
+
+The default uses the lightweight local memory index with a hybrid score:
+
+```yaml
+discovery:
+  novelty_strategy: "hybrid"
+  memory_aware_scoring:
+    enabled: true
+    neighbor_top_k: 5
+    exclude_same_source: false
+    weight_global_distance: 0.5
+    weight_neighbor_distance: 0.5
+```
+
+Each candidate anomaly keeps a JSON-safe score breakdown. These scores are
+review-prioritization signals only; they do not prove that a candidate anomaly
+is meaningful.
+
 ## Visual Memory
 
 The current visual implementation can build a local in-memory index of patch
@@ -344,6 +370,7 @@ The platform vision includes private workspaces, dataset management, configurabl
 - Add support for industrial sensor data and robot logs
 - Add stronger embedding backends behind the existing representation interface
 - Add persistent memory backends and normal-reference memory banks
+- Add PatchCore-style normal-memory scoring experiments
 - Add richer concept clustering and evidence ranking
 - Add report exports with review annotations
 - Add secure upload, storage, and workspace isolation for a hosted product

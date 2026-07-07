@@ -38,7 +38,7 @@ With an explicit config:
 python -m ade.cli --input data/raw/demo_images --output data/reports/demo_report.md --config configs/default.yaml
 ```
 
-The generated Markdown and JSON reports include candidate anomalies, patch scale metadata, candidate concepts, supporting evidence bundles, nearest visual matches when memory is enabled, concept consistency, confidence breakdowns, cautious hypotheses, and human-review disclaimers. These fields support review and comparison; they are not validated conclusions.
+The generated Markdown and JSON reports include candidate anomalies, patch scale metadata, novelty score breakdowns, candidate concepts, supporting evidence bundles, nearest visual matches when memory is enabled, concept consistency, confidence breakdowns, cautious hypotheses, and human-review disclaimers. These fields support review and comparison; they are not validated conclusions.
 
 ## List Runs
 
@@ -51,11 +51,17 @@ Run history is read from `data/reports/runs/index.json`.
 
 ## Use Config
 
-Default settings live in `configs/default.yaml`. Current settings cover project metadata, patch extraction, optional multi-scale patch sizes and strides, discovery limits, diversity-aware anomaly selection, concept evidence thresholds, visual memory retrieval, reporting behavior, asset folders, run metadata folders, and demo data generation.
+Default settings live in `configs/default.yaml`. Current settings cover project metadata, patch extraction, optional multi-scale patch sizes and strides, discovery limits, novelty scoring strategy, memory-aware scoring weights, diversity-aware anomaly selection, concept evidence thresholds, visual memory retrieval, reporting behavior, asset folders, run metadata folders, and demo data generation.
 
 CLI arguments can override selected config values such as patch size, stride, and maximum candidate anomalies. Validation settings include supported image extensions, minimum image count, small dataset warning threshold, high patch-count warning threshold, and minimum image dimensions.
 
 Memory settings control whether the current run builds an in-process vector index, which metric it uses, and how many nearest visual matches are included in reports. The current implementation uses NumPy only; persistent memory banks and FAISS/vector database backends are future work.
+
+Novelty scoring settings live under `discovery.novelty_strategy` and
+`discovery.memory_aware_scoring`. Supported strategies are `global_distance`,
+`memory_neighbor_distance`, and `hybrid`. If memory-aware scoring cannot use
+neighbors, ADE falls back to global distance and records that fallback in run
+metadata.
 
 Multi-scale extraction is configured with matching `preprocessing.patch_sizes`
 and `preprocessing.patch_strides` lists. The default remains a single scale to

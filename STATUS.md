@@ -11,7 +11,7 @@ ADE is a general autonomous discovery platform. The current implementation focus
 - Visual input validation and dataset profiling
 - Single-scale and configured multi-scale patch extraction
 - Deterministic statistical embedding backend
-- Novelty scoring
+- Strategy-based novelty scoring with global, memory-neighbor, and hybrid modes
 - Diversity-aware candidate anomaly selection
 - Candidate concept grouping with bounded consistency and diversity signals
 - Structured evidence collection for supporting patches
@@ -33,6 +33,7 @@ ADE is a general autonomous discovery platform. The current implementation focus
 - Dataset profiling currently covers image folders only.
 - Multi-scale extraction is supported, but the default config intentionally uses one conservative scale.
 - Memory is in-process only; persistent memory banks, coreset selection, and vector database backends are not implemented.
+- Memory-aware scoring uses the current run's local patch memory, not a validated normal-reference memory bank.
 - Reporting is useful for the visual MVP, but review annotations, user feedback, and richer export formats are not implemented.
 - Config supports current pipeline parameters, but broader adapter configuration is not designed yet.
 - Run history exists locally, but there is no dashboard, database, user account model, or hosted audit system.
@@ -43,6 +44,7 @@ ADE is a general autonomous discovery platform. The current implementation focus
 - Tabular, time-series, log, audio, document, multimodal, or live stream adapters
 - Deep visual embedding backend
 - Persistent vector memory, FAISS integration, or vector database storage
+- PatchCore-style normal memory bank scoring
 - Production dashboard
 - Subscription platform
 - User authentication, hosted storage, billing, or workspace isolation
@@ -54,7 +56,7 @@ ADE is a general autonomous discovery platform. The current implementation focus
 2. Add explicit adapter interfaces before adding non-visual data types.
 3. Add stronger visual feature backends behind the existing representation interface.
 4. Evaluate useful multi-scale presets on controlled demo and private datasets.
-5. Design normal-reference memory banks before adding memory-bank anomaly scoring.
+5. Design normal-reference memory banks before adding PatchCore-style anomaly scoring.
 6. Add normal-comparison evidence once baseline/reference selection is designed.
 7. Improve report review workflows with human annotations.
 8. Add run comparison tools for candidate anomalies and candidate concepts across experiments.
