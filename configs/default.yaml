@@ -27,6 +27,18 @@ tabular:
     - "null"
     - "none"
 
+timeseries:
+  timestamp_column:
+  entity_column:
+  window_size: 3
+  missing_value_tokens:
+    - ""
+    - "na"
+    - "n/a"
+    - "nan"
+    - "null"
+    - "none"
+
 reporting:
   report_version: "1.0"
   human_review_required: true

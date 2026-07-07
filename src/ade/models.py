@@ -162,6 +162,99 @@ class TabularProfile:
 
 
 @dataclass(frozen=True)
+class TimeSeriesRecord:
+    """One timestamped row from a time-series CSV dataset."""
+
+    record_id: str
+    source_path: Path
+    row_index: int
+    timestamp: str
+    values: dict[str, str]
+    entity_id: str | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+    def to_ade_record(self) -> ADERecord:
+        """Return this point as a generic ADE record."""
+
+        return ADERecord(
+            record_id=self.record_id,
+            source_path=self.source_path,
+            media_type="timeseries_point",
+            metadata={
+                "row_index": self.row_index,
+                "timestamp": self.timestamp,
+                "entity_id": self.entity_id,
+                "values": dict(self.values),
+                **_json_safe_metadata(self.metadata),
+            },
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-safe time-series record."""
+
+        return {
+            "record_id": self.record_id,
+            "source_path": self.source_path.as_posix(),
+            "row_index": int(self.row_index),
+            "timestamp": self.timestamp,
+            "entity_id": self.entity_id,
+            "values": dict(self.values),
+            "metadata": _json_safe_metadata(self.metadata),
+        }
+
+
+@dataclass(frozen=True)
+class TimeSeriesProfile:
+    """Profile and validation summary for a timestamped CSV dataset."""
+
+    input_path: Path
+    timestamp_column: str
+    entity_column: str | None
+    row_count: int
+    column_count: int
+    columns: list[str]
+    signal_columns: list[str]
+    time_start: str | None
+    time_end: str | None
+    sampling_interval_summary: dict[str, Any]
+    missing_value_summary: dict[str, int]
+    missing_timestamp_count: int = 0
+    malformed_timestamp_count: int = 0
+    duplicate_timestamp_count: int = 0
+    warnings: list[str] = field(default_factory=list)
+    is_valid: bool = False
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-safe time-series profile."""
+
+        return {
+            "input_path": self.input_path.as_posix(),
+            "input_type": "timeseries_csv",
+            "modality": "timeseries",
+            "timestamp_column": self.timestamp_column,
+            "entity_column": self.entity_column,
+            "row_count": int(self.row_count),
+            "column_count": int(self.column_count),
+            "columns": list(self.columns),
+            "signal_columns": list(self.signal_columns),
+            "signal_column_count": len(self.signal_columns),
+            "time_start": self.time_start,
+            "time_end": self.time_end,
+            "sampling_interval_summary": _json_safe_metadata(
+                self.sampling_interval_summary
+            ),
+            "missing_value_summary": {
+                str(key): int(value) for key, value in self.missing_value_summary.items()
+            },
+            "missing_timestamp_count": int(self.missing_timestamp_count),
+            "malformed_timestamp_count": int(self.malformed_timestamp_count),
+            "duplicate_timestamp_count": int(self.duplicate_timestamp_count),
+            "warnings": list(self.warnings),
+            "is_valid": bool(self.is_valid),
+        }
+
+
+@dataclass(frozen=True)
 class DatasetProfile:
     """Profile and validation summary for one input dataset."""
 

@@ -49,6 +49,17 @@ categorical columns, extracts deterministic lightweight features, ranks
 candidate row anomalies, groups candidate tabular concepts, and writes
 Markdown/JSON reports.
 
+For timestamped CSV input, select time-series mode explicitly:
+
+```bash
+python -m ade.cli --input data/raw/series.csv --output data/reports/timeseries_report.md --modality timeseries --timestamp-column timestamp
+```
+
+Plain `.csv` input remains tabular by default. Time-series mode profiles the
+timestamp column, numeric signal columns, time range, duplicate timestamps,
+missing timestamps, sampling intervals, and writes Markdown/JSON reports with
+time-series metadata.
+
 ## List Runs
 
 ```bash

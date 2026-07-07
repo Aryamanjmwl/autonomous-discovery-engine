@@ -236,7 +236,21 @@ def _dataset_section(report: dict[str, Any]) -> str:
 
     input_summary = _dict(report.get("input_summary"))
     profile = _dict(report.get("dataset_profile"))
-    if report.get("modality") == "tabular" or profile.get("modality") == "tabular":
+    if report.get("modality") == "timeseries" or profile.get("modality") == "timeseries":
+        rows = {
+            "Input path": input_summary.get("input_path") or input_summary.get("input_dir"),
+            "Modality": "timeseries",
+            "Rows": input_summary.get("row_count") or report.get("number_of_rows"),
+            "Timestamp column": input_summary.get("timestamp_column")
+            or profile.get("timestamp_column"),
+            "Entity column": input_summary.get("entity_column") or profile.get("entity_column"),
+            "Time start": input_summary.get("time_start") or profile.get("time_start"),
+            "Time end": input_summary.get("time_end") or profile.get("time_end"),
+            "Signal columns": input_summary.get("signal_column_count")
+            or report.get("number_of_signal_columns"),
+            "Input type": profile.get("input_type"),
+        }
+    elif report.get("modality") == "tabular" or profile.get("modality") == "tabular":
         rows = {
             "Input path": input_summary.get("input_path") or input_summary.get("input_dir"),
             "Modality": "tabular",
@@ -540,6 +554,12 @@ def _candidate_item_label(candidate: dict[str, Any]) -> str:
     """Return a concise item label for visual or tabular findings."""
 
     if candidate.get("row_index") is not None:
+        if candidate.get("timestamp") is not None:
+            return (
+                f"{_string(candidate.get('source_path'))} "
+                f"row {_string(candidate.get('row_index'))} "
+                f"at {_string(candidate.get('timestamp'))}"
+            )
         return f"{_string(candidate.get('source_path'))} row {_string(candidate.get('row_index'))}"
     return _string(candidate.get("source_path"))
 
