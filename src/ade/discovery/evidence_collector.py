@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from ade.discovery.concept_clusterer import CandidateConcept
+from ade.memory.vector_memory import VectorMemory
 
 
 @dataclass(frozen=True)
@@ -19,6 +20,9 @@ class EvidenceItem:
     rank: int | None = None
     concept_id: str | None = None
     preview_path: str | None = None
+    patch_stride: int | None = None
+    scale_id: str | None = None
+    scale_label: str | None = None
 
     @property
     def patch_size(self) -> int:
@@ -37,6 +41,9 @@ class EvidenceItem:
             "width": int(self.coordinates[2]),
             "height": int(self.coordinates[3]),
             "patch_size": self.patch_size,
+            "patch_stride": self.patch_stride,
+            "scale_id": self.scale_id,
+            "scale_label": self.scale_label,
             "novelty_score": float(self.novelty_score),
             "rank": self.rank,
             "concept_id": self.concept_id,
@@ -66,8 +73,17 @@ class ConceptEvidence:
 class EvidenceCollector:
     """Collect supporting patches and simple statistics for concepts."""
 
-    def __init__(self, max_supporting_examples: int = 5) -> None:
+    def __init__(
+        self,
+        max_supporting_examples: int = 5,
+        memory: VectorMemory | None = None,
+        top_k_neighbors: int = 5,
+        include_neighbors: bool = True,
+    ) -> None:
         self.max_supporting_examples = max(1, max_supporting_examples)
+        self.memory = memory
+        self.top_k_neighbors = max(0, top_k_neighbors)
+        self.include_neighbors = include_neighbors
 
     def collect(self, concepts: list[CandidateConcept]) -> list[ConceptEvidence]:
         """Return evidence summaries for candidate concepts."""
@@ -86,6 +102,9 @@ class EvidenceCollector:
                     anomaly_id=candidate.anomaly_id,
                     rank=index,
                     concept_id=concept.concept_id,
+                    patch_stride=candidate.embedding.patch.patch_stride,
+                    scale_id=candidate.embedding.patch.scale_id,
+                    scale_label=candidate.embedding.patch.scale_label,
                 )
                 for index, candidate in enumerate(sorted_candidates, start=1)
             ]
@@ -97,6 +116,10 @@ class EvidenceCollector:
             source_image_count = len({item.source_path.as_posix() for item in examples})
             representative_examples = examples[:1]
             supporting_examples = examples[: self.max_supporting_examples]
+            nearest_neighbors = self._nearest_neighbors(
+                concept=concept,
+                supporting_count=len(supporting_examples),
+            )
             evidence.append(
                 ConceptEvidence(
                     concept_id=concept.concept_id,
@@ -117,7 +140,8 @@ class EvidenceCollector:
                         "representative_examples": [
                             item.to_dict() for item in representative_examples
                         ],
-                        "near_matches": [],
+                        "near_matches": nearest_neighbors,
+                        "nearest_neighbors": nearest_neighbors,
                         "normal_comparisons": [],
                         "notes": [
                             "Candidate concept is based on similar anomaly embeddings.",
@@ -129,3 +153,46 @@ class EvidenceCollector:
                 )
             )
         return evidence
+
+    def _nearest_neighbors(
+        self,
+        concept: CandidateConcept,
+        supporting_count: int,
+    ) -> list[dict[str, object]]:
+        """Return JSON-safe nearest-neighbor evidence for a concept."""
+
+        if (
+            self.memory is None
+            or not self.include_neighbors
+            or self.top_k_neighbors <= 0
+            or len(self.memory) == 0
+        ):
+            return []
+
+        concept_patch_ids = {
+            candidate.embedding.patch.patch_id
+            for candidate in concept.candidates
+            if candidate.embedding.patch.patch_id
+        }
+        neighbor_rows: list[dict[str, object]] = []
+        for candidate in concept.candidates[: max(1, supporting_count)]:
+            patch_id = candidate.embedding.patch.patch_id
+            neighbors = self.memory.query(
+                vector=candidate.embedding.vector,
+                top_k=self.top_k_neighbors,
+                exclude_ids=concept_patch_ids or ({patch_id} if patch_id else set()),
+            )
+            for neighbor in neighbors:
+                row = neighbor.to_dict()
+                row["query_anomaly_id"] = candidate.anomaly_id
+                row["query_patch_id"] = patch_id
+                neighbor_rows.append(row)
+
+        neighbor_rows.sort(
+            key=lambda row: (
+                float(row["distance"]),
+                str(row["item_id"]),
+                str(row.get("query_patch_id", "")),
+            )
+        )
+        return neighbor_rows[: self.top_k_neighbors]

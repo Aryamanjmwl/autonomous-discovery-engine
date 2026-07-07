@@ -1,6 +1,6 @@
 # ADE Architecture
 
-ADE is a general autonomous discovery platform. The current implementation is visual-data-first; it supports image-folder profiling, patch extraction, statistical embeddings, novelty scoring, candidate concept grouping, and Markdown/JSON reports.
+ADE is a general autonomous discovery platform. The current implementation is visual-data-first; it supports image-folder profiling, single-scale or configured multi-scale patch extraction, statistical embeddings, local visual memory, novelty scoring, diversity-aware candidate anomaly selection, candidate concept grouping, and Markdown/JSON reports.
 
 The long-term architecture is layered so discovery logic does not depend on a single dataset type or a single model backend.
 
@@ -15,10 +15,11 @@ ADE should produce candidate findings with traceable evidence and reviewable out
 1. Data Adapter Layer
 2. Representation / Embedding Layer
 3. Discovery Layer
-4. Evidence and Explanation Layer
-5. Report and Output Layer
-6. API and Product Layer
-7. Enterprise Operations Layer
+4. Memory and Retrieval Layer
+5. Evidence and Explanation Layer
+6. Report and Output Layer
+7. API and Product Layer
+8. Enterprise Operations Layer
 
 ## Core Interfaces
 
@@ -43,14 +44,30 @@ ADE should produce candidate findings with traceable evidence and reviewable out
 
 1. Profile image-folder input.
 2. Load valid image metadata.
-3. Extract fixed-size image patches.
+3. Extract fixed-size image patches across one or more configured scales.
 4. Compute deterministic statistical embeddings.
-5. Score candidate anomalies.
-6. Group candidate visual concepts.
-7. Score concept consistency, source diversity, and confidence components.
-8. Collect structured evidence bundles with anomaly IDs, patch coordinates, ranks, and preview paths.
-9. Generate cautious hypotheses.
-10. Export Markdown, JSON, preview assets, run metadata, and run index entries.
+5. Build an optional local vector memory for patch retrieval.
+6. Score candidate anomalies.
+7. Select a diverse candidate anomaly set across source images, spatial regions, and patch scales.
+8. Group candidate visual concepts.
+9. Score concept consistency, source diversity, and confidence components.
+10. Collect structured evidence bundles with anomaly IDs, patch coordinates, ranks, preview paths, scale metadata, and nearest visual matches.
+11. Generate cautious hypotheses.
+12. Export Markdown, JSON, preview assets, run metadata, and run index entries.
+
+## Current Patch Extraction and Selection
+
+The default visual pipeline uses one conservative patch scale. Configured multi-scale extraction is available through matching `patch_sizes` and `patch_strides` lists. Patch IDs include source image, scale, stride, and coordinates so records remain deterministic across runs.
+
+After novelty scoring, the diversity selector can limit repeated candidates from the same image or nearby region and can prefer multiple scales when more than one scale is configured. This is a simple review-quality improvement, not a claim that selected anomalies are more important or true.
+
+## Current Memory Layer
+
+`VectorMemory` is a small NumPy-backed in-process index for embedding retrieval. It supports Euclidean and cosine nearest-neighbor queries, deterministic top-k ordering, metadata storage, and exclusion filters for known item IDs or source paths.
+
+The current pipeline indexes patch embeddings during a run and uses the memory layer to add near-match evidence to candidate concept bundles. This supports review and debugging today while keeping the path open for future normal memory banks, PatchCore-style nearest-neighbor anomaly scoring, coreset selection, FAISS, or a vector database backend.
+
+The current memory is not persistent and does not replace the run metadata, JSON report, or future storage layers.
 
 ## Current Concept and Evidence Layer
 
@@ -64,7 +81,7 @@ The visual MVP keeps concept scoring deterministic and dependency-light. Candida
 
 These signals are combined into a confidence score for review prioritization. The score is not a claim that a pattern is real or important. Reports include the component breakdown so reviewers can see why a candidate concept was highlighted.
 
-Evidence bundles currently include supporting examples, representative examples, empty placeholders for near matches and normal comparisons, notes, and warnings. Near-match and normal-comparison selection should be added only after the baseline/reference strategy is designed.
+Evidence bundles currently include supporting examples, representative examples, nearest-neighbor matches when memory is enabled, empty placeholders for normal comparisons, notes, and warnings. Normal-comparison selection should be added only after the baseline/reference strategy is designed.
 
 ## Current Boundaries
 

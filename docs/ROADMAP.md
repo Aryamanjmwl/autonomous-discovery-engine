@@ -28,8 +28,11 @@ Core product principle: discovery with evidence, not only anomaly scores.
 - Color histograms
 - Texture features
 - Edge and shape features
+- Multi-scale patch presets
+- Diversity-aware candidate selection
 - Patch-level evidence
 - Similarity search
+- Lightweight visual memory
 - Near-duplicate detection
 - Cluster summaries
 - Better report visuals
@@ -60,6 +63,7 @@ Core product principle: discovery with evidence, not only anomaly scores.
 - Ensemble novelty scoring
 - Confidence scoring
 - Optional FAISS indexing
+- Persistent memory banks
 - Persistent embedding cache
 
 ## Stage 5: API and Docker

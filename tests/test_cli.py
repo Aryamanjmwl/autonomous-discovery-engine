@@ -199,3 +199,28 @@ demo_data:
     assert report_data["run_index_path"].endswith("run_records/index.json")
     assert (tmp_path / "preview_assets").is_dir()
     assert (tmp_path / "run_records" / "index.json").is_file()
+
+
+def test_run_pipeline_rejects_mismatched_patch_scale_config(tmp_path: Path) -> None:
+    pytest.importorskip("PIL.Image")
+    image_dir = tmp_path / "images"
+    config_path = tmp_path / "config.yaml"
+    _load_demo_module().generate_demo_images(output_dir=image_dir)
+    config_path.write_text(
+        """
+preprocessing:
+  patch_sizes:
+    - 64
+    - 128
+  patch_strides:
+    - 64
+""".strip(),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="patch_sizes and patch_strides"):
+        run_pipeline(
+            input_dir=image_dir,
+            output_path=tmp_path / "report.md",
+            config_path=config_path,
+        )

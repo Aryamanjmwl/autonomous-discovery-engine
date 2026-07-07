@@ -5,16 +5,31 @@ project:
 preprocessing:
   patch_size: 64
   patch_stride: 64
+  patch_sizes:
+    - 64
+  patch_strides:
+    - 64
 
 discovery:
   max_candidate_anomalies: 10
   max_concepts: 5
   novelty_metric: "euclidean"
   cluster_distance_threshold: 0.35
+  diversity:
+    enabled: true
+    min_spatial_distance: 32
+    max_per_image: 3
+    prefer_multiple_scales: true
   concepts:
     min_supporting_examples: 2
     max_supporting_examples: 5
     min_confidence_to_highlight: 0.5
+
+memory:
+  enabled: true
+  metric: "euclidean"
+  top_k_neighbors: 5
+  include_neighbors_in_report: true
 
 reporting:
   report_version: "1.0"

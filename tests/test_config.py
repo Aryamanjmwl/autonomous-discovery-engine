@@ -15,9 +15,13 @@ def test_default_config_loads_expected_sections() -> None:
         "reporting",
         "validation",
         "demo_data",
+        "memory",
     }.issubset(config)
     assert config["project"]["name"] == "ADE"
     assert config["preprocessing"]["patch_size"] == 64
+    assert config["preprocessing"]["patch_sizes"] == [64]
+    assert config["preprocessing"]["patch_strides"] == [64]
+    assert config["discovery"]["diversity"]["enabled"] is True
     assert config["reporting"]["human_review_required"] is True
     assert ".png" in config["validation"]["supported_image_extensions"]
 
@@ -42,6 +46,41 @@ discovery:
     ]
     assert config["discovery"]["max_candidate_anomalies"] == 2
     assert config["preprocessing"]["patch_size"] == 64
+
+
+def test_config_loader_preserves_legacy_single_scale_settings(tmp_path: Path) -> None:
+    config_path = tmp_path / "legacy.yaml"
+    config_path.write_text(
+        """
+preprocessing:
+  patch_size: 128
+  patch_stride: 32
+""".strip(),
+        encoding="utf-8",
+    )
+
+    config = load_config(config_path)
+
+    assert config["preprocessing"]["patch_sizes"] == [128]
+    assert config["preprocessing"]["patch_strides"] == [32]
+
+
+def test_config_loader_defaults_missing_patch_strides_to_sizes(tmp_path: Path) -> None:
+    config_path = tmp_path / "multiscale.yaml"
+    config_path.write_text(
+        """
+preprocessing:
+  patch_sizes:
+    - 32
+    - 64
+""".strip(),
+        encoding="utf-8",
+    )
+
+    config = load_config(config_path)
+
+    assert config["preprocessing"]["patch_sizes"] == [32, 64]
+    assert config["preprocessing"]["patch_strides"] == [32, 64]
 
 
 def test_config_loader_rejects_missing_explicit_config(tmp_path: Path) -> None:

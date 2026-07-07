@@ -8,6 +8,8 @@ ADE is a general autonomous discovery platform with a visual-data-first implemen
 - Use `pathlib.Path` for filesystem paths.
 - Use dataclasses for stable internal records.
 - Keep JSON serialization explicit and avoid dumping raw NumPy arrays.
+- Keep retrieval metadata JSON-safe and avoid persisting runtime-only memory state by accident.
+- Keep patch IDs deterministic and include enough scale/coordinate metadata to avoid collisions.
 - Add type hints for public functions and dataclass fields.
 - Prefer small functions over hidden control flow.
 - Avoid broad exception handling unless the error is converted into a clear user-facing message.
@@ -23,6 +25,8 @@ ADE is a general autonomous discovery platform with a visual-data-first implemen
 - Cover CLI errors for invalid input paths, missing config files, empty datasets, and invalid limits.
 - Cover input profiling for valid folders, empty folders, unsupported files, unreadable images, and warning behavior.
 - Cover concept scoring, evidence ordering, JSON-safe evidence bundles, and report schema changes when discovery outputs change.
+- Cover vector memory metrics, deterministic neighbor ordering, filters, and empty-index behavior when retrieval changes.
+- Cover multi-scale patch counts, invalid scale config, and diversity selection behavior when patch extraction or anomaly selection changes.
 
 ## Documentation Standards
 
@@ -53,6 +57,8 @@ Keep `.gitkeep` files only where they preserve intended empty directory structur
 - User-provided config paths should fail clearly when missing or invalid.
 - Input validation thresholds and supported extensions belong in config.
 - New configuration keys should have tests and documentation.
+- Memory configuration should remain lightweight and should not imply persistent vector storage unless that storage exists.
+- Multi-scale defaults should remain conservative unless runtime and report quality are reviewed.
 
 ## Commit Discipline
 
@@ -66,6 +72,8 @@ Keep `.gitkeep` files only where they preserve intended empty directory structur
 - Are product claims careful and accurate?
 - Are candidate findings traceable to source data?
 - Do concept findings include supporting evidence, consistency/confidence context, and cautious wording?
+- If memory is enabled, are nearest-neighbor results bounded, deterministic, and traceable to source patches?
+- Are reported candidate anomalies diverse enough to avoid obvious duplicate regions from one image?
 - Are outputs marked as requiring human review?
 - Are new paths ignored if they are generated?
 - Do tests pass from a clean environment?

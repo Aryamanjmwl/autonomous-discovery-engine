@@ -102,8 +102,8 @@ class ReportGenerator:
         if candidates:
             lines.extend(
                 [
-                    "| Rank | Preview | Source | Coordinates | Novelty score |",
-                    "| --- | --- | --- | --- | ---: |",
+                    "| Rank | Preview | Source | Coordinates | Patch scale | Novelty score |",
+                    "| --- | --- | --- | --- | --- | ---: |",
                 ]
             )
             for index, candidate in enumerate(candidates, start=1):
@@ -114,7 +114,9 @@ class ReportGenerator:
                 )
                 lines.append(
                     f"| {index} | {preview} | `{patch.source_path}` | "
-                    f"`{patch.coordinates}` | {candidate.novelty_score:.4f} |"
+                    f"`{patch.coordinates}` | "
+                    f"`{patch.scale_label or 'single-scale'}` / {patch.patch_size}px | "
+                    f"{candidate.novelty_score:.4f} |"
                 )
         else:
             lines.append("No candidate anomalies were identified by the placeholder scorer.")
@@ -163,6 +165,9 @@ class ReportGenerator:
                         f"novelty score {item.novelty_score:.4f}; "
                         f"anomaly `{item.anomaly_id or 'unassigned'}`"
                     )
+                near_match_lines = self._near_match_lines(evidence)
+                if near_match_lines:
+                    lines.extend(["", "Nearest visual matches:", *near_match_lines])
                 lines.extend(
                     [
                         "",
@@ -198,6 +203,8 @@ class ReportGenerator:
         confidences: list[ConceptConfidence],
         hypotheses: list[Hypothesis],
         dataset_profile: DatasetProfile | None = None,
+        memory_metadata: dict[str, object] | None = None,
+        analysis_metadata: dict[str, object] | None = None,
     ) -> Path:
         """Write a Markdown report and return the output path."""
 
@@ -219,6 +226,8 @@ class ReportGenerator:
             candidates=candidates,
             evidence_items=evidence_items,
             dataset_profile=dataset_profile,
+            memory_metadata=memory_metadata,
+            analysis_metadata=analysis_metadata,
         )
         assets = self.save_assets(path, candidates, evidence_items)
         report = self.generate(
@@ -372,6 +381,8 @@ class ReportGenerator:
         candidates: list[CandidateAnomaly],
         evidence_items: list[ConceptEvidence],
         dataset_profile: DatasetProfile | None = None,
+        memory_metadata: dict[str, object] | None = None,
+        analysis_metadata: dict[str, object] | None = None,
     ) -> dict[str, object]:
         """Build traceable metadata for one ADE analysis run."""
 
@@ -390,6 +401,41 @@ class ReportGenerator:
             human_review_required=self.human_review_required,
             average_concept_confidence=self._average_concept_confidence(evidence_items),
             average_concept_consistency=self._average_concept_consistency(evidence_items),
+            memory_enabled=(
+                bool(memory_metadata.get("enabled"))
+                if memory_metadata is not None
+                else None
+            ),
+            memory_metric=(
+                str(memory_metadata.get("metric"))
+                if memory_metadata is not None
+                and memory_metadata.get("metric") is not None
+                else None
+            ),
+            memory_items_indexed=(
+                int(memory_metadata.get("items_indexed", 0))
+                if memory_metadata is not None
+                else None
+            ),
+            total_patches=(
+                int(analysis_metadata.get("total_patches", dataset_summary.patch_count))
+                if analysis_metadata is not None
+                else None
+            ),
+            patch_scales_used=(
+                [
+                    str(item)
+                    for item in analysis_metadata.get("patch_scales_used", [])
+                ]
+                if analysis_metadata is not None
+                else []
+            ),
+            anomaly_selection_strategy=(
+                str(analysis_metadata.get("anomaly_selection_strategy"))
+                if analysis_metadata is not None
+                and analysis_metadata.get("anomaly_selection_strategy") is not None
+                else None
+            ),
             number_of_input_files=(
                 dataset_profile.total_files if dataset_profile is not None else None
             ),
@@ -456,8 +502,14 @@ class ReportGenerator:
             "anomaly_id": candidate.anomaly_id or f"anomaly-{rank:04d}",
             "source_path": anomaly["source_path"],
             "coordinates": [int(value) for value in patch.coordinates],
+            "patch_size": patch.patch_size,
+            "patch_stride": patch.patch_stride,
+            "scale_id": patch.scale_id,
+            "scale_label": patch.scale_label,
             "novelty_score": anomaly["novelty_score"],
             "preview_path": anomaly["preview_path"],
+            "selection_reason": candidate.metadata.get("selection_reason"),
+            "selection_rank": candidate.metadata.get("selection_rank"),
             "label": "candidate anomaly",
             "requires_human_review": self.human_review_required,
         }
@@ -482,6 +534,9 @@ class ReportGenerator:
                     "x": int(item.coordinates[0]),
                     "y": int(item.coordinates[1]),
                     "patch_size": int(item.patch_size),
+                    "patch_stride": item.patch_stride,
+                    "scale_id": item.scale_id,
+                    "scale_label": item.scale_label,
                     "novelty_score": float(item.novelty_score),
                     "preview_path": preview_path,
                 }
@@ -507,6 +562,7 @@ class ReportGenerator:
                 supporting_examples=evidence_summary["supporting_examples"],
                 representative_examples=evidence_summary["representative_examples"],
                 near_matches=evidence_summary["near_matches"],
+                nearest_neighbors=evidence_summary["nearest_neighbors"],
                 normal_comparisons=evidence_summary["normal_comparisons"],
                 notes=evidence_summary["notes"],
                 warnings=evidence_summary["warnings"],
@@ -718,6 +774,7 @@ class ReportGenerator:
             "supporting_examples": supporting_examples,
             "representative_examples": supporting_examples[:1],
             "near_matches": list(bundle.get("near_matches", [])),
+            "nearest_neighbors": list(bundle.get("nearest_neighbors", [])),
             "normal_comparisons": list(bundle.get("normal_comparisons", [])),
             "notes": list(
                 bundle.get(
@@ -730,6 +787,35 @@ class ReportGenerator:
             ),
             "warnings": list(bundle.get("warnings", [])),
         }
+
+    @staticmethod
+    def _near_match_lines(evidence: ConceptEvidence, max_rows: int = 5) -> list[str]:
+        """Return concise Markdown lines for nearest-neighbor evidence."""
+
+        bundle = evidence.evidence_summary or {}
+        matches = bundle.get("nearest_neighbors") or bundle.get("near_matches") or []
+        if not isinstance(matches, list):
+            return []
+
+        lines: list[str] = []
+        for match in matches[:max_rows]:
+            if not isinstance(match, dict):
+                continue
+            metadata = match.get("metadata", {})
+            source_path = ""
+            coordinates = ""
+            if isinstance(metadata, dict):
+                source_path = str(metadata.get("source_path", "unknown"))
+                coordinates = (
+                    f"({metadata.get('x', '?')}, {metadata.get('y', '?')}, "
+                    f"{metadata.get('width', '?')}, {metadata.get('height', '?')})"
+                )
+            lines.append(
+                "- "
+                f"`{match.get('item_id', 'unknown')}` from `{source_path}` "
+                f"at {coordinates}; distance {float(match.get('distance', 0.0)):.4f}"
+            )
+        return lines
 
     @staticmethod
     def _average_concept_confidence(

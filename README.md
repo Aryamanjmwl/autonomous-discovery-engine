@@ -47,14 +47,16 @@ The current pipeline performs:
 
 1. Image-folder input validation and dataset profiling
 2. Image loading from a local folder
-3. Fixed-size patch extraction
+3. Single-scale or configured multi-scale patch extraction
 4. Deterministic statistical embeddings
 5. Novelty ranking
-6. Simple candidate concept grouping
-7. Evidence bundle collection
-8. Concept consistency and confidence scoring
-9. Cautious hypothesis generation
-10. Markdown and JSON discovery report generation
+6. Diversity-aware candidate anomaly selection
+7. Simple candidate concept grouping
+8. Evidence bundle collection
+9. Concept consistency and confidence scoring
+10. Lightweight visual memory indexing and nearest-neighbor retrieval
+11. Cautious hypothesis generation
+12. Markdown and JSON discovery report generation
 
 The embedding system currently uses simple image statistics such as color means, standard deviations, brightness, and edge density. This is intentionally basic so the architecture can later support stronger encoders for specific domains.
 
@@ -82,11 +84,13 @@ ADE is designed to grow into a cross-industry discovery platform. Example future
 - Profile visual input folders before analysis
 - Warn about unsupported files, unreadable images, small datasets, small images, and high estimated patch counts
 - Return image path and metadata
-- Split images into fixed-size patches
+- Split images into fixed-size or configured multi-scale patches
 - Create deterministic placeholder embeddings from image statistics
 - Rank candidate anomalies by distance from the dataset average
+- Select a diverse candidate anomaly set across images, regions, and scales
 - Group similar candidate anomalies into candidate unknown concepts
 - Collect structured supporting evidence with anomaly IDs, coordinates, ranks, and preview paths
+- Retrieve nearest visual matches from a local NumPy-backed embedding memory
 - Produce bounded consistency, diversity, and confidence signals for review prioritization
 - Generate cautious template-based hypotheses
 - Write a Markdown ADE Discovery Report and a structured JSON sidecar report
@@ -138,9 +142,10 @@ For example, this command creates both:
 
 The Markdown report is for human review. The JSON report stores structured
 candidate anomalies, candidate unknown concepts, evidence bundles,
-confidence breakdowns, hypotheses, limitations, and the human-review
-requirement so future dashboards, APIs, databases, subscription workflows,
-or comparison tools can consume the same discovery results.
+nearest-neighbor evidence, confidence breakdowns, hypotheses, limitations,
+and the human-review requirement so future dashboards, APIs, databases,
+subscription workflows, or comparison tools can consume the same discovery
+results.
 
 ## Generate Demo Data
 
@@ -185,13 +190,61 @@ You can also pass the config path explicitly:
 python -m ade.cli --input data/raw/demo_images --output data/reports/demo_report.md --config configs/default.yaml
 ```
 
-The current config covers settings such as patch size, patch stride, maximum
-candidate anomaly count, concept limits, concept evidence thresholds, report
-version, human-review requirement, report asset folders, run metadata
-folders, input validation thresholds, supported image extensions, and
-synthetic demo data settings.
+The current config covers settings such as patch size, patch stride, optional
+multi-scale patch sizes and strides, maximum candidate anomaly count,
+diversity-aware selection settings, concept limits, concept evidence
+thresholds, visual memory settings, report version, human-review requirement,
+report asset folders, run metadata folders, input validation thresholds,
+supported image extensions, and synthetic demo data settings.
 These settings are intended to make ADE runs easier to
 reproduce and compare as the project grows.
+
+### Multi-Scale Patch Extraction
+
+ADE defaults to one conservative patch scale to keep runtime predictable:
+
+```yaml
+preprocessing:
+  patch_size: 64
+  patch_stride: 64
+  patch_sizes:
+    - 64
+  patch_strides:
+    - 64
+```
+
+To inspect more than one visual scale, set matching `patch_sizes` and
+`patch_strides` lists. Each generated patch receives deterministic scale
+metadata such as `patch_size`, `patch_stride`, and `scale_label`.
+
+### Diversity-Aware Candidate Selection
+
+The visual pipeline can avoid filling reports with near-duplicate candidate
+anomalies from the same image or region:
+
+```yaml
+discovery:
+  diversity:
+    enabled: true
+    min_spatial_distance: 32
+    max_per_image: 3
+    prefer_multiple_scales: true
+```
+
+The selector still starts from novelty ranking. Diversity settings only affect
+which candidate anomalies are surfaced for review.
+
+## Visual Memory
+
+The current visual implementation can build a local in-memory index of patch
+embeddings during a run. The index uses NumPy and supports Euclidean or cosine
+nearest-neighbor retrieval. Reports can include concise nearest visual matches
+for candidate concepts when memory is enabled.
+
+This is a lightweight foundation for evidence retrieval, near-match lookup,
+future normal comparison retrieval, PatchCore-style memory-bank scoring, and
+eventual FAISS or vector database backends. It is not a persistent vector
+database and does not use deep learning.
 
 ## Input Validation
 
@@ -241,6 +294,7 @@ ade/
 │   ├── adapters/            # Data input interfaces
 │   ├── preprocessing/       # Patch extraction and future transforms
 │   ├── representation/      # Placeholder embeddings and future encoders
+│   ├── memory/              # Local vector memory and nearest-neighbor retrieval
 │   ├── storage/             # Metadata and embedding stores
 │   ├── discovery/           # Novelty, concepts, evidence, and confidence
 │   ├── reasoning/           # Cautious hypothesis generation
@@ -289,6 +343,7 @@ The platform vision includes private workspaces, dataset management, configurabl
 - Add CSV and time-series adapters
 - Add support for industrial sensor data and robot logs
 - Add stronger embedding backends behind the existing representation interface
+- Add persistent memory backends and normal-reference memory banks
 - Add richer concept clustering and evidence ranking
 - Add report exports with review annotations
 - Add secure upload, storage, and workspace isolation for a hosted product

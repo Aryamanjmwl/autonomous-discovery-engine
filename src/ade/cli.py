@@ -7,17 +7,19 @@ from pathlib import Path
 
 from ade.adapters.image_adapter import ImageAdapter
 from ade.config import load_config
+from ade.discovery.anomaly_selector import AnomalySelector
 from ade.discovery.concept_clusterer import ConceptClusterer
 from ade.discovery.confidence_scorer import ConfidenceScorer
 from ade.discovery.evidence_collector import EvidenceCollector
 from ade.discovery.novelty_scorer import NoveltyScorer
-from ade.models import DatasetProfile
+from ade.memory.vector_memory import VectorMemory
+from ade.models import CandidateAnomaly, DatasetProfile
 from ade.preprocessing.input_validator import profile_image_folder
 from ade.preprocessing.patch_extractor import PatchExtractor
 from ade.reasoning.hypothesis_generator import HypothesisGenerator
 from ade.reporting.report_generator import DatasetSummary, ReportGenerator
 from ade.reporting.run_index import load_run_index
-from ade.representation.embedding_engine import EmbeddingEngine
+from ade.representation.embedding_engine import EmbeddingEngine, PatchEmbedding
 
 DEFAULT_RUN_INDEX_PATH = Path("data/reports/runs/index.json")
 
@@ -84,13 +86,15 @@ def run_pipeline(
     reporting = config["reporting"]
     project = config["project"]
     validation = config["validation"]
+    memory_config = config["memory"]
 
-    effective_patch_size = (
-        patch_size if patch_size is not None else int(preprocessing["patch_size"])
+    patch_sizes, patch_strides = _resolve_patch_scales(
+        preprocessing=preprocessing,
+        patch_size=patch_size,
+        stride=stride,
     )
-    effective_stride = (
-        stride if stride is not None else int(preprocessing["patch_stride"])
-    )
+    effective_patch_size = patch_sizes[0]
+    effective_stride = patch_strides[0]
     effective_max_candidates = (
         max_candidates
         if max_candidates is not None
@@ -105,6 +109,8 @@ def run_pipeline(
         supported_image_extensions=supported_extensions,
         patch_size=effective_patch_size,
         patch_stride=effective_stride,
+        patch_sizes=patch_sizes,
+        patch_strides=patch_strides,
     )
     _raise_for_invalid_profile(dataset_profile)
 
@@ -118,7 +124,12 @@ def run_pipeline(
             "Run `python scripts/create_demo_data.py` or provide a folder of PNG, JPEG, "
             "TIFF, BMP, or WebP images."
         )
-    extractor = PatchExtractor(patch_size=effective_patch_size, stride=effective_stride)
+    extractor = PatchExtractor(
+        patch_size=effective_patch_size,
+        stride=effective_stride,
+        patch_sizes=patch_sizes,
+        patch_strides=patch_strides,
+    )
     patches = [
         patch
         for record in image_records
@@ -126,9 +137,28 @@ def run_pipeline(
     ]
 
     embeddings = EmbeddingEngine().embed_patches(patches)
-    candidates = NoveltyScorer().score(
-        embeddings,
+    scored_candidates = NoveltyScorer().score(embeddings)
+    candidates = AnomalySelector(
+        enabled=bool(discovery.get("diversity", {}).get("enabled", False)),
+        min_spatial_distance=float(
+            discovery.get("diversity", {}).get("min_spatial_distance", 32)
+        ),
+        max_per_image=int(discovery.get("diversity", {}).get("max_per_image", 3)),
+        prefer_multiple_scales=bool(
+            discovery.get("diversity", {}).get("prefer_multiple_scales", True)
+        ),
+    ).select(
+        candidates=scored_candidates,
         max_candidates=effective_max_candidates,
+    )
+    memory = (
+        _build_vector_memory(
+            embeddings=embeddings,
+            candidates=candidates,
+            metric=str(memory_config["metric"]),
+        )
+        if bool(memory_config["enabled"])
+        else None
     )
     concepts = ConceptClusterer(
         distance_threshold=float(discovery["cluster_distance_threshold"]),
@@ -143,7 +173,10 @@ def run_pipeline(
     evidence_items = EvidenceCollector(
         max_supporting_examples=int(
             discovery.get("concepts", {}).get("max_supporting_examples", 5)
-        )
+        ),
+        memory=memory,
+        top_k_neighbors=int(memory_config["top_k_neighbors"]),
+        include_neighbors=bool(memory_config["include_neighbors_in_report"]),
     ).collect(concepts)
     confidences = ConfidenceScorer().score(evidence_items)
     hypotheses = HypothesisGenerator().generate(evidence_items)
@@ -169,7 +202,105 @@ def run_pipeline(
         confidences=confidences,
         hypotheses=hypotheses,
         dataset_profile=dataset_profile,
+        memory_metadata={
+            "enabled": bool(memory_config["enabled"]),
+            "metric": str(memory_config["metric"]),
+            "items_indexed": len(memory) if memory is not None else 0,
+        },
+        analysis_metadata={
+            "total_patches": len(patches),
+            "patch_scales_used": _patch_scales_used(patches),
+            "anomaly_selection_strategy": (
+                "diversity-aware"
+                if bool(discovery.get("diversity", {}).get("enabled", False))
+                else "top-novelty"
+            ),
+        },
     )
+
+
+def _resolve_patch_scales(
+    preprocessing: dict,
+    patch_size: int | None,
+    stride: int | None,
+) -> tuple[list[int], list[int]]:
+    """Resolve patch scale settings from CLI overrides and config."""
+
+    if patch_size is not None or stride is not None:
+        size = patch_size if patch_size is not None else int(preprocessing["patch_size"])
+        return [int(size)], [int(stride if stride is not None else size)]
+
+    raw_sizes = preprocessing.get("patch_sizes")
+    raw_strides = preprocessing.get("patch_strides")
+    if raw_sizes is None:
+        raw_sizes = [int(preprocessing["patch_size"])]
+    if raw_strides is None:
+        raw_strides = [int(preprocessing.get("patch_stride", raw_sizes[0]))]
+
+    patch_sizes = [int(value) for value in raw_sizes]
+    patch_strides = [int(value) for value in raw_strides]
+    if len(patch_sizes) != len(patch_strides):
+        raise ValueError("preprocessing.patch_sizes and patch_strides must match")
+    if not patch_sizes:
+        raise ValueError("preprocessing.patch_sizes must contain at least one size")
+    if any(value <= 0 for value in patch_sizes):
+        raise ValueError("preprocessing.patch_sizes must contain positive values")
+    if any(value <= 0 for value in patch_strides):
+        raise ValueError("preprocessing.patch_strides must contain positive values")
+    return patch_sizes, patch_strides
+
+
+def _patch_scales_used(patches: list) -> list[str]:
+    """Return stable patch scale labels used in this run."""
+
+    scales = {
+        str(patch.scale_label or f"s{patch.patch_size}")
+        for patch in patches
+    }
+    return sorted(scales)
+
+
+def _build_vector_memory(
+    embeddings: list[PatchEmbedding],
+    candidates: list[CandidateAnomaly],
+    metric: str,
+) -> VectorMemory:
+    """Build a local vector memory from patch embeddings."""
+
+    memory = VectorMemory(metric=metric)
+    anomaly_by_patch_id = {
+        candidate.embedding.patch.patch_id: candidate
+        for candidate in candidates
+        if candidate.embedding.patch.patch_id
+    }
+    for embedding in embeddings:
+        patch = embedding.patch
+        if not patch.patch_id:
+            continue
+        candidate = anomaly_by_patch_id.get(patch.patch_id)
+        memory.add(
+            item_id=patch.patch_id,
+            vector=embedding.vector,
+            metadata={
+                "patch_id": patch.patch_id,
+                "image_id": patch.image_id,
+                "source_path": patch.source_path,
+                "x": patch.x,
+                "y": patch.y,
+                "width": patch.width,
+                "height": patch.height,
+                "patch_size": patch.patch_size,
+                "patch_stride": patch.patch_stride,
+                "scale_id": patch.scale_id,
+                "scale_label": patch.scale_label,
+                "is_candidate_anomaly": candidate is not None,
+                "anomaly_id": candidate.anomaly_id if candidate is not None else None,
+                "novelty_score": (
+                    candidate.novelty_score if candidate is not None else None
+                ),
+            },
+        )
+    return memory
 
 
 def _raise_for_invalid_profile(dataset_profile: DatasetProfile) -> None:

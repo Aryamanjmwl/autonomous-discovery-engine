@@ -9,16 +9,17 @@ ADE is a general autonomous discovery platform. The current implementation focus
 - Synthetic image demo data generator
 - Image folder adapter
 - Visual input validation and dataset profiling
-- Patch extraction
+- Single-scale and configured multi-scale patch extraction
 - Deterministic statistical embedding backend
 - Novelty scoring
-- Candidate anomaly selection
+- Diversity-aware candidate anomaly selection
 - Candidate concept grouping with bounded consistency and diversity signals
 - Structured evidence collection for supporting patches
+- Lightweight visual memory with NumPy nearest-neighbor retrieval
 - Confidence scoring with component breakdowns for review prioritization
 - Cautious hypothesis generation
 - Markdown discovery report with patch previews
-- Structured JSON report with concept evidence bundles and confidence breakdowns
+- Structured JSON report with concept evidence bundles, near matches, and confidence breakdowns
 - Dataset profile included in reports and concise run metadata
 - Run metadata files
 - Run history index
@@ -30,6 +31,8 @@ ADE is a general autonomous discovery platform. The current implementation focus
 
 - Internal dataclasses exist, but adapter contracts are still visual-data-oriented.
 - Dataset profiling currently covers image folders only.
+- Multi-scale extraction is supported, but the default config intentionally uses one conservative scale.
+- Memory is in-process only; persistent memory banks, coreset selection, and vector database backends are not implemented.
 - Reporting is useful for the visual MVP, but review annotations, user feedback, and richer export formats are not implemented.
 - Config supports current pipeline parameters, but broader adapter configuration is not designed yet.
 - Run history exists locally, but there is no dashboard, database, user account model, or hosted audit system.
@@ -39,6 +42,7 @@ ADE is a general autonomous discovery platform. The current implementation focus
 - Video adapter implementation
 - Tabular, time-series, log, audio, document, multimodal, or live stream adapters
 - Deep visual embedding backend
+- Persistent vector memory, FAISS integration, or vector database storage
 - Production dashboard
 - Subscription platform
 - User authentication, hosted storage, billing, or workspace isolation
@@ -49,8 +53,10 @@ ADE is a general autonomous discovery platform. The current implementation focus
 1. Keep generated artifacts out of version control.
 2. Add explicit adapter interfaces before adding non-visual data types.
 3. Add stronger visual feature backends behind the existing representation interface.
-4. Add near-match and normal-comparison evidence once baseline/reference selection is designed.
-5. Improve report review workflows with human annotations.
-6. Add run comparison tools for candidate anomalies and candidate concepts across experiments.
-7. Continue documenting original decisions and experiments before public disclosure.
-8. Run linting and type checking before a tagged internal release once the development environment includes those optional tools.
+4. Evaluate useful multi-scale presets on controlled demo and private datasets.
+5. Design normal-reference memory banks before adding memory-bank anomaly scoring.
+6. Add normal-comparison evidence once baseline/reference selection is designed.
+7. Improve report review workflows with human annotations.
+8. Add run comparison tools for candidate anomalies and candidate concepts across experiments.
+9. Continue documenting original decisions and experiments before public disclosure.
+10. Run linting and type checking before a tagged internal release once the development environment includes those optional tools.

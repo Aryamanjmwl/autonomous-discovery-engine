@@ -15,6 +15,8 @@ def profile_image_folder(
     supported_image_extensions: Iterable[str],
     patch_size: int,
     patch_stride: int,
+    patch_sizes: list[int] | None = None,
+    patch_strides: list[int] | None = None,
 ) -> DatasetProfile:
     """Inspect an image-folder input and return a structured dataset profile."""
 
@@ -59,11 +61,11 @@ def profile_image_folder(
 
         widths.append(width)
         heights.append(height)
-        estimated_patch_count += _estimate_patch_count(
+        estimated_patch_count += _estimate_multiscale_patch_count(
             width=width,
             height=height,
-            patch_size=patch_size,
-            patch_stride=patch_stride,
+            patch_sizes=patch_sizes or [patch_size],
+            patch_strides=patch_strides or [patch_stride],
         )
 
     valid_images = len(widths)
@@ -151,3 +153,24 @@ def _estimate_patch_count(
     x_count = len(range(0, max(width - patch_size + 1, 0), patch_stride))
     y_count = len(range(0, max(height - patch_size + 1, 0), patch_stride))
     return max(x_count * y_count, 1)
+
+
+def _estimate_multiscale_patch_count(
+    width: int,
+    height: int,
+    patch_sizes: list[int],
+    patch_strides: list[int],
+) -> int:
+    """Estimate total patch count across configured scales."""
+
+    if len(patch_sizes) != len(patch_strides):
+        raise ValueError("patch_sizes and patch_strides must have matching lengths")
+    return sum(
+        _estimate_patch_count(
+            width=width,
+            height=height,
+            patch_size=patch_size,
+            patch_stride=patch_stride,
+        )
+        for patch_size, patch_stride in zip(patch_sizes, patch_strides, strict=True)
+    )

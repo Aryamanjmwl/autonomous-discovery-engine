@@ -7,6 +7,7 @@ from ade.discovery.concept_scorer import ConceptScorer
 from ade.discovery.confidence_scorer import ConfidenceScorer
 from ade.discovery.evidence_collector import EvidenceCollector
 from ade.discovery.novelty_scorer import CandidateAnomaly
+from ade.memory.vector_memory import VectorMemory
 from ade.preprocessing.patch_extractor import Patch
 from ade.representation.embedding_engine import PatchEmbedding
 
@@ -94,6 +95,28 @@ def test_confidence_scorer_uses_breakdown_from_evidence() -> None:
     assert confidence.breakdown is not None
     assert confidence.score == confidence.breakdown["final_confidence"]
     assert 0.0 <= confidence.score <= 1.0
+
+
+def test_evidence_collector_includes_memory_neighbors() -> None:
+    candidates = [
+        _candidate("anomaly-0001", "image-a.png", [1.0, 1.0], 0.9),
+        _candidate("anomaly-0002", "image-b.png", [1.1, 1.0], 0.8),
+    ]
+    concept = ConceptClusterer(distance_threshold=0.5).cluster(candidates)[0]
+    memory = VectorMemory()
+    memory.add(
+        item_id="near-normal",
+        vector=[1.05, 1.0],
+        metadata={"source_path": "image-c.png", "x": 0, "y": 0, "width": 4, "height": 4},
+    )
+
+    evidence = EvidenceCollector(memory=memory, top_k_neighbors=1).collect([concept])[0]
+
+    assert evidence.evidence_summary is not None
+    neighbors = evidence.evidence_summary["nearest_neighbors"]
+    assert neighbors[0]["item_id"] == "near-normal"
+    assert neighbors[0]["query_anomaly_id"] == "anomaly-0001"
+    assert neighbors[0]["metadata"]["source_path"] == "image-c.png"
 
 
 def test_empty_candidate_concept_does_not_crash() -> None:

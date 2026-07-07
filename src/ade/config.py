@@ -18,17 +18,31 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "preprocessing": {
         "patch_size": 64,
         "patch_stride": 64,
+        "patch_sizes": [64],
+        "patch_strides": [64],
     },
     "discovery": {
         "max_candidate_anomalies": 10,
         "max_concepts": 5,
         "novelty_metric": "euclidean",
         "cluster_distance_threshold": 0.35,
+        "diversity": {
+            "enabled": True,
+            "min_spatial_distance": 32,
+            "max_per_image": 3,
+            "prefer_multiple_scales": True,
+        },
         "concepts": {
             "min_supporting_examples": 2,
             "max_supporting_examples": 5,
             "min_confidence_to_highlight": 0.5,
         },
+    },
+    "memory": {
+        "enabled": True,
+        "metric": "euclidean",
+        "top_k_neighbors": 5,
+        "include_neighbors_in_report": True,
     },
     "reporting": {
         "report_version": "1.0",
@@ -74,7 +88,8 @@ def load_config(config_path: Path | str | None = None) -> dict[str, Any]:
     if not isinstance(loaded, dict):
         raise ValueError(f"Config file must contain a mapping: {path}")
 
-    return _deep_merge(config, loaded)
+    merged = _deep_merge(config, loaded)
+    return _normalize_preprocessing_config(merged, loaded)
 
 
 def _deep_merge(
@@ -94,3 +109,28 @@ def _deep_merge(
         else:
             merged[key] = value
     return merged
+
+
+def _normalize_preprocessing_config(
+    config: dict[str, Any],
+    loaded: dict[str, Any],
+) -> dict[str, Any]:
+    """Preserve legacy patch_size/patch_stride behavior with multi-scale defaults."""
+
+    loaded_preprocessing = loaded.get("preprocessing")
+    if not isinstance(loaded_preprocessing, dict):
+        return config
+
+    preprocessing = config["preprocessing"]
+    if "patch_sizes" not in loaded_preprocessing and "patch_size" in loaded_preprocessing:
+        preprocessing["patch_sizes"] = [int(preprocessing["patch_size"])]
+    if "patch_strides" not in loaded_preprocessing:
+        if "patch_sizes" in loaded_preprocessing:
+            preprocessing["patch_strides"] = [
+                int(value) for value in preprocessing["patch_sizes"]
+            ]
+        elif "patch_stride" in loaded_preprocessing:
+            preprocessing["patch_strides"] = [int(preprocessing["patch_stride"])]
+        elif "patch_sizes" not in loaded_preprocessing and "patch_size" in loaded_preprocessing:
+            preprocessing["patch_strides"] = [int(preprocessing["patch_size"])]
+    return config

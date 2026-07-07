@@ -23,10 +23,18 @@ def _candidate_patch() -> tuple[Patch, CandidateAnomaly]:
         y=2,
         width=4,
         height=4,
+        patch_id="image_s4_stride4_x1_y2",
+        metadata={
+            "patch_size": 4,
+            "patch_stride": 4,
+            "scale_id": "scale-1",
+            "scale_label": "s4",
+        },
     )
     candidate = CandidateAnomaly(
         embedding=PatchEmbedding(patch=patch, vector=np.zeros(8, dtype=np.float32)),
         novelty_score=0.42,
+        metadata={"selection_reason": "diversity selected", "selection_rank": 1},
     )
     return patch, candidate
 
@@ -42,6 +50,9 @@ def _concept_evidence() -> ConceptEvidence:
                 anomaly_id="anomaly-0001",
                 rank=1,
                 concept_id="concept-001",
+                patch_stride=4,
+                scale_id="scale-1",
+                scale_label="s4",
             )
         ],
         example_count=1,
@@ -70,6 +81,9 @@ def _concept_evidence() -> ConceptEvidence:
                     "width": 4,
                     "height": 4,
                     "patch_size": 4,
+                    "patch_stride": 4,
+                    "scale_id": "scale-1",
+                    "scale_label": "s4",
                     "novelty_score": 0.42,
                     "rank": 1,
                     "concept_id": "concept-001",
@@ -85,6 +99,9 @@ def _concept_evidence() -> ConceptEvidence:
                     "width": 4,
                     "height": 4,
                     "patch_size": 4,
+                    "patch_stride": 4,
+                    "scale_id": "scale-1",
+                    "scale_label": "s4",
                     "novelty_score": 0.42,
                     "rank": 1,
                     "concept_id": "concept-001",
@@ -92,6 +109,23 @@ def _concept_evidence() -> ConceptEvidence:
                 }
             ],
             "near_matches": [],
+            "nearest_neighbors": [
+                {
+                    "item_id": "image_0_0_4_4",
+                    "distance": 0.1,
+                    "similarity": 0.9,
+                    "rank": 1,
+                    "metadata": {
+                        "source_path": "image.png",
+                        "x": 0,
+                        "y": 0,
+                        "width": 4,
+                        "height": 4,
+                    },
+                    "query_anomaly_id": "anomaly-0001",
+                    "query_patch_id": "image_1_2_4_4",
+                }
+            ],
             "normal_comparisons": [],
             "notes": ["Candidate concept is based on similar anomaly embeddings."],
             "warnings": [],
@@ -131,6 +165,16 @@ def _write_sample_report(output_path: Path) -> None:
         confidences=[ConceptConfidence(concept_id="concept-001", score=0.7)],
         hypotheses=[Hypothesis(concept_id="concept-001", text="A cautious hypothesis.")],
         dataset_profile=_dataset_profile(),
+        memory_metadata={
+            "enabled": True,
+            "metric": "euclidean",
+            "items_indexed": 3,
+        },
+        analysis_metadata={
+            "total_patches": 1,
+            "patch_scales_used": ["s4"],
+            "anomaly_selection_strategy": "diversity-aware",
+        },
     )
 
 
@@ -153,6 +197,8 @@ def test_report_generator_includes_required_sections() -> None:
     assert "Number of candidate anomalies: 1" in report
     assert "Number of candidate unknown concepts: 1" in report
     assert "Top Candidate Anomalies" in report
+    assert "Patch scale" in report
+    assert "`s4` / 4px" in report
     assert "Input Dataset Profile" in report
     assert "Unsupported files found: 1" in report
     assert "Candidate Unknown Concepts" in report
@@ -160,6 +206,8 @@ def test_report_generator_includes_required_sections() -> None:
     assert "Consistency score: 1.0000" in report
     assert "Confidence breakdown:" in report
     assert "Evidence bundle for this candidate concept" in report
+    assert "Nearest visual matches:" in report
+    assert "`image_0_0_4_4`" in report
     assert "Human Expert Review Required" in report
     assert "A cautious hypothesis." in report
 
@@ -213,6 +261,10 @@ def test_report_generator_writes_structured_json_report(tmp_path: Path) -> None:
     assert report_data["dataset_profile"]["input_type"] == "image_folder"
     assert report_data["dataset_profile"]["unsupported_file_count"] == 1
     assert report_data["candidate_anomalies"][0]["preview_path"] == "assets/anomaly_0001.png"
+    assert report_data["candidate_anomalies"][0]["patch_size"] == 4
+    assert report_data["candidate_anomalies"][0]["patch_stride"] == 4
+    assert report_data["candidate_anomalies"][0]["scale_label"] == "s4"
+    assert report_data["candidate_anomalies"][0]["selection_reason"] == "diversity selected"
     concept = report_data["candidate_unknown_concepts"][0]
     assert concept["confidence_score"] == 0.7
     assert concept["representative_anomaly_id"] == "anomaly-0001"
@@ -220,6 +272,7 @@ def test_report_generator_writes_structured_json_report(tmp_path: Path) -> None:
     assert concept["confidence_breakdown"]["final_confidence"] == 0.68
     assert concept["evidence_summary"]["supporting_examples"][0]["anomaly_id"] == "anomaly-0001"
     assert concept["evidence_summary"]["representative_examples"][0]["patch_size"] == 4
+    assert concept["evidence_summary"]["nearest_neighbors"][0]["item_id"] == "image_0_0_4_4"
     assert report_data["evidence_summary"][0]["confidence_breakdown"]["final_confidence"] == 0.68
 
 
@@ -259,6 +312,12 @@ def test_report_generator_tracks_run_metadata(tmp_path: Path) -> None:
     assert run_metadata["input_warnings"] == ["Unsupported files found: 1"]
     assert run_metadata["average_concept_confidence"] == 0.68
     assert run_metadata["average_concept_consistency"] == 1.0
+    assert run_metadata["memory_enabled"] is True
+    assert run_metadata["memory_metric"] == "euclidean"
+    assert run_metadata["memory_items_indexed"] == 3
+    assert run_metadata["total_patches"] == 1
+    assert run_metadata["patch_scales_used"] == ["s4"]
+    assert run_metadata["anomaly_selection_strategy"] == "diversity-aware"
     assert run_metadata["pipeline_version"]
     assert run_metadata["human_review_required"] is True
     assert json_report["human_review_required"] is True
