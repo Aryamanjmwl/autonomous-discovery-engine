@@ -64,6 +64,12 @@ The current pipeline performs:
 
 The embedding system currently uses simple image statistics such as color means, standard deviations, brightness, and edge density. This is intentionally basic so the architecture can later support stronger encoders for specific domains.
 
+Discovery backends are selected through configuration. The current lightweight
+scoring options are centroid distance, nearest-neighbor distance, and robust
+z-score distance. These are deterministic baselines; deep-learning and advanced
+indexing backends are intentionally deferred until they can be added as optional
+extensions.
+
 ## Example Use Cases
 
 ADE is designed to grow into a cross-industry discovery platform. Example future use cases include:

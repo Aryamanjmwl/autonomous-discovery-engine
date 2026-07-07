@@ -8,6 +8,11 @@ from typing import Any
 
 import yaml
 
+from ade.discovery.registry import (
+    available_clustering_backends,
+    available_scoring_backends,
+)
+
 DEFAULT_CONFIG_PATH = Path("configs/default.yaml")
 
 DEFAULT_CONFIG: dict[str, Any] = {
@@ -21,9 +26,13 @@ DEFAULT_CONFIG: dict[str, Any] = {
     },
     "discovery": {
         "max_candidate_anomalies": 10,
+        "top_k": None,
         "max_concepts": 5,
         "novelty_metric": "euclidean",
+        "scoring_backend": "centroid_distance",
+        "clustering_backend": "threshold_candidate_grouping",
         "cluster_distance_threshold": 0.35,
+        "random_seed": 42,
     },
     "reporting": {
         "report_version": "1.0",
@@ -58,6 +67,7 @@ def load_config(config_path: Path | str | None = None) -> dict[str, Any]:
     if not path.exists():
         if explicit_path:
             raise FileNotFoundError(f"Config file does not exist: {path}")
+        _validate_config(config)
         return config
     if not path.is_file():
         raise ValueError(f"Config path is not a file: {path}")
@@ -69,7 +79,9 @@ def load_config(config_path: Path | str | None = None) -> dict[str, Any]:
     if not isinstance(loaded, dict):
         raise ValueError(f"Config file must contain a mapping: {path}")
 
-    return _deep_merge(config, loaded)
+    merged = _deep_merge(config, loaded)
+    _validate_config(merged)
+    return merged
 
 
 def _deep_merge(
@@ -89,3 +101,37 @@ def _deep_merge(
         else:
             merged[key] = value
     return merged
+
+
+def _validate_config(config: dict[str, Any]) -> None:
+    """Validate config values with clear errors for user-editable settings."""
+
+    discovery = config.get("discovery", {})
+    if not isinstance(discovery, dict):
+        raise ValueError("Config section 'discovery' must be a mapping.")
+
+    top_k = discovery.get("top_k")
+    if top_k is not None and int(top_k) <= 0:
+        raise ValueError("discovery.top_k must be greater than zero.")
+
+    max_candidates = discovery.get("max_candidate_anomalies")
+    if max_candidates is not None and int(max_candidates) <= 0:
+        raise ValueError("discovery.max_candidate_anomalies must be greater than zero.")
+
+    scoring_backend = str(discovery.get("scoring_backend", "centroid_distance"))
+    if scoring_backend not in available_scoring_backends():
+        supported = ", ".join(available_scoring_backends())
+        raise ValueError(
+            f"Unsupported discovery.scoring_backend: {scoring_backend}. "
+            f"Supported backends: {supported}."
+        )
+
+    clustering_backend = str(
+        discovery.get("clustering_backend", "threshold_candidate_grouping")
+    )
+    if clustering_backend not in available_clustering_backends():
+        supported = ", ".join(available_clustering_backends())
+        raise ValueError(
+            f"Unsupported discovery.clustering_backend: {clustering_backend}. "
+            f"Supported backends: {supported}."
+        )

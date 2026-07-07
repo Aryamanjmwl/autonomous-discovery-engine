@@ -88,6 +88,7 @@ class ReportGenerator:
             confidences=run_result.get("confidences", []),
             hypotheses=run_result.get("hypotheses", []),
             dataset_profile=run_result.get("dataset_profile"),
+            backend_metadata=run_result.get("backend_metadata"),
         )
         return [
             ReportArtifact(artifact_type="markdown", path=markdown_path),
@@ -104,6 +105,7 @@ class ReportGenerator:
         assets: ReportAssets | None = None,
         run_id: str | None = None,
         dataset_profile: DatasetProfile | None = None,
+        backend_metadata: dict[str, object] | None = None,
     ) -> str:
         """Return an ADE Discovery Report in Markdown format."""
 
@@ -130,6 +132,10 @@ class ReportGenerator:
             "## Input Dataset Profile",
             "",
             *self._dataset_profile_lines(dataset_profile),
+            "",
+            "## Discovery Backend Metadata",
+            "",
+            *self._backend_metadata_lines(backend_metadata),
             "",
             "## Top Candidate Anomalies",
             "",
@@ -168,6 +174,9 @@ class ReportGenerator:
                         f"- Supporting patches: {evidence.example_count}",
                         f"- Average novelty: {evidence.average_novelty:.4f}",
                         f"- Cluster consistency: {evidence.consistency:.4f}",
+                        f"- Representative anomaly: {evidence.representative_anomaly_id}",
+                        f"- Concept item count: {evidence.item_count}",
+                        f"- Concept summary: {evidence.summary or 'Not available'}",
                         (
                             f"- Confidence score: {confidence.score:.4f}"
                             if confidence
@@ -186,7 +195,10 @@ class ReportGenerator:
                     )
                     lines.append(
                         f"- {preview} `{item.source_path}` at {item.coordinates}; "
-                        f"novelty score {item.novelty_score:.4f}"
+                        f"novelty score {item.novelty_score:.4f}; "
+                        f"rank {item.rank or 'n/a'}; "
+                        f"backend {item.scoring_backend or 'unknown'}; "
+                        f"{item.reason or 'requires review'}"
                     )
                 lines.extend(
                     [
@@ -223,6 +235,7 @@ class ReportGenerator:
         confidences: list[ConceptConfidence],
         hypotheses: list[Hypothesis],
         dataset_profile: DatasetProfile | None = None,
+        backend_metadata: dict[str, object] | None = None,
     ) -> Path:
         """Write a Markdown report and return the output path."""
 
@@ -255,6 +268,7 @@ class ReportGenerator:
             assets=assets,
             run_id=run_id,
             dataset_profile=dataset_profile,
+            backend_metadata=backend_metadata,
         )
         path.write_text(report, encoding="utf-8")
         json_report = self.generate_json(
@@ -267,6 +281,7 @@ class ReportGenerator:
             run_id=run_id,
             run_metadata=run_metadata,
             dataset_profile=dataset_profile,
+            backend_metadata=backend_metadata,
         )
         json_path.write_text(
             json.dumps(json_report, indent=2, sort_keys=True),
@@ -293,6 +308,7 @@ class ReportGenerator:
         run_id: str | None = None,
         run_metadata: dict[str, object] | None = None,
         dataset_profile: DatasetProfile | None = None,
+        backend_metadata: dict[str, object] | None = None,
     ) -> dict[str, object]:
         """Return a machine-readable ADE discovery report."""
 
@@ -337,6 +353,7 @@ class ReportGenerator:
             "dataset_profile": (
                 dataset_profile.to_dict() if dataset_profile is not None else None
             ),
+            "backend_metadata": backend_metadata or {},
             "number_of_images": int(dataset_summary.image_count),
             "number_of_patches": int(dataset_summary.patch_count),
             "number_of_candidate_anomalies": len(candidate_anomalies),
@@ -349,6 +366,9 @@ class ReportGenerator:
                     "example_count": int(evidence.example_count),
                     "average_novelty": float(evidence.average_novelty),
                     "cluster_consistency": float(evidence.consistency),
+                    "representative_anomaly_id": evidence.representative_anomaly_id,
+                    "item_count": int(evidence.item_count),
+                    "summary": evidence.summary,
                 }
                 for evidence in evidence_items
             ],
@@ -372,6 +392,7 @@ class ReportGenerator:
                 "Candidate anomalies and candidate unknown concepts require human review.",
                 "The current MVP uses deterministic placeholder image statistics, "
                 "not deep learning.",
+                "Backend scores are ranking signals, not proof of significance.",
                 "Confidence scores are readiness signals, not proof of scientific "
                 "or operational significance.",
             ],
@@ -467,9 +488,15 @@ class ReportGenerator:
         ).to_dict()
         return {
             "rank": int(rank),
+            "anomaly_id": candidate.anomaly_id or f"anomaly-{rank:04d}",
             "source_path": anomaly["source_path"],
             "coordinates": [int(value) for value in patch.coordinates],
             "novelty_score": anomaly["novelty_score"],
+            "normalized_score": candidate.metadata.get("normalized_score"),
+            "scoring_backend": candidate.metadata.get("scoring_backend"),
+            "nearest_neighbor_id": candidate.metadata.get("nearest_neighbor_id"),
+            "feature_deviations": candidate.metadata.get("feature_deviations", []),
+            "reason": candidate.metadata.get("reason"),
             "preview_path": anomaly["preview_path"],
             "label": "candidate anomaly",
             "requires_human_review": self.human_review_required,
@@ -491,6 +518,14 @@ class ReportGenerator:
                     "source_path": str(item.source_path),
                     "coordinates": [int(value) for value in item.coordinates],
                     "novelty_score": float(item.novelty_score),
+                    "normalized_score": item.normalized_score,
+                    "anomaly_id": item.anomaly_id,
+                    "rank": item.rank,
+                    "scoring_backend": item.scoring_backend,
+                    "concept_id": item.concept_id,
+                    "nearest_neighbor_id": item.nearest_neighbor_id,
+                    "feature_deviations": item.feature_deviations or [],
+                    "reason": item.reason,
                     "preview_path": assets.concept_previews.get(
                         (evidence.concept_id, example_index)
                     ),
@@ -530,6 +565,9 @@ class ReportGenerator:
             "example_count": int(evidence.example_count),
             "average_novelty": concept_data["average_novelty_score"],
             "cluster_consistency": float(evidence.consistency),
+            "representative_anomaly_id": evidence.representative_anomaly_id,
+            "item_count": int(evidence.item_count),
+            "summary": evidence.summary,
             "confidence_score": concept_data["confidence_score"],
             "possible_pattern": hypothesis.text if hypothesis else None,
             "examples": examples,
@@ -663,6 +701,21 @@ class ReportGenerator:
         else:
             lines.append("- Warnings: none")
         return lines
+
+    @staticmethod
+    def _backend_metadata_lines(backend_metadata: dict[str, object] | None) -> list[str]:
+        """Return concise Markdown lines for selected discovery backends."""
+
+        if not backend_metadata:
+            return ["Backend metadata was not provided for this report."]
+        return [
+            f"- Scoring backend: `{backend_metadata.get('scoring_backend', 'unknown')}`",
+            f"- Clustering backend: `{backend_metadata.get('clustering_backend', 'unknown')}`",
+            f"- Top K: {backend_metadata.get('top_k', 'unknown')}",
+            f"- Random seed: {backend_metadata.get('random_seed', 'not used')}",
+            f"- Feature vector count: {backend_metadata.get('feature_vector_count', 'unknown')}",
+            f"- Feature vector length: {backend_metadata.get('feature_vector_length', 'unknown')}",
+        ]
 
     @staticmethod
     def _slugify(value: str) -> str:

@@ -17,6 +17,10 @@ class CandidateConcept:
     candidates: list[CandidateAnomaly]
     centroid: np.ndarray
     consistency: float
+    representative_anomaly_id: str | None = None
+    average_score: float = 0.0
+    item_count: int = 0
+    summary: str = ""
 
 
 class ConceptClusterer:
@@ -56,6 +60,10 @@ class ConceptClusterer:
                         candidates=[candidate],
                         centroid=candidate.embedding.vector.copy(),
                         consistency=1.0,
+                        representative_anomaly_id=candidate.anomaly_id,
+                        average_score=float(candidate.novelty_score),
+                        item_count=1,
+                        summary="Single candidate anomaly in this concept group.",
                     )
                 )
             else:
@@ -69,6 +77,13 @@ class ConceptClusterer:
                     candidates=updated_candidates,
                     centroid=updated_centroid,
                     consistency=self._consistency(updated_candidates, updated_centroid),
+                    representative_anomaly_id=self._representative_id(updated_candidates),
+                    average_score=self._average_score(updated_candidates),
+                    item_count=len(updated_candidates),
+                    summary=(
+                        f"{len(updated_candidates)} candidate anomalies grouped by "
+                        "similar feature vectors."
+                    ),
                 )
         if self.max_concepts is not None:
             return concepts[: self.max_concepts]
@@ -104,3 +119,20 @@ class ConceptClusterer:
             dtype=np.float32,
         )
         return float(1.0 / (1.0 + distances.mean()))
+
+    @staticmethod
+    def _representative_id(candidates: list[CandidateAnomaly]) -> str | None:
+        """Return the highest-scoring candidate id for a concept."""
+
+        if not candidates:
+            return None
+        representative = max(candidates, key=lambda candidate: candidate.novelty_score)
+        return representative.anomaly_id
+
+    @staticmethod
+    def _average_score(candidates: list[CandidateAnomaly]) -> float:
+        """Return average candidate novelty score."""
+
+        if not candidates:
+            return 0.0
+        return float(sum(candidate.novelty_score for candidate in candidates) / len(candidates))
