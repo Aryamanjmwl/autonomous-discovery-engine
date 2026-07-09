@@ -15,6 +15,7 @@ ADE is a general autonomous discovery platform with a visual-data-first implemen
 - Prefer small functions over hidden control flow.
 - Avoid broad exception handling unless the error is converted into a clear user-facing message.
 - Do not add deep learning, dashboard, or adapter features before the relevant design boundary is documented.
+- Dashboard documentation may define future UX and data contracts, but it should not imply a deployed dashboard app exists.
 - Treat scores as review-prioritization signals. Reports should expose supporting evidence and component breakdowns where practical.
 - Keep novelty strategy fallbacks explicit in metadata rather than hiding them.
 
@@ -97,4 +98,5 @@ Keep `.gitkeep` files only where they preserve intended empty directory structur
 - Report validation and static HTML export work for the demo report.
 - `scripts/run_benchmark.py` and `scripts/verify_local.py` work from the repository root.
 - README and docs describe current scope accurately.
+- Dashboard docs distinguish static HTML report export from future interactive dashboard work.
 - Generated artifacts are not staged for release.

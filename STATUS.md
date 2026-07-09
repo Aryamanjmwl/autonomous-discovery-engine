@@ -27,6 +27,7 @@ ADE is a general autonomous discovery platform. The current implementation focus
 - Local JSONL human-review feedback records for report targets
 - Report validation, static HTML export, benchmark, and local verification scripts
 - Private-alpha documentation package with CLI, schema, versioning, release checklist, audit, and examples
+- Dashboard UX documentation, frontend data contract, design tokens, and phased release plan
 - Basic tests for config, models, patch extraction, novelty scoring, reports, demo data, and CLI behavior
 - Engineering quality checklist covering coding, testing, documentation, artifact, configuration, review, and release standards
 
@@ -38,6 +39,7 @@ ADE is a general autonomous discovery platform. The current implementation focus
 - Memory is in-process only; persistent memory banks, coreset selection, and vector database backends are not implemented.
 - Memory-aware scoring uses the current run's local patch memory, not a validated normal-reference memory bank.
 - Reporting is useful for the visual MVP, and local feedback capture exists, but dashboard review queues and richer collaborative review workflows are not implemented.
+- Dashboard documentation exists, but no dashboard app is implemented.
 - Config supports current pipeline parameters, but broader adapter configuration is not designed yet.
 - Run history exists locally, but there is no dashboard, database, user account model, or hosted audit system.
 - Private-alpha docs are prepared for technical review, but they are not a production release certification.

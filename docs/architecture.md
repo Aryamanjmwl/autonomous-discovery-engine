@@ -57,6 +57,17 @@ ADE should produce candidate findings with traceable evidence and reviewable out
 12. Export Markdown, JSON, preview assets, run metadata, and run index entries.
 13. Optionally record local reviewer feedback against report-level anomaly or concept IDs.
 
+## Dashboard Documentation Boundary
+
+Dashboard planning lives under `docs/dashboard/`. Those documents define the
+future review workflow, frontend data contract, design tokens, and staged
+release plan for a dashboard experience. They intentionally do not add a
+dashboard app, server, database, authentication, billing, or cloud deployment.
+
+The current interactive review surface is still the CLI plus Markdown, JSON, and
+static HTML reports. Any future dashboard should consume the same stable report
+IDs, evidence fields, feedback metadata, benchmark output, and run history.
+
 ## Current Patch Extraction and Selection
 
 The default visual pipeline uses one conservative patch scale. Configured multi-scale extraction is available through matching `patch_sizes` and `patch_strides` lists. Patch IDs include source image, scale, stride, and coordinates so records remain deterministic across runs.

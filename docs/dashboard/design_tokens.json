@@ -1,0 +1,83 @@
+{
+  "colors": {
+    "background": "#f8fafc",
+    "surface": "#ffffff",
+    "surfaceMuted": "#f1f5f9",
+    "border": "#cbd5e1",
+    "textPrimary": "#0f172a",
+    "textSecondary": "#475569",
+    "accent": "#2563eb",
+    "accentMuted": "#dbeafe",
+    "success": "#15803d",
+    "warning": "#b45309",
+    "danger": "#b91c1c",
+    "info": "#0369a1"
+  },
+  "typography": {
+    "fontFamily": "Inter, Segoe UI, Arial, sans-serif",
+    "monoFamily": "Cascadia Code, Consolas, monospace",
+    "baseSizePx": 14,
+    "lineHeight": 1.5,
+    "weights": {
+      "regular": 400,
+      "medium": 500,
+      "semibold": 600,
+      "bold": 700
+    }
+  },
+  "spacing": {
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 24,
+    "xxl": 32
+  },
+  "borderRadius": {
+    "sm": 4,
+    "md": 6,
+    "lg": 8
+  },
+  "elevation": {
+    "none": "none",
+    "sm": "0 1px 2px rgba(15, 23, 42, 0.08)",
+    "md": "0 4px 12px rgba(15, 23, 42, 0.10)"
+  },
+  "statusRoles": {
+    "candidate": {
+      "color": "#2563eb",
+      "background": "#dbeafe"
+    },
+    "needsReview": {
+      "color": "#b45309",
+      "background": "#fef3c7"
+    },
+    "validated": {
+      "color": "#15803d",
+      "background": "#dcfce7"
+    },
+    "invalid": {
+      "color": "#b91c1c",
+      "background": "#fee2e2"
+    }
+  },
+  "severityRoles": {
+    "low": "#15803d",
+    "medium": "#b45309",
+    "high": "#b91c1c",
+    "unknown": "#64748b"
+  },
+  "layoutWidths": {
+    "contentMax": 1180,
+    "sidebar": 280,
+    "detailPanel": 420,
+    "tableMin": 720
+  },
+  "tableDensity": {
+    "compactRowHeight": 36,
+    "defaultRowHeight": 44,
+    "comfortableRowHeight": 56,
+    "cellPaddingX": 12,
+    "cellPaddingY": 8
+  }
+}

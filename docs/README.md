@@ -15,6 +15,8 @@ All findings are candidate findings and require human review.
 - [CLI reference](cli_reference.md): PowerShell-friendly command examples.
 - [Report schema](report_schema.md): JSON report fields, stable IDs, feedback metadata, and compatibility notes.
 - [Engineering quality](engineering_quality.md): coding, testing, artifact, review, and release standards.
+- [Dashboard product spec](dashboard/dashboard_product_spec.md): planned review UX without an implemented dashboard app.
+- [Dashboard frontend contract](dashboard/dashboard_frontend_contract.md): report, feedback, benchmark, and run-history payloads for future UI work.
 - [Release checklist](release_checklist.md): private-alpha verification checklist.
 - [Versioning policy](versioning_policy.md): pre-1.0 version and schema expectations.
 - [Private-alpha readiness audit](releases/private_alpha_readiness_audit.md): current release-readiness assessment.
@@ -30,6 +32,14 @@ All findings are candidate findings and require human review.
 ## Examples
 
 - [Demo workflow](../examples/demo_workflow.md): generate synthetic images, run analysis, validate reports, export HTML, record feedback, benchmark locally, and run the full local verification script.
+
+## Dashboard Planning
+
+- [Dashboard release plan](dashboard/dashboard_release_plan.md)
+- [Dashboard design tokens](dashboard/design_tokens.json)
+
+These files define a future dashboard review experience and frontend data
+contract. They do not add a deployed dashboard app.
 
 Generated demo images, reports, benchmark files, feedback logs, caches, and run
 metadata are local artifacts and should stay out of version control.

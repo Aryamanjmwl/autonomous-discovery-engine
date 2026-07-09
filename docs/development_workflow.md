@@ -112,3 +112,10 @@ python scripts/verify_local.py
 
 For command details and report-schema notes, see `docs/cli_reference.md` and
 `docs/report_schema.md`.
+
+## Dashboard Planning Docs
+
+Dashboard planning documents live in `docs/dashboard/`. They describe a future
+review UX and frontend data contract over existing ADE reports, feedback JSONL,
+benchmark outputs, and run history. They do not add a dashboard app or any
+runtime dependency.

@@ -16,6 +16,7 @@ as a private-alpha research prototype. It does not certify production readiness.
 - Stable report target IDs for feedback
 - Local benchmark and verification scripts
 - Documentation, examples, and artifact hygiene
+- Dashboard UX documentation and frontend data contract
 - GitHub Actions CI configuration
 
 ## Implemented Foundation
@@ -30,6 +31,7 @@ as a private-alpha research prototype. It does not certify production readiness.
 - Markdown, JSON, and static HTML reports
 - Report validation and local feedback commands
 - Run metadata, run index, benchmark script, and local verification script
+- Dashboard product spec, frontend contract, design tokens, and phased release plan
 - Simple CI that installs dev dependencies, runs `ruff check .`, and runs `pytest`
 
 ## Readiness Assessment
@@ -62,6 +64,7 @@ python scripts/verify_local.py
 - The lightweight representation backend is deterministic and useful for local testing, but it is not a deep visual model.
 - Scores and confidence values are review-prioritization signals only.
 - Feedback is stored locally and is not a production audit trail.
+- Dashboard materials are documentation only; no deployed dashboard app exists in this branch.
 - Generated reports, benchmarks, demo images, run metadata, and feedback logs must remain out of version control.
 
 ## Private-Alpha Gate
