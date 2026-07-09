@@ -56,8 +56,8 @@ human review. Use a real `anomaly_id` or `concept_id` from the generated JSON
 report:
 
 ```bash
-python -m ade.cli --add-feedback data/reports/demo_report.json --target-type anomaly --target-id anomaly-0001 --label interesting --notes "Local review note" --reviewer local
-python -m ade.cli --add-feedback data/reports/demo_report.json --target-type concept --target-id concept-001 --label known_pattern --notes "Known recurring pattern" --reviewer local
+python -m ade.cli --add-feedback data/reports/demo_report.json --target-type anomaly --target-id anomaly_001 --label interesting --notes "Local review note" --reviewer local
+python -m ade.cli --add-feedback data/reports/demo_report.json --target-type concept --target-id concept_001 --label known_pattern --notes "Known recurring pattern" --reviewer local
 python -m ade.cli --list-feedback
 ```
 
@@ -101,3 +101,14 @@ Stage only source, tests, config, and docs that you intentionally changed.
 ## Engineering Quality
 
 Use `docs/engineering_quality.md` as the working checklist for code review, test expectations, documentation quality, artifact policy, configuration changes, and release readiness.
+
+## Private-Alpha Verification
+
+For a full local smoke test, run:
+
+```bash
+python scripts/verify_local.py
+```
+
+For command details and report-schema notes, see `docs/cli_reference.md` and
+`docs/report_schema.md`.

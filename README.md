@@ -125,6 +125,15 @@ pip install -r requirements.txt
 pip install -e .
 ```
 
+## Documentation
+
+Start with `docs/README.md` for architecture, CLI reference, report schema,
+release checklist, versioning policy, and private-alpha readiness notes.
+
+The current implementation is visual-data-first. Non-visual adapters, hosted
+workflows, dashboards, and deep model backends remain future work unless a
+specific branch documents and implements them.
+
 ## Demo
 
 Place images in `data/raw`, then run:

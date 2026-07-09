@@ -49,6 +49,8 @@ Keep generated artifacts out of version control:
 - Report preview assets
 - Run metadata and run indexes
 - Local feedback JSONL records
+- Benchmark outputs
+- Static HTML report exports
 - Test temp folders
 - Python bytecode and cache folders
 - Build and package metadata
@@ -92,5 +94,7 @@ Keep `.gitkeep` files only where they preserve intended empty directory structur
 - Demo data generation works.
 - Analysis command writes Markdown, JSON, assets, run metadata, and run index.
 - `--list-runs` works with and without `--limit`.
+- Report validation and static HTML export work for the demo report.
+- `scripts/run_benchmark.py` and `scripts/verify_local.py` work from the repository root.
 - README and docs describe current scope accurately.
 - Generated artifacts are not staged for release.

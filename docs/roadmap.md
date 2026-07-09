@@ -1,6 +1,6 @@
 # ADE Roadmap
 
-ADE is the Autonomous Discovery Engine: a modular unsupervised discovery platform that ingests datasets, builds representations, discovers candidate anomalies and hidden concepts, groups evidence, explains findings, and exports professional reports, APIs, and eventually enterprise workflows.
+ADE is the Autonomous Discovery Engine: a modular unsupervised discovery platform that ingests datasets, builds representations, discovers candidate anomalies and candidate concepts, groups evidence, explains findings, and exports reviewable reports.
 
 Core product principle: discovery with evidence, not only anomaly scores.
 
@@ -12,7 +12,7 @@ Core product principle: discovery with evidence, not only anomaly scores.
 - Typed public interfaces
 - Pydantic or YAML configuration with clear validation
 - Deterministic demo data
-- JSON, Markdown, and future HTML reports
+- JSON, Markdown, and static HTML reports
 - README quickstart
 - Architecture docs
 - Changelog
@@ -99,7 +99,7 @@ Core product principle: discovery with evidence, not only anomaly scores.
 5. Audio/spectrogram adapter
 6. Multimodal fusion
 
-## Stage 8: Enterprise Readiness
+## Stage 8: Hosted Platform Readiness
 
 - PostgreSQL
 - Object storage
@@ -117,6 +117,8 @@ Core product principle: discovery with evidence, not only anomaly scores.
 - Backup/restore
 - Retention policies
 - Kubernetes/Helm
+
+These are long-term platform items, not private-alpha capabilities.
 
 ## Stage 9: Domain Packages
 
