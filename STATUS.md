@@ -24,6 +24,7 @@ ADE is a general autonomous discovery platform. The current implementation focus
 - Run metadata files
 - Run history index
 - CLI run listing with optional limit
+- Local JSONL human-review feedback records for report targets
 - Basic tests for config, models, patch extraction, novelty scoring, reports, demo data, and CLI behavior
 - Engineering quality checklist covering coding, testing, documentation, artifact, configuration, review, and release standards
 
@@ -34,7 +35,7 @@ ADE is a general autonomous discovery platform. The current implementation focus
 - Multi-scale extraction is supported, but the default config intentionally uses one conservative scale.
 - Memory is in-process only; persistent memory banks, coreset selection, and vector database backends are not implemented.
 - Memory-aware scoring uses the current run's local patch memory, not a validated normal-reference memory bank.
-- Reporting is useful for the visual MVP, but review annotations, user feedback, and richer export formats are not implemented.
+- Reporting is useful for the visual MVP, and local feedback capture exists, but dashboard review queues and richer collaborative review workflows are not implemented.
 - Config supports current pipeline parameters, but broader adapter configuration is not designed yet.
 - Run history exists locally, but there is no dashboard, database, user account model, or hosted audit system.
 
@@ -46,6 +47,7 @@ ADE is a general autonomous discovery platform. The current implementation focus
 - Persistent vector memory, FAISS integration, or vector database storage
 - PatchCore-style normal memory bank scoring
 - Production dashboard
+- Database-backed review queues or user-specific feedback workflows
 - Subscription platform
 - User authentication, hosted storage, billing, or workspace isolation
 - Validated scientific, medical, legal, financial, or operational conclusions

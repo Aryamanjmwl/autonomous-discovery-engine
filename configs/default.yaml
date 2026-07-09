@@ -38,6 +38,10 @@ memory:
   top_k_neighbors: 5
   include_neighbors_in_report: true
 
+feedback:
+  enabled: true
+  store_path: "data/feedback/feedback.jsonl"
+
 reporting:
   report_version: "1.0"
   human_review_required: true

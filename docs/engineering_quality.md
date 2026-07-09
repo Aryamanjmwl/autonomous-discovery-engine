@@ -9,6 +9,7 @@ ADE is a general autonomous discovery platform with a visual-data-first implemen
 - Use dataclasses for stable internal records.
 - Keep JSON serialization explicit and avoid dumping raw NumPy arrays.
 - Keep retrieval metadata JSON-safe and avoid persisting runtime-only memory state by accident.
+- Keep feedback records append-only, JSON-safe, and local until a database-backed review workflow is justified.
 - Keep patch IDs deterministic and include enough scale/coordinate metadata to avoid collisions.
 - Add type hints for public functions and dataclass fields.
 - Prefer small functions over hidden control flow.
@@ -29,6 +30,7 @@ ADE is a general autonomous discovery platform with a visual-data-first implemen
 - Cover vector memory metrics, deterministic neighbor ordering, filters, and empty-index behavior when retrieval changes.
 - Cover multi-scale patch counts, invalid scale config, and diversity selection behavior when patch extraction or anomaly selection changes.
 - Cover novelty scoring strategies, normalization edge cases, invalid weights, and memory fallback behavior when scoring changes.
+- Cover feedback serialization, store filtering, CLI target validation, and malformed JSONL handling when feedback behavior changes.
 
 ## Documentation Standards
 
@@ -46,6 +48,7 @@ Keep generated artifacts out of version control:
 - Markdown and JSON reports
 - Report preview assets
 - Run metadata and run indexes
+- Local feedback JSONL records
 - Test temp folders
 - Python bytecode and cache folders
 - Build and package metadata

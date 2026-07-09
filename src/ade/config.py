@@ -52,6 +52,10 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "top_k_neighbors": 5,
         "include_neighbors_in_report": True,
     },
+    "feedback": {
+        "enabled": True,
+        "store_path": "data/feedback/feedback.jsonl",
+    },
     "reporting": {
         "report_version": "1.0",
         "human_review_required": True,

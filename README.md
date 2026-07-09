@@ -94,6 +94,7 @@ ADE is designed to grow into a cross-industry discovery platform. Example future
 - Produce bounded consistency, diversity, and confidence signals for review prioritization
 - Generate cautious template-based hypotheses
 - Write a Markdown ADE Discovery Report and a structured JSON sidecar report
+- Record local human-review feedback for candidate anomalies and candidate concepts
 
 Current supported image formats are configured in `configs/default.yaml` and include `.jpg`, `.jpeg`, `.png`, `.bmp`, and `.webp`.
 
@@ -308,6 +309,25 @@ Show only the most recent runs:
 python -m ade.cli --list-runs --limit 5
 ```
 
+## Human Review Feedback
+
+ADE findings are candidate findings that require human review. Local reviewers
+can attach structured labels to candidate anomalies and candidate concepts in a
+generated JSON report.
+
+```bash
+python -m ade.cli --add-feedback data/reports/demo_report.json --target-type anomaly --target-id anomaly-0001 --label interesting --notes "Local review note" --reviewer local
+python -m ade.cli --add-feedback data/reports/demo_report.json --target-type concept --target-id concept-001 --label known_pattern --notes "Known recurring pattern" --reviewer local
+python -m ade.cli --list-feedback
+```
+
+Supported feedback labels are `interesting`, `known_pattern`,
+`false_positive`, `duplicate`, `important`, `not_useful`, and
+`needs_more_data`. Feedback is stored locally at
+`data/feedback/feedback.jsonl` by default and is ignored by Git. This is a
+foundation for future review queues, concept memory, and false-positive review;
+those systems are not implemented yet.
+
 ## Repository Structure
 
 ```text
@@ -321,6 +341,7 @@ ade/
 │   ├── preprocessing/       # Patch extraction and future transforms
 │   ├── representation/      # Placeholder embeddings and future encoders
 │   ├── memory/              # Local vector memory and nearest-neighbor retrieval
+│   ├── feedback/            # Local JSONL human-review feedback records
 │   ├── storage/             # Metadata and embedding stores
 │   ├── discovery/           # Novelty, concepts, evidence, and confidence
 │   ├── reasoning/           # Cautious hypothesis generation
@@ -348,7 +369,7 @@ Additional project docs:
 
 ## Artifact Policy
 
-Generated demo images, reports, report assets, run metadata, run indexes, test temp folders, cache folders, bytecode, and package build metadata should not be committed. The repository keeps `.gitkeep` files only to preserve the intended empty data directories.
+Generated demo images, reports, report assets, run metadata, run indexes, local feedback records, test temp folders, cache folders, bytecode, and package build metadata should not be committed. The repository keeps `.gitkeep` files only to preserve the intended empty data directories.
 
 ## Patent/IP-Aware Development
 

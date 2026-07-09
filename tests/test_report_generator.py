@@ -224,6 +224,8 @@ def test_report_generator_includes_required_sections() -> None:
     assert "Evidence bundle for this candidate concept" in report
     assert "Nearest visual matches:" in report
     assert "`image_0_0_4_4`" in report
+    assert "Human Review Feedback" in report
+    assert "--add-feedback" in report
     assert "Human Expert Review Required" in report
     assert "A cautious hypothesis." in report
 
@@ -263,10 +265,14 @@ def test_report_generator_writes_structured_json_report(tmp_path: Path) -> None:
         "number_of_candidate_unknown_concepts",
         "candidate_anomalies",
         "candidate_unknown_concepts",
+        "candidate_concepts",
         "evidence_summary",
         "confidence_scores",
         "hypotheses",
         "human_review_required",
+        "feedback_supported",
+        "supported_feedback_labels",
+        "feedback_store_path",
         "limitations",
     }
     assert expected_keys.issubset(report_data)
@@ -275,6 +281,10 @@ def test_report_generator_writes_structured_json_report(tmp_path: Path) -> None:
     assert report_data["number_of_candidate_anomalies"] == 1
     assert report_data["number_of_candidate_unknown_concepts"] == 1
     assert report_data["human_review_required"] is True
+    assert report_data["feedback_supported"] is True
+    assert "interesting" in report_data["supported_feedback_labels"]
+    assert report_data["feedback_store_path"] == "data/feedback/feedback.jsonl"
+    assert report_data["candidate_concepts"] == report_data["candidate_unknown_concepts"]
     assert report_data["dataset_profile"]["input_type"] == "image_folder"
     assert report_data["dataset_profile"]["unsupported_file_count"] == 1
     assert report_data["scoring_metadata"]["novelty_strategy"] == "hybrid"

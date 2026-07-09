@@ -15,6 +15,7 @@ from ade import __version__
 from ade.discovery.confidence_scorer import ConceptConfidence
 from ade.discovery.evidence_collector import ConceptEvidence
 from ade.discovery.novelty_scorer import CandidateAnomaly
+from ade.feedback import ALLOWED_FEEDBACK_LABELS
 from ade.models import DatasetProfile, EvidenceSummary, RunMetadata, UnknownConcept
 from ade.reasoning.hypothesis_generator import Hypothesis
 from ade.reporting.run_index import build_run_summary, update_run_index
@@ -186,6 +187,21 @@ class ReportGenerator:
         lines.extend(
             [
                 "",
+                "## Human Review Feedback",
+                "",
+                "Local reviewers can label candidate findings after inspecting the report.",
+                "",
+                "- Supported labels: "
+                + ", ".join(f"`{label}`" for label in sorted(ALLOWED_FEEDBACK_LABELS)),
+                "- Example anomaly feedback: "
+                "`python -m ade.cli --add-feedback data/reports/demo_report.json "
+                "--target-type anomaly --target-id <anomaly_id> --label interesting "
+                '--notes "Local review note" --reviewer local`',
+                "- Example concept feedback: "
+                "`python -m ade.cli --add-feedback data/reports/demo_report.json "
+                "--target-type concept --target-id <concept_id> --label known_pattern "
+                '--notes "Known recurring pattern" --reviewer local`',
+                "",
                 "## Human Expert Review Required",
                 "",
                 "All results are exploratory candidate findings. Candidate anomalies, "
@@ -337,6 +353,7 @@ class ReportGenerator:
             "number_of_candidate_unknown_concepts": len(candidate_unknown_concepts),
             "candidate_anomalies": candidate_anomalies,
             "candidate_unknown_concepts": candidate_unknown_concepts,
+            "candidate_concepts": candidate_unknown_concepts,
             "evidence_summary": [
                 {
                     "concept_id": evidence.concept_id,
@@ -370,6 +387,9 @@ class ReportGenerator:
                 for hypothesis in hypotheses
             ],
             "human_review_required": self.human_review_required,
+            "feedback_supported": True,
+            "supported_feedback_labels": sorted(ALLOWED_FEEDBACK_LABELS),
+            "feedback_store_path": "data/feedback/feedback.jsonl",
             "limitations": [
                 "All findings are exploratory candidate findings.",
                 "Candidate anomalies and candidate unknown concepts require human review.",

@@ -49,13 +49,29 @@ python -m ade.cli --list-runs --limit 5
 
 Run history is read from `data/reports/runs/index.json`.
 
+## Record Human Review Feedback
+
+Feedback labels are local JSONL records for candidate findings that require
+human review. Use a real `anomaly_id` or `concept_id` from the generated JSON
+report:
+
+```bash
+python -m ade.cli --add-feedback data/reports/demo_report.json --target-type anomaly --target-id anomaly-0001 --label interesting --notes "Local review note" --reviewer local
+python -m ade.cli --add-feedback data/reports/demo_report.json --target-type concept --target-id concept-001 --label known_pattern --notes "Known recurring pattern" --reviewer local
+python -m ade.cli --list-feedback
+```
+
+Supported labels are `interesting`, `known_pattern`, `false_positive`,
+`duplicate`, `important`, `not_useful`, and `needs_more_data`. Feedback is
+stored at `data/feedback/feedback.jsonl` by default and should remain ignored.
+
 ## Use Config
 
 Default settings live in `configs/default.yaml`. Current settings cover project metadata, patch extraction, optional multi-scale patch sizes and strides, discovery limits, novelty scoring strategy, memory-aware scoring weights, diversity-aware anomaly selection, concept evidence thresholds, visual memory retrieval, reporting behavior, asset folders, run metadata folders, and demo data generation.
 
 CLI arguments can override selected config values such as patch size, stride, and maximum candidate anomalies. Validation settings include supported image extensions, minimum image count, small dataset warning threshold, high patch-count warning threshold, and minimum image dimensions.
 
-Memory settings control whether the current run builds an in-process vector index, which metric it uses, and how many nearest visual matches are included in reports. The current implementation uses NumPy only; persistent memory banks and FAISS/vector database backends are future work.
+Memory settings control whether the current run builds an in-process vector index, which metric it uses, and how many nearest visual matches are included in reports. Feedback settings control the local JSONL feedback store path. The current implementation uses NumPy only; persistent memory banks and FAISS/vector database backends are future work.
 
 Novelty scoring settings live under `discovery.novelty_strategy` and
 `discovery.memory_aware_scoring`. Supported strategies are `global_distance`,
@@ -71,7 +87,7 @@ regions.
 
 ## Git Workflow Guidance
 
-Review generated files before staging changes. Generated artifacts such as demo images, report Markdown, report JSON, report assets, run metadata, caches, and bytecode should stay out of commits.
+Review generated files before staging changes. Generated artifacts such as demo images, report Markdown, report JSON, report assets, run metadata, local feedback JSONL files, caches, and bytecode should stay out of commits.
 
 Recommended manual review steps:
 

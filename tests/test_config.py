@@ -16,6 +16,7 @@ def test_default_config_loads_expected_sections() -> None:
         "validation",
         "demo_data",
         "memory",
+        "feedback",
     }.issubset(config)
     assert config["project"]["name"] == "ADE"
     assert config["preprocessing"]["patch_size"] == 64
@@ -25,6 +26,7 @@ def test_default_config_loads_expected_sections() -> None:
     assert config["discovery"]["memory_aware_scoring"]["enabled"] is True
     assert config["discovery"]["diversity"]["enabled"] is True
     assert config["reporting"]["human_review_required"] is True
+    assert config["feedback"]["store_path"] == "data/feedback/feedback.jsonl"
     assert ".png" in config["validation"]["supported_image_extensions"]
 
 

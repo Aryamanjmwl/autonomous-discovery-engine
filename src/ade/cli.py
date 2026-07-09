@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
+from typing import Any
 
 from ade.adapters.image_adapter import ImageAdapter
 from ade.config import load_config
@@ -12,6 +14,12 @@ from ade.discovery.concept_clusterer import ConceptClusterer
 from ade.discovery.confidence_scorer import ConfidenceScorer
 from ade.discovery.evidence_collector import EvidenceCollector
 from ade.discovery.novelty_scorer import NoveltyScorer
+from ade.feedback import (
+    ALLOWED_FEEDBACK_LABELS,
+    ALLOWED_TARGET_TYPES,
+    FeedbackStore,
+    ReviewFeedback,
+)
 from ade.memory.vector_memory import VectorMemory
 from ade.models import CandidateAnomaly, DatasetProfile
 from ade.preprocessing.input_validator import profile_image_folder
@@ -67,6 +75,35 @@ def build_parser() -> argparse.ArgumentParser:
         metavar="REPORT_JSON",
         help="Export a local HTML review report from an ADE JSON report and exit.",
     )
+    parser.add_argument(
+        "--add-feedback",
+        type=Path,
+        metavar="REPORT_JSON",
+        help="Record local human-review feedback for an ADE JSON report and exit.",
+    )
+    parser.add_argument(
+        "--target-type",
+        choices=sorted(ALLOWED_TARGET_TYPES),
+        help="Feedback target type.",
+    )
+    parser.add_argument("--target-id", help="Feedback target identifier from the report.")
+    parser.add_argument(
+        "--label",
+        choices=sorted(ALLOWED_FEEDBACK_LABELS),
+        help="Human-review feedback label.",
+    )
+    parser.add_argument("--notes", default="", help="Optional human-review notes.")
+    parser.add_argument(
+        "--reviewer",
+        default="local",
+        help="Reviewer identifier for local feedback.",
+    )
+    parser.add_argument(
+        "--list-feedback",
+        action="store_true",
+        help="List local review feedback summary.",
+    )
+    parser.add_argument("--run-id", help="Optional run ID filter for feedback listing.")
     parser.add_argument(
         "--limit",
         type=int,
@@ -425,6 +462,116 @@ def format_run_history(
     return "\n".join(lines).rstrip()
 
 
+def add_feedback_from_report(
+    report_path: Path,
+    target_type: str | None,
+    target_id: str | None,
+    label: str | None,
+    notes: str,
+    reviewer: str,
+    store_path: Path = Path("data/feedback/feedback.jsonl"),
+) -> ReviewFeedback:
+    """Validate a report target and append one feedback record."""
+
+    if target_type is None:
+        raise ValueError("--target-type is required with --add-feedback.")
+    if target_id is None:
+        raise ValueError("--target-id is required with --add-feedback.")
+    if label is None:
+        raise ValueError("--label is required with --add-feedback.")
+    if not report_path.exists():
+        raise FileNotFoundError(f"Report JSON does not exist: {report_path}")
+
+    validation = validate_report_file(report_path)
+    if not validation.is_valid:
+        errors = "; ".join(validation.errors) or "report validation failed"
+        raise ValueError(f"Cannot record feedback for invalid ADE report: {errors}")
+
+    report_data = _read_json_object(report_path)
+    run_id = str(report_data.get("run_id") or "")
+    if not run_id:
+        raise ValueError("Report JSON does not contain a run_id.")
+    if not _target_exists(report_data, target_type=target_type, target_id=target_id):
+        raise ValueError(
+            f"Target ID was not found in report for target_type={target_type}: {target_id}"
+        )
+
+    feedback = ReviewFeedback.create(
+        run_id=run_id,
+        report_path=report_path,
+        target_type=target_type,
+        target_id=target_id,
+        label=label,
+        notes=notes,
+        reviewer=reviewer,
+        metadata={"report_version": report_data.get("report_version")},
+    )
+    FeedbackStore(store_path).append(feedback)
+    return feedback
+
+
+def format_feedback_summary(
+    store_path: Path = Path("data/feedback/feedback.jsonl"),
+    run_id: str | None = None,
+) -> str:
+    """Return a concise Markdown-style local feedback summary."""
+
+    summary = FeedbackStore(store_path).summarize_labels_by_run_id(run_id=run_id)
+    lines = ["## ADE Feedback Summary", ""]
+    lines.append(f"Run ID: {run_id}" if run_id else "Run ID: all")
+    lines.append(f"Total feedback: {summary.total_feedback}")
+    if summary.label_counts:
+        lines.extend(["", "Labels:"])
+        for label, count in sorted(summary.label_counts.items()):
+            lines.append(f"- {label}: {count}")
+    return "\n".join(lines)
+
+
+def _read_json_object(path: Path) -> dict[str, Any]:
+    try:
+        loaded = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as error:
+        raise ValueError(f"Report JSON is not valid JSON: {path}") from error
+    if not isinstance(loaded, dict):
+        raise ValueError(f"Report JSON root must be an object: {path}")
+    return loaded
+
+
+def _target_exists(report_data: dict[str, Any], target_type: str, target_id: str) -> bool:
+    if target_type == "anomaly":
+        return target_id in _ids_from_items(
+            report_data.get("candidate_anomalies"),
+            ["anomaly_id", "id"],
+        )
+    if target_type == "concept":
+        concept_items = report_data.get("candidate_concepts")
+        if not concept_items:
+            concept_items = report_data.get("candidate_unknown_concepts")
+        return target_id in _ids_from_items(concept_items, ["concept_id", "id"])
+    return False
+
+
+def _ids_from_items(value: object, field_names: list[str]) -> set[str]:
+    if not isinstance(value, list):
+        return set()
+    ids: set[str] = set()
+    for item in value:
+        if not isinstance(item, dict):
+            continue
+        for field_name in field_names:
+            item_id = item.get(field_name)
+            if item_id:
+                ids.add(str(item_id))
+    return ids
+
+
+def _feedback_store_path(config: dict[str, Any]) -> Path:
+    feedback_config = config.get("feedback", {})
+    if not isinstance(feedback_config, dict):
+        feedback_config = {}
+    return Path(str(feedback_config.get("store_path", "data/feedback/feedback.jsonl")))
+
+
 def main() -> None:
     """Run ADE from command-line arguments."""
 
@@ -453,6 +600,35 @@ def main() -> None:
         print(f"ADE HTML report written to {output_path}")
         return
 
+    if args.add_feedback is not None:
+        try:
+            config = load_config(args.config)
+            feedback = add_feedback_from_report(
+                report_path=args.add_feedback,
+                target_type=args.target_type,
+                target_id=args.target_id,
+                label=args.label,
+                notes=args.notes,
+                reviewer=args.reviewer,
+                store_path=_feedback_store_path(config),
+            )
+        except (FileNotFoundError, ValueError) as error:
+            parser.error(str(error))
+        print(
+            "ADE feedback recorded: "
+            f"{feedback.feedback_id} "
+            f"({feedback.target_type} {feedback.target_id}, {feedback.label})"
+        )
+        return
+
+    if args.list_feedback:
+        try:
+            config = load_config(args.config)
+            print(format_feedback_summary(_feedback_store_path(config), run_id=args.run_id))
+        except (FileNotFoundError, ValueError) as error:
+            parser.error(str(error))
+        return
+
     if args.list_runs:
         try:
             print(format_run_history(limit=args.limit))
@@ -463,7 +639,8 @@ def main() -> None:
     if args.input is None or args.output is None:
         parser.error(
             "--input and --output are required unless --list-runs, "
-            "--validate-report, or --export-html-report is used."
+            "--validate-report, --export-html-report, --add-feedback, "
+            "or --list-feedback is used."
         )
 
     try:

@@ -18,8 +18,9 @@ ADE should produce candidate findings with traceable evidence and reviewable out
 4. Memory and Retrieval Layer
 5. Evidence and Explanation Layer
 6. Report and Output Layer
-7. API and Product Layer
-8. Enterprise Operations Layer
+7. Local Human-Review Feedback Layer
+8. API and Product Layer
+9. Enterprise Operations Layer
 
 ## Core Interfaces
 
@@ -54,6 +55,7 @@ ADE should produce candidate findings with traceable evidence and reviewable out
 10. Collect structured evidence bundles with anomaly IDs, patch coordinates, ranks, preview paths, scale metadata, and nearest visual matches.
 11. Generate cautious hypotheses.
 12. Export Markdown, JSON, preview assets, run metadata, and run index entries.
+13. Optionally record local reviewer feedback against report-level anomaly or concept IDs.
 
 ## Current Patch Extraction and Selection
 
@@ -98,6 +100,18 @@ The visual MVP keeps concept scoring deterministic and dependency-light. Candida
 These signals are combined into a confidence score for review prioritization. The score is not a claim that a pattern is real or important. Reports include the component breakdown so reviewers can see why a candidate concept was highlighted.
 
 Evidence bundles currently include supporting examples, representative examples, nearest-neighbor matches when memory is enabled, empty placeholders for normal comparisons, notes, and warnings. Normal-comparison selection should be added only after the baseline/reference strategy is designed.
+
+## Current Feedback Layer
+
+The feedback package stores local reviewer labels in an append-only JSONL file
+at `data/feedback/feedback.jsonl` by default. Feedback records attach to
+report-level `anomaly_id` or `concept_id` values and support labels such as
+`interesting`, `known_pattern`, `false_positive`, and `needs_more_data`.
+
+This layer is local by design. It does not implement a dashboard, database,
+authentication, reviewer queues, user-specific ranking, or audit trails yet. It
+creates a small typed boundary for future review workflows while keeping
+current reports focused on candidate findings that require human review.
 
 ## Current Boundaries
 

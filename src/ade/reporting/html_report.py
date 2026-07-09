@@ -41,6 +41,7 @@ def render_html_report(report: dict[str, Any]) -> str:
     )
     anomaly_items = "\n".join(_anomaly_item(item) for item in anomalies if isinstance(item, dict))
     concept_items = "\n".join(_concept_item(item) for item in concepts if isinstance(item, dict))
+    feedback_section = _feedback_section(report)
 
     return f"""<!doctype html>
 <html lang="en">
@@ -62,6 +63,7 @@ def render_html_report(report: dict[str, Any]) -> str:
   {anomaly_items or "<p>No candidate anomalies reported.</p>"}
   <h2>Candidate Concepts</h2>
   {concept_items or "<p>No candidate concepts reported.</p>"}
+  {feedback_section}
 </body>
 </html>
 """
@@ -89,6 +91,38 @@ def _concept_item(item: dict[str, Any]) -> str:
         f"<p>Supporting examples: {_text(count)}</p>"
         "</section>"
     )
+
+
+def _feedback_section(report: dict[str, Any]) -> str:
+    labels = report.get("supported_feedback_labels")
+    if not isinstance(labels, list):
+        labels = [
+            "interesting",
+            "known_pattern",
+            "false_positive",
+            "duplicate",
+            "important",
+            "not_useful",
+            "needs_more_data",
+        ]
+    label_text = ", ".join(_text(label) for label in labels)
+    anomaly_command = (
+        "python -m ade.cli --add-feedback data/reports/demo_report.json "
+        "--target-type anomaly --target-id <anomaly_id> --label interesting "
+        '--notes "Local review note" --reviewer local'
+    )
+    concept_command = (
+        "python -m ade.cli --add-feedback data/reports/demo_report.json "
+        "--target-type concept --target-id <concept_id> --label known_pattern "
+        '--notes "Known recurring pattern" --reviewer local'
+    )
+    return f"""
+  <h2>Human Review Feedback</h2>
+  <p>Feedback is local reviewer state for candidate findings that require human review.</p>
+  <p>Supported labels: {label_text}</p>
+  <pre><code>{_text(anomaly_command)}</code></pre>
+  <pre><code>{_text(concept_command)}</code></pre>
+"""
 
 
 def _text(value: object) -> str:
