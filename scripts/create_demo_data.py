@@ -2,11 +2,17 @@
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 import numpy as np
 
-from ade.config import load_config
+REPO_ROOT = Path(__file__).resolve().parents[1]
+SRC_PATH = REPO_ROOT / "src"
+if str(SRC_PATH) not in sys.path:
+    sys.path.insert(0, str(SRC_PATH))
+
+from ade.config import load_config  # noqa: E402
 
 _CONFIG = load_config()
 _DEMO_CONFIG = _CONFIG["demo_data"]

@@ -17,7 +17,9 @@ from ade.models import CandidateAnomaly, DatasetProfile
 from ade.preprocessing.input_validator import profile_image_folder
 from ade.preprocessing.patch_extractor import PatchExtractor
 from ade.reasoning.hypothesis_generator import HypothesisGenerator
+from ade.reporting.html_report import write_html_report
 from ade.reporting.report_generator import DatasetSummary, ReportGenerator
+from ade.reporting.report_validator import validate_report_file
 from ade.reporting.run_index import load_run_index
 from ade.representation.embedding_engine import EmbeddingEngine, PatchEmbedding
 
@@ -53,6 +55,17 @@ def build_parser() -> argparse.ArgumentParser:
         "--list-runs",
         action="store_true",
         help="List previous ADE runs from data/reports/runs/index.json.",
+    )
+    parser.add_argument(
+        "--validate-report",
+        type=Path,
+        help="Validate an ADE JSON report and exit.",
+    )
+    parser.add_argument(
+        "--export-html-report",
+        type=Path,
+        metavar="REPORT_JSON",
+        help="Export a local HTML review report from an ADE JSON report and exit.",
     )
     parser.add_argument(
         "--limit",
@@ -417,6 +430,29 @@ def main() -> None:
 
     parser = build_parser()
     args = parser.parse_args()
+    if args.validate_report is not None:
+        result = validate_report_file(args.validate_report)
+        if not result.is_valid:
+            for error in result.errors:
+                print(f"ERROR: {error}")
+            raise SystemExit(1)
+        print(f"ADE report validation passed: {args.validate_report}")
+        if result.warnings:
+            print("Warnings:")
+            for warning in result.warnings:
+                print(f"* {warning}")
+        return
+
+    if args.export_html_report is not None:
+        if args.output is None:
+            parser.error("--output is required with --export-html-report.")
+        try:
+            output_path = write_html_report(args.export_html_report, args.output)
+        except (FileNotFoundError, ValueError) as error:
+            parser.error(str(error))
+        print(f"ADE HTML report written to {output_path}")
+        return
+
     if args.list_runs:
         try:
             print(format_run_history(limit=args.limit))
@@ -425,7 +461,10 @@ def main() -> None:
         return
 
     if args.input is None or args.output is None:
-        parser.error("--input and --output are required unless --list-runs is used.")
+        parser.error(
+            "--input and --output are required unless --list-runs, "
+            "--validate-report, or --export-html-report is used."
+        )
 
     try:
         report_path = run_pipeline(

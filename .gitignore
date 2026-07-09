@@ -37,6 +37,8 @@ data/reports/assets/
 data/reports/assets/*
 data/reports/runs/
 data/reports/runs/*
+data/benchmarks/
+data/feedback/
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !data/embeddings/.gitkeep
