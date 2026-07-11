@@ -10,13 +10,20 @@ import zlib
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 from ade import __version__
 from ade.discovery.confidence_scorer import ConceptConfidence
 from ade.discovery.evidence_collector import ConceptEvidence
 from ade.discovery.novelty_scorer import CandidateAnomaly
 from ade.feedback import ALLOWED_FEEDBACK_LABELS
-from ade.models import DatasetProfile, EvidenceSummary, RunMetadata, UnknownConcept
+from ade.models import (
+    DatasetProfile,
+    EvidenceSummary,
+    ReportArtifact,
+    RunMetadata,
+    UnknownConcept,
+)
 from ade.reasoning.hypothesis_generator import Hypothesis
 from ade.reporting.run_index import build_run_summary, update_run_index
 
@@ -41,6 +48,8 @@ class ReportAssets:
 class ReportGenerator:
     """Generate Markdown and JSON reports for human review."""
 
+    name = "markdown_json_report"
+
     def __init__(
         self,
         project_name: str = "ADE",
@@ -58,6 +67,35 @@ class ReportGenerator:
         self.save_patch_previews = save_patch_previews
         self.assets_dir_name = assets_dir_name
         self.runs_dir_name = runs_dir_name
+
+    def render(
+        self,
+        run_result: dict[str, Any],
+        output_dir: Path | str,
+    ) -> list[ReportArtifact]:
+        """Render a structured run result into Markdown and JSON artifacts.
+
+        ``write`` remains the main API for the current CLI. This method gives
+        future orchestration code a small renderer contract without changing the
+        established report format.
+        """
+
+        output_path = Path(output_dir) / str(run_result.get("filename", "ade_report.md"))
+        markdown_path = self.write(
+            output_path=output_path,
+            dataset_summary=run_result["dataset_summary"],
+            candidates=run_result.get("candidates", []),
+            evidence_items=run_result.get("evidence_items", []),
+            confidences=run_result.get("confidences", []),
+            hypotheses=run_result.get("hypotheses", []),
+            dataset_profile=run_result.get("dataset_profile"),
+            analysis_metadata=run_result.get("analysis_metadata")
+            or run_result.get("backend_metadata"),
+        )
+        return [
+            ReportArtifact(artifact_type="markdown", path=markdown_path),
+            ReportArtifact(artifact_type="json", path=markdown_path.with_suffix(".json")),
+        ]
 
     def generate(
         self,
@@ -98,6 +136,10 @@ class ReportGenerator:
             "## Input Dataset Profile",
             "",
             *self._dataset_profile_lines(dataset_profile),
+            "",
+            "## Scoring Metadata",
+            "",
+            *self._analysis_metadata_lines(analysis_metadata, candidates),
             "",
             "## Top Candidate Anomalies",
             "",
@@ -347,6 +389,10 @@ class ReportGenerator:
                 analysis_metadata,
                 candidates,
             ),
+            "backend_metadata": self._backend_metadata_json(
+                analysis_metadata,
+                candidates,
+            ),
             "number_of_images": int(dataset_summary.image_count),
             "number_of_patches": int(dataset_summary.patch_count),
             "number_of_candidate_anomalies": len(candidate_anomalies),
@@ -567,6 +613,11 @@ class ReportGenerator:
             "scale_id": patch.scale_id,
             "scale_label": patch.scale_label,
             "novelty_score": anomaly["novelty_score"],
+            "normalized_score": candidate.metadata.get("normalized_score"),
+            "scoring_backend": candidate.metadata.get("scoring_backend"),
+            "nearest_neighbor_id": candidate.metadata.get("nearest_neighbor_id"),
+            "feature_deviations": candidate.metadata.get("feature_deviations", []),
+            "reason": candidate.metadata.get("reason"),
             "preview_path": anomaly["preview_path"],
             "selection_reason": candidate.metadata.get("selection_reason"),
             "selection_rank": candidate.metadata.get("selection_rank"),
@@ -834,6 +885,74 @@ class ReportGenerator:
                 and analysis_metadata.get("scoring_fallback_reason") is not None
                 else None
             ),
+        }
+
+    @staticmethod
+    def _analysis_metadata_lines(
+        analysis_metadata: dict[str, object] | None,
+        candidates: list[CandidateAnomaly],
+    ) -> list[str]:
+        """Return compact Markdown lines for scoring and selection metadata."""
+
+        metadata = ReportGenerator._scoring_metadata_json(analysis_metadata, candidates)
+        lines = [
+            f"- Novelty strategy: `{metadata['novelty_strategy']}`",
+            "- Memory-aware scoring enabled: "
+            f"{metadata['memory_aware_scoring_enabled']}",
+            f"- Neighbor top-k: {metadata['neighbor_top_k'] or 'n/a'}",
+            f"- Scoring fallback used: {metadata['scoring_fallback_used']}",
+        ]
+        if metadata["scoring_fallback_reason"]:
+            lines.append(f"- Scoring fallback reason: {metadata['scoring_fallback_reason']}")
+        if analysis_metadata:
+            if analysis_metadata.get("anomaly_selection_strategy") is not None:
+                lines.append(
+                    "- Anomaly selection strategy: "
+                    f"`{analysis_metadata['anomaly_selection_strategy']}`"
+                )
+            if analysis_metadata.get("patch_scales_used") is not None:
+                lines.append(
+                    "- Patch scales used: "
+                    + ", ".join(str(item) for item in analysis_metadata["patch_scales_used"])
+                )
+        return lines
+
+    @staticmethod
+    def _backend_metadata_json(
+        analysis_metadata: dict[str, object] | None,
+        candidates: list[CandidateAnomaly],
+    ) -> dict[str, object]:
+        """Return backward-compatible backend metadata for report consumers."""
+
+        first_metadata = candidates[0].metadata if candidates else {}
+        scoring_backend = (
+            analysis_metadata.get("scoring_backend")
+            if analysis_metadata and analysis_metadata.get("scoring_backend") is not None
+            else "centroid_distance"
+        )
+        clustering_backend = (
+            analysis_metadata.get("clustering_backend")
+            if analysis_metadata and analysis_metadata.get("clustering_backend") is not None
+            else "threshold_candidate_grouping"
+        )
+        feature_vector_length = 0
+        if candidates:
+            feature_vector_length = int(candidates[0].embedding.vector.size)
+        return {
+            "scoring_backend": str(scoring_backend),
+            "clustering_backend": str(clustering_backend),
+            "top_k": (
+                analysis_metadata.get("top_k")
+                if analysis_metadata and analysis_metadata.get("top_k") is not None
+                else len(candidates)
+            ),
+            "random_seed": (
+                analysis_metadata.get("random_seed")
+                if analysis_metadata and analysis_metadata.get("random_seed") is not None
+                else None
+            ),
+            "feature_vector_count": len(candidates),
+            "feature_vector_length": feature_vector_length,
         }
 
     @staticmethod

@@ -12,6 +12,11 @@ EmbeddingT = TypeVar("EmbeddingT")
 class EmbeddingBackend(Protocol[PatchT, EmbeddingT]):
     """Convert analysis units into comparable representations."""
 
+    name: str
+
+    def embed(self, records: list[PatchT]) -> list[EmbeddingT]:
+        """Return embeddings for multiple analysis units."""
+
     def embed_patch(self, patch: PatchT) -> EmbeddingT:
         """Return one embedding record for one analysis unit."""
 

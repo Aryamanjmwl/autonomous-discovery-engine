@@ -17,6 +17,8 @@ def test_default_config_loads_expected_sections() -> None:
         "demo_data",
         "memory",
         "feedback",
+        "tabular",
+        "timeseries",
     }.issubset(config)
     assert config["project"]["name"] == "ADE"
     assert config["preprocessing"]["patch_size"] == 64
@@ -25,8 +27,12 @@ def test_default_config_loads_expected_sections() -> None:
     assert config["discovery"]["novelty_strategy"] == "hybrid"
     assert config["discovery"]["memory_aware_scoring"]["enabled"] is True
     assert config["discovery"]["diversity"]["enabled"] is True
-    assert config["reporting"]["human_review_required"] is True
+    assert config["discovery"]["scoring_backend"] == "centroid_distance"
+    assert config["discovery"]["clustering_backend"] == "threshold_candidate_grouping"
+    assert config["discovery"]["top_k"] is None
     assert config["feedback"]["store_path"] == "data/feedback/feedback.jsonl"
+    assert config["tabular"]["max_categorical_cardinality"] == 50
+    assert config["timeseries"]["window_size"] == 3
     assert ".png" in config["validation"]["supported_image_extensions"]
 
 
@@ -113,6 +119,34 @@ discovery:
     )
 
     with pytest.raises(ValueError, match="novelty_strategy"):
+        load_config(config_path)
+
+
+def test_config_loader_rejects_unknown_discovery_backend(tmp_path: Path) -> None:
+    config_path = tmp_path / "bad_backend.yaml"
+    config_path.write_text(
+        """
+discovery:
+  scoring_backend: "unknown"
+""".strip(),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="Unsupported discovery.scoring_backend"):
+        load_config(config_path)
+
+
+def test_config_loader_rejects_invalid_top_k(tmp_path: Path) -> None:
+    config_path = tmp_path / "bad_top_k.yaml"
+    config_path.write_text(
+        """
+discovery:
+  top_k: 0
+""".strip(),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="discovery.top_k"):
         load_config(config_path)
 
 

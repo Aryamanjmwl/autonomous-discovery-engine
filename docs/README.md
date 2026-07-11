@@ -10,14 +10,15 @@ All findings are candidate findings and require human review.
 ## Start Here
 
 - [Product scope](product_scope.md): current scope, future adapters, and non-goals.
-- [Architecture](architecture.md): ADE layers, extension points, visual pipeline, and feedback flow.
+- [Architecture](ARCHITECTURE.md): ADE layers, extension points, visual pipeline, and feedback flow.
 - [Development workflow](development_workflow.md): install, test, demo, config, benchmark, and local verification commands.
 - [CLI reference](cli_reference.md): PowerShell-friendly command examples.
 - [Report schema](report_schema.md): JSON report fields, stable IDs, feedback metadata, and compatibility notes.
 - [Engineering quality](engineering_quality.md): coding, testing, artifact, review, and release standards.
 - [Dashboard product spec](dashboard/dashboard_product_spec.md): planned review UX without an implemented dashboard app.
 - [Dashboard frontend contract](dashboard/dashboard_frontend_contract.md): report, feedback, benchmark, and run-history payloads for future UI work.
-- [Release checklist](release_checklist.md): private-alpha verification checklist.
+- [Roadmap](ROADMAP.md): staged product and engineering direction.
+- [Release checklist](RELEASE_CHECKLIST.md): private-alpha verification checklist.
 - [Versioning policy](versioning_policy.md): pre-1.0 version and schema expectations.
 - [Private-alpha readiness audit](releases/private_alpha_readiness_audit.md): current release-readiness assessment.
 

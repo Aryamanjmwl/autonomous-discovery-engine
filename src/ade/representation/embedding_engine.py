@@ -16,6 +16,17 @@ class EmbeddingEngine:
     satellite-specific encoders, or other validated representation models.
     """
 
+    name = "statistical_image_patch"
+
+    def embed(self, records: list[Patch]) -> list[PatchEmbedding]:
+        """Return embeddings for multiple patches.
+
+        This is the backend-interface name. ``embed_patches`` is kept for the
+        existing visual pipeline.
+        """
+
+        return self.embed_patches(records)
+
     def embed_patch(self, patch: Patch) -> PatchEmbedding:
         """Return a deterministic statistical embedding for one patch."""
 

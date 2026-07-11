@@ -22,6 +22,12 @@ ADE is intended to be a discovery assistant, not a single-purpose prediction mod
 
 This modular design allows ADE to grow across domains and data types without being locked to one model, one industry, or one question format. Future implementations can add new dataset adapters and replace the current placeholder visual embedding engine with stronger domain-specific models while keeping the review-oriented discovery workflow intact.
 
+The codebase exposes small pluggable contracts for data adapters, embedding
+backends, scoring backends, clustering backends, evidence ranking, and report
+rendering. These contracts are intentionally lightweight: they prepare ADE for
+future CLIP, DINOv2, custom visual models, and non-visual adapters without
+adding those heavy dependencies to the current prototype.
+
 ## Current Prototype Status
 
 This version is a minimal working MVP for image-folder input. It demonstrates a visual-data-first end-to-end discovery pipeline without using advanced AI, proprietary models, or deep learning.
@@ -29,12 +35,12 @@ This version is a minimal working MVP for image-folder input. It demonstrates a 
 Current supported inputs:
 
 - Image folders
+- CSV files for lightweight row-level tabular discovery
+- CSV files with explicit time-series mode for timestamped point/window discovery
 
 Planned future supported data types:
 
 - Videos
-- Tabular data
-- Time-series data
 - Logs
 - Audio
 - Documents
@@ -58,7 +64,23 @@ The current pipeline performs:
 11. Cautious hypothesis generation
 12. Markdown and JSON discovery report generation
 
+For CSV files, ADE uses a separate lightweight tabular path: CSV validation,
+numeric/categorical profiling, deterministic row-level feature extraction,
+row-level novelty ranking, simple candidate concept grouping, and Markdown/JSON
+reports with tabular metadata.
+
+For timestamped CSV files, ADE supports an explicit lightweight time-series
+path with timestamp profiling, numeric signal detection, deterministic
+point/window-style features, point-level novelty ranking, simple candidate
+concept grouping, and Markdown/JSON reports with time-series metadata.
+
 The embedding system currently uses simple image statistics such as color means, standard deviations, brightness, and edge density. This is intentionally basic so the architecture can later support stronger encoders for specific domains.
+
+Discovery backends are selected through configuration. The current lightweight
+scoring options are centroid distance, nearest-neighbor distance, and robust
+z-score distance. These are deterministic baselines; deep-learning and advanced
+indexing backends are intentionally deferred until they can be added as optional
+extensions.
 
 ## Example Use Cases
 
@@ -81,7 +103,11 @@ ADE is designed to grow into a cross-industry discovery platform. Example future
 ## What This Version Can Do
 
 - Load images from a folder through the first visual data adapter
+- Load CSV files through the first non-visual adapter
+- Run explicit time-series discovery on timestamped CSV files
 - Profile visual input folders before analysis
+- Profile CSV files for row count, column count, numeric/categorical columns, and missing values
+- Profile timestamped CSV files for time range, signal columns, duplicate timestamps, missing timestamps, and sampling intervals
 - Warn about unsupported files, unreadable images, small datasets, small images, and high estimated patch counts
 - Return image path and metadata
 - Split images into fixed-size or configured multi-scale patches
@@ -173,6 +199,28 @@ Then run ADE on the generated image folder:
 ```bash
 python -m ade.cli --input data/raw/demo_images --output data/reports/demo_report.md
 ```
+
+## CSV Demo Commands
+
+Run ADE on a CSV file by passing the file path as `--input`:
+
+```bash
+python -m ade.cli --input data/raw/example.csv --output data/reports/tabular_report.md
+```
+
+The current tabular implementation performs row-level discovery only. Findings
+are candidate row anomalies and candidate tabular concepts that require human
+review.
+
+Run ADE on a timestamped CSV file by explicitly selecting time-series mode:
+
+```bash
+python -m ade.cli --input data/raw/series.csv --output data/reports/timeseries_report.md --modality timeseries --timestamp-column timestamp
+```
+
+The current time-series implementation performs point/window-feature discovery
+only. It does not perform forecasting, streaming ingestion, or production
+monitoring.
 
 ## Python Usage
 
@@ -337,6 +385,22 @@ Supported feedback labels are `interesting`, `known_pattern`,
 `data/feedback/feedback.jsonl` by default and is ignored by Git. This is a
 foundation for future review queues, concept memory, and false-positive review;
 those systems are not implemented yet.
+## Local Dashboard
+
+ADE can generate a lightweight static dashboard from existing local run history
+and JSON reports:
+
+```bash
+ade dashboard
+```
+
+The dashboard is written to `data/reports/dashboard/index.html` by default and
+the command prints a local `file://` URL. It shows run history, report paths,
+dataset summaries, top candidate findings, candidate concept groups, evidence
+items, and available preview assets.
+
+This is a local review tool only. It does not add authentication, uploads,
+multi-user support, a database, or production hosting assumptions.
 
 ## Repository Structure
 
@@ -366,6 +430,9 @@ Additional project docs:
 - `docs/ROADMAP.md`
 - `docs/IMPLEMENTATION_PLAN.md`
 - `docs/ADAPTER_BACKEND_GUIDE.md`
+- `docs/DASHBOARD.md`
+- `docs/TABULAR.md`
+- `docs/TIME_SERIES.md`
 - `docs/ENTERPRISE_READINESS.md`
 - `docs/SECURITY_MODEL.md`
 - `docs/RELEASE_CHECKLIST.md`

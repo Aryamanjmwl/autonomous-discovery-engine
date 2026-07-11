@@ -18,7 +18,12 @@ class EvidenceItem:
     novelty_score: float
     anomaly_id: str = ""
     rank: int | None = None
+    scoring_backend: str | None = None
+    normalized_score: float | None = None
     concept_id: str | None = None
+    nearest_neighbor_id: str | None = None
+    feature_deviations: list[dict[str, float | str]] | None = None
+    reason: str = ""
     preview_path: str | None = None
     patch_stride: int | None = None
     scale_id: str | None = None
@@ -46,7 +51,12 @@ class EvidenceItem:
             "scale_label": self.scale_label,
             "novelty_score": float(self.novelty_score),
             "rank": self.rank,
+            "scoring_backend": self.scoring_backend,
+            "normalized_score": self.normalized_score,
             "concept_id": self.concept_id,
+            "nearest_neighbor_id": self.nearest_neighbor_id,
+            "feature_deviations": self.feature_deviations or [],
+            "reason": self.reason,
             "preview_path": self.preview_path,
         }
 
@@ -73,6 +83,8 @@ class ConceptEvidence:
 class EvidenceCollector:
     """Collect supporting patches and simple statistics for concepts."""
 
+    name = "concept_evidence_collector"
+
     def __init__(
         self,
         max_supporting_examples: int = 5,
@@ -84,6 +96,18 @@ class EvidenceCollector:
         self.memory = memory
         self.top_k_neighbors = max(0, top_k_neighbors)
         self.include_neighbors = include_neighbors
+
+    def rank(
+        self,
+        records: list[object],
+        scores: list[object],
+        clusters: list[CandidateConcept] | None = None,
+        embeddings: list[object] | None = None,
+    ) -> list[ConceptEvidence]:
+        """Return evidence for candidate concepts."""
+
+        del records, scores, embeddings
+        return self.collect(clusters or [])
 
     def collect(self, concepts: list[CandidateConcept]) -> list[ConceptEvidence]:
         """Return evidence summaries for candidate concepts."""
@@ -100,8 +124,22 @@ class EvidenceCollector:
                     coordinates=candidate.embedding.patch.coordinates,
                     novelty_score=candidate.novelty_score,
                     anomaly_id=candidate.anomaly_id,
-                    rank=index,
+                    rank=self._int_metadata(candidate.metadata.get("rank")) or index,
+                    scoring_backend=self._str_metadata(
+                        candidate.metadata.get("scoring_backend")
+                    ),
+                    normalized_score=self._float_metadata(
+                        candidate.metadata.get("normalized_score")
+                    ),
                     concept_id=concept.concept_id,
+                    nearest_neighbor_id=self._str_metadata(
+                        candidate.metadata.get("nearest_neighbor_id")
+                    ),
+                    feature_deviations=self._feature_deviations(
+                        candidate.metadata.get("feature_deviations")
+                    ),
+                    reason=str(candidate.metadata.get("reason", "")),
+                    preview_path=candidate.preview_path,
                     patch_stride=candidate.embedding.patch.patch_stride,
                     scale_id=candidate.embedding.patch.scale_id,
                     scale_label=candidate.embedding.patch.scale_label,
@@ -196,3 +234,44 @@ class EvidenceCollector:
             )
         )
         return neighbor_rows[: self.top_k_neighbors]
+
+    @staticmethod
+    def _int_metadata(value: object) -> int | None:
+        """Return integer metadata when available."""
+
+        if isinstance(value, int):
+            return value
+        return None
+
+    @staticmethod
+    def _str_metadata(value: object) -> str | None:
+        """Return string metadata when available."""
+
+        if value is None:
+            return None
+        return str(value)
+
+    @staticmethod
+    def _float_metadata(value: object) -> float | None:
+        """Return float metadata when available."""
+
+        if isinstance(value, int | float):
+            return float(value)
+        return None
+
+    @staticmethod
+    def _feature_deviations(value: object) -> list[dict[str, float | str]]:
+        """Return JSON-safe feature deviation metadata."""
+
+        if not isinstance(value, list):
+            return []
+        deviations: list[dict[str, float | str]] = []
+        for item in value:
+            if not isinstance(item, dict):
+                continue
+            feature = item.get("feature")
+            deviation = item.get("deviation")
+            if feature is None or not isinstance(deviation, int | float):
+                continue
+            deviations.append({"feature": str(feature), "deviation": float(deviation)})
+        return deviations

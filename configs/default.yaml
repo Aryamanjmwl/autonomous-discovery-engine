@@ -12,16 +12,20 @@ preprocessing:
 
 discovery:
   max_candidate_anomalies: 10
+  top_k:
   max_concepts: 5
   novelty_metric: "euclidean"
   novelty_strategy: "hybrid"
+  scoring_backend: "centroid_distance"
+  clustering_backend: "threshold_candidate_grouping"
+  cluster_distance_threshold: 0.35
+  random_seed: 42
   memory_aware_scoring:
     enabled: true
     neighbor_top_k: 5
     exclude_same_source: false
     weight_global_distance: 0.5
     weight_neighbor_distance: 0.5
-  cluster_distance_threshold: 0.35
   diversity:
     enabled: true
     min_spatial_distance: 32
@@ -41,6 +45,29 @@ memory:
 feedback:
   enabled: true
   store_path: "data/feedback/feedback.jsonl"
+
+tabular:
+  id_column:
+  max_categorical_cardinality: 50
+  missing_value_tokens:
+    - ""
+    - "na"
+    - "n/a"
+    - "nan"
+    - "null"
+    - "none"
+
+timeseries:
+  timestamp_column:
+  entity_column:
+  window_size: 3
+  missing_value_tokens:
+    - ""
+    - "na"
+    - "n/a"
+    - "nan"
+    - "null"
+    - "none"
 
 reporting:
   report_version: "1.0"

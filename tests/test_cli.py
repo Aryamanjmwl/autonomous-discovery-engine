@@ -195,6 +195,11 @@ demo_data:
     assert report_data["project_name"] == "ADE Test"
     assert report_data["report_version"] == "test-report"
     assert report_data["number_of_candidate_anomalies"] == 2
+    assert report_data["backend_metadata"]["scoring_backend"] == "centroid_distance"
+    assert report_data["backend_metadata"]["clustering_backend"] == (
+        "threshold_candidate_grouping"
+    )
+    assert report_data["backend_metadata"]["top_k"] == 2
     assert report_data["run_metadata"]["pipeline_version"] == "test-version"
     assert report_data["run_index_path"].endswith("run_records/index.json")
     assert (tmp_path / "preview_assets").is_dir()

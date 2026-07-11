@@ -204,6 +204,16 @@ def test_report_generator_includes_required_sections() -> None:
         confidences=[ConceptConfidence(concept_id="concept-001", score=0.7)],
         hypotheses=[Hypothesis(concept_id="concept-001", text="A cautious hypothesis.")],
         dataset_profile=_dataset_profile(),
+        analysis_metadata={
+            "total_patches": 1,
+            "patch_scales_used": ["s4"],
+            "anomaly_selection_strategy": "diversity-aware",
+            "novelty_strategy": "hybrid",
+            "memory_aware_scoring_enabled": True,
+            "neighbor_top_k": 5,
+            "scoring_fallback_used": False,
+            "scoring_fallback_reason": None,
+        },
     )
 
     assert "# ADE Discovery Report" in report
@@ -216,6 +226,8 @@ def test_report_generator_includes_required_sections() -> None:
     assert "Patch scale" in report
     assert "`s4` / 4px" in report
     assert "Input Dataset Profile" in report
+    assert "Scoring Metadata" in report
+    assert "Novelty strategy: `hybrid`" in report
     assert "Unsupported files found: 1" in report
     assert "Candidate Unknown Concepts" in report
     assert "Representative anomaly: anomaly-0001" in report

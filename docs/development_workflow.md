@@ -39,6 +39,27 @@ python -m ade.cli --input data/raw/demo_images --output data/reports/demo_report
 ```
 
 The generated Markdown and JSON reports include candidate anomalies, patch scale metadata, novelty score breakdowns, candidate concepts, supporting evidence bundles, nearest visual matches when memory is enabled, concept consistency, confidence breakdowns, cautious hypotheses, and human-review disclaimers. These fields support review and comparison; they are not validated conclusions.
+For CSV input, pass a `.csv` file as `--input`:
+
+```bash
+python -m ade.cli --input data/raw/example.csv --output data/reports/tabular_report.md
+```
+
+The current tabular workflow is row-level only. It profiles numeric and
+categorical columns, extracts deterministic lightweight features, ranks
+candidate row anomalies, groups candidate tabular concepts, and writes
+Markdown/JSON reports.
+
+For timestamped CSV input, select time-series mode explicitly:
+
+```bash
+python -m ade.cli --input data/raw/series.csv --output data/reports/timeseries_report.md --modality timeseries --timestamp-column timestamp
+```
+
+Plain `.csv` input remains tabular by default. Time-series mode profiles the
+timestamp column, numeric signal columns, time range, duplicate timestamps,
+missing timestamps, sampling intervals, and writes Markdown/JSON reports with
+time-series metadata.
 
 ## List Runs
 
@@ -64,6 +85,18 @@ python -m ade.cli --list-feedback
 Supported labels are `interesting`, `known_pattern`, `false_positive`,
 `duplicate`, `important`, `not_useful`, and `needs_more_data`. Feedback is
 stored at `data/feedback/feedback.jsonl` by default and should remain ignored.
+## Generate Local Dashboard
+
+After creating one or more runs, generate a static local dashboard:
+
+```bash
+ade dashboard
+```
+
+The default dashboard entry point is `data/reports/dashboard/index.html`.
+The command prints a local `file://` URL. The dashboard reads the existing run
+index, JSON reports, Markdown report paths, and preview asset references. It
+does not create a server, database, upload system, or hosted application.
 
 ## Use Config
 

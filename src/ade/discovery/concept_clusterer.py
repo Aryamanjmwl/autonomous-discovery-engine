@@ -30,6 +30,8 @@ class CandidateConcept:
 class ConceptClusterer:
     """Group candidate anomalies with a small dependency-light algorithm."""
 
+    name = "threshold_candidate_grouping"
+
     def __init__(
         self,
         distance_threshold: float = 0.35,
@@ -48,8 +50,15 @@ class ConceptClusterer:
             max_supporting_examples=max_supporting_examples,
         )
 
-    def cluster(self, candidates: list[CandidateAnomaly]) -> list[CandidateConcept]:
+    def cluster(
+        self,
+        candidates: list[CandidateAnomaly],
+        scores: list[CandidateAnomaly] | None = None,
+    ) -> list[CandidateConcept]:
         """Return candidate unknown concepts grouped by embedding distance."""
+
+        if scores is not None:
+            candidates = scores
 
         concepts: list[CandidateConcept] = []
         for candidate in candidates:

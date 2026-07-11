@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -98,6 +99,176 @@ class ADERecord:
             "source_path": self.source_path.as_posix() if self.source_path else None,
             "media_type": self.media_type,
             "metadata": _json_safe_metadata(self.metadata),
+        }
+
+
+@dataclass(frozen=True)
+class TabularRecord:
+    """One row from a tabular dataset."""
+
+    record_id: str
+    source_path: Path
+    row_index: int
+    values: dict[str, str]
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+    def to_ade_record(self) -> ADERecord:
+        """Return this row as a generic ADE record."""
+
+        return ADERecord(
+            record_id=self.record_id,
+            source_path=self.source_path,
+            media_type="tabular_row",
+            metadata={
+                "row_index": self.row_index,
+                "values": dict(self.values),
+                **_json_safe_metadata(self.metadata),
+            },
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-safe row record."""
+
+        return {
+            "record_id": self.record_id,
+            "source_path": self.source_path.as_posix(),
+            "row_index": int(self.row_index),
+            "values": dict(self.values),
+            "metadata": _json_safe_metadata(self.metadata),
+        }
+
+
+@dataclass(frozen=True)
+class TabularProfile:
+    """Profile and validation summary for a CSV dataset."""
+
+    input_path: Path
+    row_count: int
+    column_count: int
+    columns: list[str]
+    numeric_columns: list[str]
+    categorical_columns: list[str]
+    missing_value_summary: dict[str, int]
+    column_metadata: dict[str, dict[str, Any]]
+    warnings: list[str] = field(default_factory=list)
+    is_valid: bool = False
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-safe tabular profile."""
+
+        return {
+            "input_path": self.input_path.as_posix(),
+            "input_type": "tabular_csv",
+            "modality": "tabular",
+            "row_count": int(self.row_count),
+            "column_count": int(self.column_count),
+            "columns": list(self.columns),
+            "numeric_columns": list(self.numeric_columns),
+            "categorical_columns": list(self.categorical_columns),
+            "numeric_column_count": len(self.numeric_columns),
+            "categorical_column_count": len(self.categorical_columns),
+            "missing_value_summary": {
+                str(key): int(value) for key, value in self.missing_value_summary.items()
+            },
+            "column_metadata": {
+                str(column): _json_safe_metadata(metadata)
+                for column, metadata in self.column_metadata.items()
+            },
+            "warnings": list(self.warnings),
+            "is_valid": bool(self.is_valid),
+        }
+
+
+@dataclass(frozen=True)
+class TimeSeriesRecord:
+    """One timestamped row from a time-series CSV dataset."""
+
+    record_id: str
+    source_path: Path
+    row_index: int
+    timestamp: str
+    values: dict[str, str]
+    entity_id: str | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+    def to_ade_record(self) -> ADERecord:
+        """Return this point as a generic ADE record."""
+
+        return ADERecord(
+            record_id=self.record_id,
+            source_path=self.source_path,
+            media_type="timeseries_point",
+            metadata={
+                "row_index": self.row_index,
+                "timestamp": self.timestamp,
+                "entity_id": self.entity_id,
+                "values": dict(self.values),
+                **_json_safe_metadata(self.metadata),
+            },
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-safe time-series record."""
+
+        return {
+            "record_id": self.record_id,
+            "source_path": self.source_path.as_posix(),
+            "row_index": int(self.row_index),
+            "timestamp": self.timestamp,
+            "entity_id": self.entity_id,
+            "values": dict(self.values),
+            "metadata": _json_safe_metadata(self.metadata),
+        }
+
+
+@dataclass(frozen=True)
+class TimeSeriesProfile:
+    """Profile and validation summary for a timestamped CSV dataset."""
+
+    input_path: Path
+    timestamp_column: str
+    entity_column: str | None
+    row_count: int
+    column_count: int
+    columns: list[str]
+    signal_columns: list[str]
+    time_start: str | None
+    time_end: str | None
+    sampling_interval_summary: dict[str, Any]
+    missing_value_summary: dict[str, int]
+    missing_timestamp_count: int = 0
+    malformed_timestamp_count: int = 0
+    duplicate_timestamp_count: int = 0
+    warnings: list[str] = field(default_factory=list)
+    is_valid: bool = False
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-safe time-series profile."""
+
+        return {
+            "input_path": self.input_path.as_posix(),
+            "input_type": "timeseries_csv",
+            "modality": "timeseries",
+            "timestamp_column": self.timestamp_column,
+            "entity_column": self.entity_column,
+            "row_count": int(self.row_count),
+            "column_count": int(self.column_count),
+            "columns": list(self.columns),
+            "signal_columns": list(self.signal_columns),
+            "signal_column_count": len(self.signal_columns),
+            "time_start": self.time_start,
+            "time_end": self.time_end,
+            "sampling_interval_summary": _json_safe_metadata(
+                self.sampling_interval_summary
+            ),
+            "missing_value_summary": {
+                str(key): int(value) for key, value in self.missing_value_summary.items()
+            },
+            "missing_timestamp_count": int(self.missing_timestamp_count),
+            "malformed_timestamp_count": int(self.malformed_timestamp_count),
+            "duplicate_timestamp_count": int(self.duplicate_timestamp_count),
+            "warnings": list(self.warnings),
+            "is_valid": bool(self.is_valid),
         }
 
 
@@ -370,6 +541,32 @@ class Finding:
             "summary": self.summary,
             "evidence": [item.to_dict() for item in self.evidence],
             "requires_human_review": bool(self.requires_human_review),
+            "metadata": _json_safe_metadata(self.metadata),
+        }
+
+
+@dataclass(frozen=True)
+class ConceptGroup:
+    """A backend-neutral group of related candidate findings."""
+
+    concept_id: str
+    finding_ids: list[str]
+    representative_finding_id: str | None = None
+    score: float | None = None
+    summary: str = ""
+    evidence: list[EvidenceItem] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-safe concept group."""
+
+        return {
+            "concept_id": self.concept_id,
+            "finding_ids": list(self.finding_ids),
+            "representative_finding_id": self.representative_finding_id,
+            "score": float(self.score) if self.score is not None else None,
+            "summary": self.summary,
+            "evidence": [item.to_dict() for item in self.evidence],
             "metadata": _json_safe_metadata(self.metadata),
         }
 
@@ -679,6 +876,9 @@ class DiscoveryRun:
     run_id: str
     dataset: DatasetSummary
     findings: list[Finding] = field(default_factory=list)
+    concept_groups: list[ConceptGroup] = field(default_factory=list)
+    artifacts: list[ReportArtifact] = field(default_factory=list)
+    generated_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -686,8 +886,11 @@ class DiscoveryRun:
 
         return {
             "run_id": self.run_id,
+            "generated_at": self.generated_at,
             "dataset": self.dataset.to_dict(),
             "findings": [finding.to_dict() for finding in self.findings],
+            "concept_groups": [group.to_dict() for group in self.concept_groups],
+            "artifacts": [artifact.to_dict() for artifact in self.artifacts],
             "metadata": _json_safe_metadata(self.metadata),
         }
 

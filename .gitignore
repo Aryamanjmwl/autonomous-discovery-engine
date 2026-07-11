@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 *.pyc
 *.egg-info/
+
 .pytest_cache/
 .pytest-tmp/
 .mypy_cache/
@@ -13,13 +14,16 @@ tests/.tmp*/
 tests/.tmp_pytest/
 tests/.tmp_cli_outputs/
 tests/.tmp_config_outputs/
+tests/.tmp_dashboard_output/
 tests/.tmp_report_assets/
 tests/.tmp_report_outputs/
 tests/.tmp_demo_images/
 **/.tmp_demo_images/
+**/.tmp_dashboard_output/
 **/.tmp_report_outputs/
 **/.tmp_report_assets/
 **/.tmp_pytest/
+
 .venv/
 venv/
 build/
@@ -38,6 +42,8 @@ data/reports/assets/
 data/reports/assets/*
 data/reports/runs/
 data/reports/runs/*
+data/reports/dashboard/
+data/reports/dashboard/*
 data/benchmarks/
 data/cache/
 data/feedback/

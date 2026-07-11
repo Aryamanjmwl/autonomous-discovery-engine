@@ -1,10 +1,13 @@
 from pathlib import Path
 
 import numpy as np
+import pytest
 
 from ade.models import (
     CandidateAnomaly,
+    ConceptGroup,
     EmbeddingRecord,
+    EvidenceItem,
     EvidenceSummary,
     ImageRecord,
     PatchRecord,
@@ -114,6 +117,31 @@ def test_unknown_concept_serialization_is_json_safe() -> None:
     assert data["average_novelty_score"] == 2.5
     assert data["confidence_score"] == 0.75
     assert data["evidence"]["notes"] == ["requires human review"]
+
+
+def test_concept_group_serialization_is_json_safe() -> None:
+    evidence = EvidenceItem(
+        evidence_id="evidence-1",
+        source_path=Path("data/raw/demo_images/image.png"),
+        description="Candidate patch supporting a concept group.",
+        metadata={"rank": np.int64(1)},
+    )
+    concept = ConceptGroup(
+        concept_id="concept-1",
+        finding_ids=["finding-1"],
+        representative_finding_id="finding-1",
+        score=np.float32(0.8),
+        summary="Candidate findings with related evidence.",
+        evidence=[evidence],
+    )
+
+    data = concept.to_dict()
+
+    assert data["concept_id"] == "concept-1"
+    assert data["finding_ids"] == ["finding-1"]
+    assert data["representative_finding_id"] == "finding-1"
+    assert data["score"] == pytest.approx(0.8)
+    assert data["evidence"][0]["metadata"]["rank"] == 1
 
 
 def test_run_metadata_round_trip_serialization() -> None:
