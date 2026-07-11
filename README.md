@@ -435,7 +435,7 @@ Additional project docs:
 - `docs/TIME_SERIES.md`
 - `docs/ENTERPRISE_READINESS.md`
 - `docs/SECURITY_MODEL.md`
-- `docs/RELEASE_CHECKLIST.md`
+- `docs/release_checklist.md`
 - `docs/development_workflow.md`
 - `docs/research_and_ip_notes.md`
 - `docs/engineering_quality.md`
@@ -477,3 +477,4 @@ The platform vision includes private workspaces, dataset management, configurabl
 ## Human Expert Review Required
 
 All ADE outputs are exploratory candidate findings. Candidate anomalies, candidate unknown concepts, possible relationships, and hypotheses require human expert review before any scientific, clinical, operational, commercial, or financial interpretation.
+

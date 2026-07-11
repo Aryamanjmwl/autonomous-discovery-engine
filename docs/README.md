@@ -18,7 +18,7 @@ All findings are candidate findings and require human review.
 - [Dashboard product spec](dashboard/dashboard_product_spec.md): planned review UX without an implemented dashboard app.
 - [Dashboard frontend contract](dashboard/dashboard_frontend_contract.md): report, feedback, benchmark, and run-history payloads for future UI work.
 - [Roadmap](ROADMAP.md): staged product and engineering direction.
-- [Release checklist](RELEASE_CHECKLIST.md): private-alpha verification checklist.
+- [Release checklist](release_checklist.md): private-alpha verification checklist.
 - [Versioning policy](versioning_policy.md): pre-1.0 version and schema expectations.
 - [Private-alpha readiness audit](releases/private_alpha_readiness_audit.md): current release-readiness assessment.
 
@@ -44,3 +44,4 @@ contract. They do not add a deployed dashboard app.
 
 Generated demo images, reports, benchmark files, feedback logs, caches, and run
 metadata are local artifacts and should stay out of version control.
+
