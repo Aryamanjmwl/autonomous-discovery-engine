@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
+from typing import Any
 
 from ade.adapters.image_adapter import ImageAdapter
 from ade.adapters.tabular_adapter import TabularAdapter
@@ -11,20 +13,32 @@ from ade.adapters.timeseries_adapter import TimeSeriesAdapter
 from ade.config import load_config
 from ade.dashboard import generate_dashboard
 from ade.dashboard.service import DEFAULT_DASHBOARD_DIR
+from ade.discovery.anomaly_selector import AnomalySelector
+from ade.discovery.concept_clusterer import ConceptClusterer
 from ade.discovery.confidence_scorer import ConfidenceScorer
 from ade.discovery.evidence_collector import EvidenceCollector
+from ade.discovery.novelty_scorer import NoveltyScorer
 from ade.discovery.registry import create_clustering_backend, create_scoring_backend
 from ade.discovery.tabular import TabularConceptGrouper, TabularNoveltyScorer
 from ade.discovery.timeseries import TimeSeriesConceptGrouper, TimeSeriesNoveltyScorer
-from ade.models import DatasetProfile
+from ade.feedback import (
+    ALLOWED_FEEDBACK_LABELS,
+    ALLOWED_TARGET_TYPES,
+    FeedbackStore,
+    ReviewFeedback,
+)
+from ade.memory.vector_memory import VectorMemory
+from ade.models import CandidateAnomaly, DatasetProfile
 from ade.preprocessing.input_validator import profile_image_folder
 from ade.preprocessing.patch_extractor import PatchExtractor
 from ade.reasoning.hypothesis_generator import HypothesisGenerator
+from ade.reporting.html_report import write_html_report
 from ade.reporting.report_generator import DatasetSummary, ReportGenerator
+from ade.reporting.report_validator import validate_report_file
 from ade.reporting.run_index import load_run_index
+from ade.representation.embedding_engine import EmbeddingEngine, PatchEmbedding
 from ade.reporting.tabular_report_generator import TabularReportGenerator
 from ade.reporting.timeseries_report_generator import TimeSeriesReportGenerator
-from ade.representation.embedding_engine import EmbeddingEngine
 from ade.representation.tabular_engine import TabularFeatureEngine
 from ade.representation.timeseries_engine import TimeSeriesFeatureEngine
 
@@ -88,6 +102,46 @@ def build_parser() -> argparse.ArgumentParser:
         help="List previous ADE runs from data/reports/runs/index.json.",
     )
     parser.add_argument(
+        "--validate-report",
+        type=Path,
+        help="Validate an ADE JSON report and exit.",
+    )
+    parser.add_argument(
+        "--export-html-report",
+        type=Path,
+        metavar="REPORT_JSON",
+        help="Export a local HTML review report from an ADE JSON report and exit.",
+    )
+    parser.add_argument(
+        "--add-feedback",
+        type=Path,
+        metavar="REPORT_JSON",
+        help="Record local human-review feedback for an ADE JSON report and exit.",
+    )
+    parser.add_argument(
+        "--target-type",
+        choices=sorted(ALLOWED_TARGET_TYPES),
+        help="Feedback target type.",
+    )
+    parser.add_argument("--target-id", help="Feedback target identifier from the report.")
+    parser.add_argument(
+        "--label",
+        choices=sorted(ALLOWED_FEEDBACK_LABELS),
+        help="Human-review feedback label.",
+    )
+    parser.add_argument("--notes", default="", help="Optional human-review notes.")
+    parser.add_argument(
+        "--reviewer",
+        default="local",
+        help="Reviewer identifier for local feedback.",
+    )
+    parser.add_argument(
+        "--list-feedback",
+        action="store_true",
+        help="List local review feedback summary.",
+    )
+    parser.add_argument("--run-id", help="Optional run ID filter for feedback listing.")
+    parser.add_argument(
         "--limit",
         type=int,
         default=None,
@@ -146,13 +200,16 @@ def run_pipeline(
     reporting = config["reporting"]
     project = config["project"]
     validation = config["validation"]
+    memory_config = config["memory"]
+    scoring_config = discovery["memory_aware_scoring"]
 
-    effective_patch_size = (
-        patch_size if patch_size is not None else int(preprocessing["patch_size"])
+    patch_sizes, patch_strides = _resolve_patch_scales(
+        preprocessing=preprocessing,
+        patch_size=patch_size,
+        stride=stride,
     )
-    effective_stride = (
-        stride if stride is not None else int(preprocessing["patch_stride"])
-    )
+    effective_patch_size = patch_sizes[0]
+    effective_stride = patch_strides[0]
     effective_max_candidates = (
         max_candidates
         if max_candidates is not None
@@ -167,6 +224,8 @@ def run_pipeline(
         supported_image_extensions=supported_extensions,
         patch_size=effective_patch_size,
         patch_stride=effective_stride,
+        patch_sizes=patch_sizes,
+        patch_strides=patch_strides,
     )
     _raise_for_invalid_profile(dataset_profile)
 
@@ -180,7 +239,12 @@ def run_pipeline(
             "Run `python scripts/create_demo_data.py` or provide a folder of PNG, JPEG, "
             "TIFF, BMP, or WebP images."
         )
-    extractor = PatchExtractor(patch_size=effective_patch_size, stride=effective_stride)
+    extractor = PatchExtractor(
+        patch_size=effective_patch_size,
+        stride=effective_stride,
+        patch_sizes=patch_sizes,
+        patch_strides=patch_strides,
+    )
     patches = [
         patch
         for record in image_records
@@ -188,18 +252,64 @@ def run_pipeline(
     ]
 
     embeddings = EmbeddingEngine().embed_patches(patches)
-    scoring_backend = create_scoring_backend(str(discovery["scoring_backend"]))
-    candidates = scoring_backend.score(
-        embeddings,
+    memory = (
+        _build_vector_memory(
+            embeddings=embeddings,
+            candidates=[],
+            metric=str(memory_config["metric"]),
+        )
+        if bool(memory_config["enabled"])
+        else None
+    )
+    novelty_scorer = NoveltyScorer(
+        strategy=(
+            str(discovery["novelty_strategy"])
+            if bool(scoring_config["enabled"])
+            else "global_distance"
+        ),
+        neighbor_top_k=int(scoring_config["neighbor_top_k"]),
+        exclude_same_source=bool(scoring_config["exclude_same_source"]),
+        weight_global_distance=float(scoring_config["weight_global_distance"]),
+        weight_neighbor_distance=float(scoring_config["weight_neighbor_distance"]),
+    )
+    scored_candidates = novelty_scorer.score(embeddings, memory=memory)
+    candidates = AnomalySelector(
+        enabled=bool(discovery.get("diversity", {}).get("enabled", False)),
+        min_spatial_distance=float(
+            discovery.get("diversity", {}).get("min_spatial_distance", 32)
+        ),
+        max_per_image=int(discovery.get("diversity", {}).get("max_per_image", 3)),
+        prefer_multiple_scales=bool(
+            discovery.get("diversity", {}).get("prefer_multiple_scales", True)
+        ),
+    ).select(
+        candidates=scored_candidates,
         max_candidates=effective_max_candidates,
     )
-    clustering_backend = create_clustering_backend(
-        str(discovery["clustering_backend"]),
+    if memory is not None:
+        memory = _build_vector_memory(
+            embeddings=embeddings,
+            candidates=candidates,
+            metric=str(memory_config["metric"]),
+        )
+    concepts = ConceptClusterer(
         distance_threshold=float(discovery["cluster_distance_threshold"]),
         max_concepts=int(discovery["max_concepts"]),
-    )
-    concepts = clustering_backend.cluster(candidates)
-    evidence_items = EvidenceCollector().collect(concepts)
+        min_supporting_examples=int(
+            discovery.get("concepts", {}).get("min_supporting_examples", 2)
+        ),
+        max_supporting_examples=int(
+            discovery.get("concepts", {}).get("max_supporting_examples", 5)
+        ),
+    ).cluster(candidates)
+    evidence_items = EvidenceCollector(
+        max_supporting_examples=int(
+            discovery.get("concepts", {}).get("max_supporting_examples", 5)
+        ),
+        memory=memory,
+        top_k_neighbors=int(memory_config["top_k_neighbors"]),
+        include_neighbors=bool(memory_config["include_neighbors_in_report"]),
+    ).collect(concepts)
     confidences = ConfidenceScorer().score(evidence_items)
     hypotheses = HypothesisGenerator().generate(evidence_items)
 
@@ -224,17 +334,20 @@ def run_pipeline(
         confidences=confidences,
         hypotheses=hypotheses,
         dataset_profile=dataset_profile,
-        backend_metadata={
-            "scoring_backend": getattr(scoring_backend, "name", str(discovery["scoring_backend"])),
-            "clustering_backend": getattr(
-                clustering_backend,
-                "name",
-                str(discovery["clustering_backend"]),
+        memory_metadata={
+            "enabled": bool(memory_config["enabled"]),
+            "metric": str(memory_config["metric"]),
+            "items_indexed": len(memory) if memory is not None else 0,
+        },
+        analysis_metadata={
+            "total_patches": len(patches),
+            "patch_scales_used": _patch_scales_used(patches),
+            "anomaly_selection_strategy": (
+                "diversity-aware"
+                if bool(discovery.get("diversity", {}).get("enabled", False))
+                else "top-novelty"
             ),
-            "top_k": effective_max_candidates,
-            "random_seed": discovery.get("random_seed"),
-            "feature_vector_count": len(embeddings),
-            "feature_vector_length": int(embeddings[0].vector.size) if embeddings else 0,
+            **novelty_scorer.last_metadata.to_dict(),
         },
     )
 
@@ -402,6 +515,90 @@ def run_tabular_pipeline(
     )
 
 
+def _resolve_patch_scales(
+    preprocessing: dict,
+    patch_size: int | None,
+    stride: int | None,
+) -> tuple[list[int], list[int]]:
+    """Resolve patch scale settings from CLI overrides and config."""
+
+    if patch_size is not None or stride is not None:
+        size = patch_size if patch_size is not None else int(preprocessing["patch_size"])
+        return [int(size)], [int(stride if stride is not None else size)]
+
+    raw_sizes = preprocessing.get("patch_sizes")
+    raw_strides = preprocessing.get("patch_strides")
+    if raw_sizes is None:
+        raw_sizes = [int(preprocessing["patch_size"])]
+    if raw_strides is None:
+        raw_strides = [int(preprocessing.get("patch_stride", raw_sizes[0]))]
+
+    patch_sizes = [int(value) for value in raw_sizes]
+    patch_strides = [int(value) for value in raw_strides]
+    if len(patch_sizes) != len(patch_strides):
+        raise ValueError("preprocessing.patch_sizes and patch_strides must match")
+    if not patch_sizes:
+        raise ValueError("preprocessing.patch_sizes must contain at least one size")
+    if any(value <= 0 for value in patch_sizes):
+        raise ValueError("preprocessing.patch_sizes must contain positive values")
+    if any(value <= 0 for value in patch_strides):
+        raise ValueError("preprocessing.patch_strides must contain positive values")
+    return patch_sizes, patch_strides
+
+
+def _patch_scales_used(patches: list) -> list[str]:
+    """Return stable patch scale labels used in this run."""
+
+    scales = {
+        str(patch.scale_label or f"s{patch.patch_size}")
+        for patch in patches
+    }
+    return sorted(scales)
+
+
+def _build_vector_memory(
+    embeddings: list[PatchEmbedding],
+    candidates: list[CandidateAnomaly],
+    metric: str,
+) -> VectorMemory:
+    """Build a local vector memory from patch embeddings."""
+
+    memory = VectorMemory(metric=metric)
+    anomaly_by_patch_id = {
+        candidate.embedding.patch.patch_id: candidate
+        for candidate in candidates
+        if candidate.embedding.patch.patch_id
+    }
+    for embedding in embeddings:
+        patch = embedding.patch
+        if not patch.patch_id:
+            continue
+        candidate = anomaly_by_patch_id.get(patch.patch_id)
+        memory.add(
+            item_id=patch.patch_id,
+            vector=embedding.vector,
+            metadata={
+                "patch_id": patch.patch_id,
+                "image_id": patch.image_id,
+                "source_path": patch.source_path,
+                "x": patch.x,
+                "y": patch.y,
+                "width": patch.width,
+                "height": patch.height,
+                "patch_size": patch.patch_size,
+                "patch_stride": patch.patch_stride,
+                "scale_id": patch.scale_id,
+                "scale_label": patch.scale_label,
+                "is_candidate_anomaly": candidate is not None,
+                "anomaly_id": candidate.anomaly_id if candidate is not None else None,
+                "novelty_score": (
+                    candidate.novelty_score if candidate is not None else None
+                ),
+            },
+        )
+    return memory
+
+
 def _raise_for_invalid_profile(dataset_profile: DatasetProfile) -> None:
     """Raise a clear error when a profiled input cannot be analyzed."""
 
@@ -492,11 +689,173 @@ def format_run_history(
     return "\n".join(lines).rstrip()
 
 
+def add_feedback_from_report(
+    report_path: Path,
+    target_type: str | None,
+    target_id: str | None,
+    label: str | None,
+    notes: str,
+    reviewer: str,
+    store_path: Path = Path("data/feedback/feedback.jsonl"),
+) -> ReviewFeedback:
+    """Validate a report target and append one feedback record."""
+
+    if target_type is None:
+        raise ValueError("--target-type is required with --add-feedback.")
+    if target_id is None:
+        raise ValueError("--target-id is required with --add-feedback.")
+    if label is None:
+        raise ValueError("--label is required with --add-feedback.")
+    if not report_path.exists():
+        raise FileNotFoundError(f"Report JSON does not exist: {report_path}")
+
+    validation = validate_report_file(report_path)
+    if not validation.is_valid:
+        errors = "; ".join(validation.errors) or "report validation failed"
+        raise ValueError(f"Cannot record feedback for invalid ADE report: {errors}")
+
+    report_data = _read_json_object(report_path)
+    run_id = str(report_data.get("run_id") or "")
+    if not run_id:
+        raise ValueError("Report JSON does not contain a run_id.")
+    if not _target_exists(report_data, target_type=target_type, target_id=target_id):
+        raise ValueError(
+            f"Target ID was not found in report for target_type={target_type}: {target_id}"
+        )
+
+    feedback = ReviewFeedback.create(
+        run_id=run_id,
+        report_path=report_path,
+        target_type=target_type,
+        target_id=target_id,
+        label=label,
+        notes=notes,
+        reviewer=reviewer,
+        metadata={"report_version": report_data.get("report_version")},
+    )
+    FeedbackStore(store_path).append(feedback)
+    return feedback
+
+
+def format_feedback_summary(
+    store_path: Path = Path("data/feedback/feedback.jsonl"),
+    run_id: str | None = None,
+) -> str:
+    """Return a concise Markdown-style local feedback summary."""
+
+    summary = FeedbackStore(store_path).summarize_labels_by_run_id(run_id=run_id)
+    lines = ["## ADE Feedback Summary", ""]
+    lines.append(f"Run ID: {run_id}" if run_id else "Run ID: all")
+    lines.append(f"Total feedback: {summary.total_feedback}")
+    if summary.label_counts:
+        lines.extend(["", "Labels:"])
+        for label, count in sorted(summary.label_counts.items()):
+            lines.append(f"- {label}: {count}")
+    return "\n".join(lines)
+
+
+def _read_json_object(path: Path) -> dict[str, Any]:
+    try:
+        loaded = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as error:
+        raise ValueError(f"Report JSON is not valid JSON: {path}") from error
+    if not isinstance(loaded, dict):
+        raise ValueError(f"Report JSON root must be an object: {path}")
+    return loaded
+
+
+def _target_exists(report_data: dict[str, Any], target_type: str, target_id: str) -> bool:
+    if target_type == "anomaly":
+        return target_id in _ids_from_items(
+            report_data.get("candidate_anomalies"),
+            ["anomaly_id", "id"],
+        )
+    if target_type == "concept":
+        concept_items = report_data.get("candidate_concepts")
+        if not concept_items:
+            concept_items = report_data.get("candidate_unknown_concepts")
+        return target_id in _ids_from_items(concept_items, ["concept_id", "id"])
+    return False
+
+
+def _ids_from_items(value: object, field_names: list[str]) -> set[str]:
+    if not isinstance(value, list):
+        return set()
+    ids: set[str] = set()
+    for item in value:
+        if not isinstance(item, dict):
+            continue
+        for field_name in field_names:
+            item_id = item.get(field_name)
+            if item_id:
+                ids.add(str(item_id))
+    return ids
+
+
+def _feedback_store_path(config: dict[str, Any]) -> Path:
+    feedback_config = config.get("feedback", {})
+    if not isinstance(feedback_config, dict):
+        feedback_config = {}
+    return Path(str(feedback_config.get("store_path", "data/feedback/feedback.jsonl")))
+
+
 def main() -> None:
     """Run ADE from command-line arguments."""
 
     parser = build_parser()
     args = parser.parse_args()
+    if args.validate_report is not None:
+        result = validate_report_file(args.validate_report)
+        if not result.is_valid:
+            for error in result.errors:
+                print(f"ERROR: {error}")
+            raise SystemExit(1)
+        print(f"ADE report validation passed: {args.validate_report}")
+        if result.warnings:
+            print("Warnings:")
+            for warning in result.warnings:
+                print(f"* {warning}")
+        return
+
+    if args.export_html_report is not None:
+        if args.output is None:
+            parser.error("--output is required with --export-html-report.")
+        try:
+            output_path = write_html_report(args.export_html_report, args.output)
+        except (FileNotFoundError, ValueError) as error:
+            parser.error(str(error))
+        print(f"ADE HTML report written to {output_path}")
+        return
+
+    if args.add_feedback is not None:
+        try:
+            config = load_config(args.config)
+            feedback = add_feedback_from_report(
+                report_path=args.add_feedback,
+                target_type=args.target_type,
+                target_id=args.target_id,
+                label=args.label,
+                notes=args.notes,
+                reviewer=args.reviewer,
+                store_path=_feedback_store_path(config),
+            )
+        except (FileNotFoundError, ValueError) as error:
+            parser.error(str(error))
+        print(
+            "ADE feedback recorded: "
+            f"{feedback.feedback_id} "
+            f"({feedback.target_type} {feedback.target_id}, {feedback.label})"
+        )
+        return
+
+    if args.list_feedback:
+        try:
+            config = load_config(args.config)
+            print(format_feedback_summary(_feedback_store_path(config), run_id=args.run_id))
+        except (FileNotFoundError, ValueError) as error:
+            parser.error(str(error))
+        return
+
     if args.command == "dashboard":
         result = generate_dashboard(output_dir=args.dashboard_output)
         print(f"ADE dashboard written to {result.index_path}")
@@ -512,7 +871,11 @@ def main() -> None:
         return
 
     if args.input is None or args.output is None:
-        parser.error("--input and --output are required unless --list-runs is used.")
+        parser.error(
+            "--input and --output are required unless --list-runs, "
+            "--validate-report, --export-html-report, --add-feedback, "
+            "or --list-feedback is used."
+        )
 
     try:
         report_path = run_pipeline(

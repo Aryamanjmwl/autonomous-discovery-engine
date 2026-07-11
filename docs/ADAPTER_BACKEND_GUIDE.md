@@ -74,6 +74,9 @@ representative candidate, average score, and consistency.
 
 An evidence ranker selects examples that make a finding reviewable.
 
+## ReportRenderer
+
+A report renderer exports review artifacts. Markdown and JSON exist today; HTML is a planned format.
 Evidence should include enough context for review: source records, coordinates
 when available, scores, cluster membership, and conservative reason text.
 

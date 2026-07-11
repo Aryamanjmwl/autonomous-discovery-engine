@@ -84,6 +84,7 @@ class DemoClusterer:
         embeddings: list[EmbeddingResult],
         scores: list[Finding] | None = None,
     ) -> list[list[Finding]]:
+        del embeddings
         return [scores or []]
 
 
@@ -97,6 +98,7 @@ class DemoEvidenceRanker:
         clusters: list[list[Finding]] | None = None,
         embeddings: list[EmbeddingResult] | None = None,
     ) -> list[list[Finding]]:
+        del records, embeddings
         return clusters or [scores]
 
 
@@ -104,6 +106,7 @@ class DemoRenderer:
     name = "demo"
 
     def render(self, run_result: object, output_dir: Path | str) -> list[ReportArtifact]:
+        del run_result
         return [ReportArtifact(artifact_type="markdown", path=Path(output_dir) / "report.md")]
 
     def generate(self) -> str:

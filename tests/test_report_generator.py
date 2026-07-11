@@ -23,17 +23,27 @@ def _candidate_patch() -> tuple[Patch, CandidateAnomaly]:
         y=2,
         width=4,
         height=4,
+        patch_id="image_s4_stride4_x1_y2",
+        metadata={
+            "patch_size": 4,
+            "patch_stride": 4,
+            "scale_id": "scale-1",
+            "scale_label": "s4",
+        },
     )
     candidate = CandidateAnomaly(
         embedding=PatchEmbedding(patch=patch, vector=np.zeros(8, dtype=np.float32)),
         novelty_score=0.42,
-        anomaly_id="anomaly-0001",
         metadata={
-            "rank": 1,
-            "scoring_backend": "centroid_distance",
-            "nearest_neighbor_id": "nearby-patch",
-            "feature_deviations": [{"feature": "feature_1", "deviation": 0.2}],
-            "reason": "Feature profile is farther from the dataset center than most records.",
+            "selection_reason": "diversity selected",
+            "selection_rank": 1,
+            "score_breakdown": {
+                "global_distance_score": 0.3,
+                "neighbor_distance_score": 0.5,
+                "hybrid_score": 0.4,
+                "strategy": "hybrid",
+                "nearest_neighbor_count": 2,
+            },
         },
     )
     return patch, candidate
@@ -49,12 +59,10 @@ def _concept_evidence() -> ConceptEvidence:
                 novelty_score=0.42,
                 anomaly_id="anomaly-0001",
                 rank=1,
-                scoring_backend="centroid_distance",
-                normalized_score=1.0,
                 concept_id="concept-001",
-                nearest_neighbor_id="nearby-patch",
-                feature_deviations=[{"feature": "feature_1", "deviation": 0.2}],
-                reason="Feature profile is farther from the dataset center than most records.",
+                patch_stride=4,
+                scale_id="scale-1",
+                scale_label="s4",
             )
         ],
         example_count=1,
@@ -62,7 +70,77 @@ def _concept_evidence() -> ConceptEvidence:
         consistency=1.0,
         representative_anomaly_id="anomaly-0001",
         item_count=1,
-        summary="Single candidate anomaly in this concept group.",
+        source_image_count=1,
+        diversity_score=1.0,
+        confidence_breakdown={
+            "novelty_strength": 0.42,
+            "support_count": 0.2,
+            "consistency": 1.0,
+            "source_diversity": 1.0,
+            "data_quality": 1.0,
+            "final_confidence": 0.68,
+        },
+        confidence_score=0.68,
+        evidence_summary={
+            "supporting_examples": [
+                {
+                    "anomaly_id": "anomaly-0001",
+                    "source_path": "image.png",
+                    "x": 1,
+                    "y": 2,
+                    "width": 4,
+                    "height": 4,
+                    "patch_size": 4,
+                    "patch_stride": 4,
+                    "scale_id": "scale-1",
+                    "scale_label": "s4",
+                    "novelty_score": 0.42,
+                    "rank": 1,
+                    "concept_id": "concept-001",
+                    "preview_path": None,
+                }
+            ],
+            "representative_examples": [
+                {
+                    "anomaly_id": "anomaly-0001",
+                    "source_path": "image.png",
+                    "x": 1,
+                    "y": 2,
+                    "width": 4,
+                    "height": 4,
+                    "patch_size": 4,
+                    "patch_stride": 4,
+                    "scale_id": "scale-1",
+                    "scale_label": "s4",
+                    "novelty_score": 0.42,
+                    "rank": 1,
+                    "concept_id": "concept-001",
+                    "preview_path": None,
+                }
+            ],
+            "near_matches": [],
+            "nearest_neighbors": [
+                {
+                    "item_id": "image_0_0_4_4",
+                    "distance": 0.1,
+                    "similarity": 0.9,
+                    "rank": 1,
+                    "metadata": {
+                        "source_path": "image.png",
+                        "x": 0,
+                        "y": 0,
+                        "width": 4,
+                        "height": 4,
+                    },
+                    "query_anomaly_id": "anomaly-0001",
+                    "query_patch_id": "image_1_2_4_4",
+                }
+            ],
+            "normal_comparisons": [],
+            "notes": ["Candidate concept is based on similar anomaly embeddings."],
+            "warnings": [],
+        },
+        summary="Single candidate anomaly retained for human review.",
     )
 
 
@@ -97,13 +175,20 @@ def _write_sample_report(output_path: Path) -> None:
         confidences=[ConceptConfidence(concept_id="concept-001", score=0.7)],
         hypotheses=[Hypothesis(concept_id="concept-001", text="A cautious hypothesis.")],
         dataset_profile=_dataset_profile(),
-        backend_metadata={
-            "scoring_backend": "centroid_distance",
-            "clustering_backend": "threshold_candidate_grouping",
-            "top_k": 10,
-            "random_seed": 42,
-            "feature_vector_count": 1,
-            "feature_vector_length": 8,
+        memory_metadata={
+            "enabled": True,
+            "metric": "euclidean",
+            "items_indexed": 3,
+        },
+        analysis_metadata={
+            "total_patches": 1,
+            "patch_scales_used": ["s4"],
+            "anomaly_selection_strategy": "diversity-aware",
+            "novelty_strategy": "hybrid",
+            "memory_aware_scoring_enabled": True,
+            "neighbor_top_k": 5,
+            "scoring_fallback_used": False,
+            "scoring_fallback_reason": None,
         },
     )
 
@@ -119,13 +204,15 @@ def test_report_generator_includes_required_sections() -> None:
         confidences=[ConceptConfidence(concept_id="concept-001", score=0.7)],
         hypotheses=[Hypothesis(concept_id="concept-001", text="A cautious hypothesis.")],
         dataset_profile=_dataset_profile(),
-        backend_metadata={
-            "scoring_backend": "centroid_distance",
-            "clustering_backend": "threshold_candidate_grouping",
-            "top_k": 10,
-            "random_seed": 42,
-            "feature_vector_count": 1,
-            "feature_vector_length": 8,
+        analysis_metadata={
+            "total_patches": 1,
+            "patch_scales_used": ["s4"],
+            "anomaly_selection_strategy": "diversity-aware",
+            "novelty_strategy": "hybrid",
+            "memory_aware_scoring_enabled": True,
+            "neighbor_top_k": 5,
+            "scoring_fallback_used": False,
+            "scoring_fallback_reason": None,
         },
     )
 
@@ -134,12 +221,23 @@ def test_report_generator_includes_required_sections() -> None:
     assert "Number of extracted patches: 1" in report
     assert "Number of candidate anomalies: 1" in report
     assert "Number of candidate unknown concepts: 1" in report
+    assert "Novelty scoring strategy: `hybrid`" in report
     assert "Top Candidate Anomalies" in report
+    assert "Patch scale" in report
+    assert "`s4` / 4px" in report
     assert "Input Dataset Profile" in report
-    assert "Discovery Backend Metadata" in report
-    assert "Scoring backend: `centroid_distance`" in report
+    assert "Scoring Metadata" in report
+    assert "Novelty strategy: `hybrid`" in report
     assert "Unsupported files found: 1" in report
     assert "Candidate Unknown Concepts" in report
+    assert "Representative anomaly: anomaly-0001" in report
+    assert "Consistency score: 1.0000" in report
+    assert "Confidence breakdown:" in report
+    assert "Evidence bundle for this candidate concept" in report
+    assert "Nearest visual matches:" in report
+    assert "`image_0_0_4_4`" in report
+    assert "Human Review Feedback" in report
+    assert "--add-feedback" in report
     assert "Human Expert Review Required" in report
     assert "A cautious hypothesis." in report
 
@@ -172,17 +270,21 @@ def test_report_generator_writes_structured_json_report(tmp_path: Path) -> None:
         "generated_at",
         "input_summary",
         "dataset_profile",
-        "backend_metadata",
+        "scoring_metadata",
         "number_of_images",
         "number_of_patches",
         "number_of_candidate_anomalies",
         "number_of_candidate_unknown_concepts",
         "candidate_anomalies",
         "candidate_unknown_concepts",
+        "candidate_concepts",
         "evidence_summary",
         "confidence_scores",
         "hypotheses",
         "human_review_required",
+        "feedback_supported",
+        "supported_feedback_labels",
+        "feedback_store_path",
         "limitations",
     }
     assert expected_keys.issubset(report_data)
@@ -191,17 +293,30 @@ def test_report_generator_writes_structured_json_report(tmp_path: Path) -> None:
     assert report_data["number_of_candidate_anomalies"] == 1
     assert report_data["number_of_candidate_unknown_concepts"] == 1
     assert report_data["human_review_required"] is True
+    assert report_data["feedback_supported"] is True
+    assert "interesting" in report_data["supported_feedback_labels"]
+    assert report_data["feedback_store_path"] == "data/feedback/feedback.jsonl"
+    assert report_data["candidate_concepts"] == report_data["candidate_unknown_concepts"]
     assert report_data["dataset_profile"]["input_type"] == "image_folder"
     assert report_data["dataset_profile"]["unsupported_file_count"] == 1
-    assert report_data["backend_metadata"]["scoring_backend"] == "centroid_distance"
-    assert report_data["backend_metadata"]["top_k"] == 10
+    assert report_data["scoring_metadata"]["novelty_strategy"] == "hybrid"
+    assert report_data["scoring_metadata"]["neighbor_top_k"] == 5
     assert report_data["candidate_anomalies"][0]["preview_path"] == "assets/anomaly_0001.png"
-    assert report_data["candidate_anomalies"][0]["scoring_backend"] == "centroid_distance"
-    assert report_data["candidate_anomalies"][0]["nearest_neighbor_id"] == "nearby-patch"
-    assert report_data["candidate_unknown_concepts"][0]["confidence_score"] == 0.7
-    assert report_data["candidate_unknown_concepts"][0]["item_count"] == 1
-    assert report_data["candidate_unknown_concepts"][0]["examples"][0]["rank"] == 1
-    assert report_data["candidate_unknown_concepts"][0]["examples"][0]["normalized_score"] == 1.0
+    assert report_data["candidate_anomalies"][0]["patch_size"] == 4
+    assert report_data["candidate_anomalies"][0]["patch_stride"] == 4
+    assert report_data["candidate_anomalies"][0]["scale_label"] == "s4"
+    assert report_data["candidate_anomalies"][0]["selection_reason"] == "diversity selected"
+    assert report_data["candidate_anomalies"][0]["score_breakdown"]["strategy"] == "hybrid"
+    assert report_data["candidate_anomalies"][0]["score_breakdown"]["hybrid_score"] == 0.4
+    concept = report_data["candidate_unknown_concepts"][0]
+    assert concept["confidence_score"] == 0.7
+    assert concept["representative_anomaly_id"] == "anomaly-0001"
+    assert concept["consistency_score"] == 1.0
+    assert concept["confidence_breakdown"]["final_confidence"] == 0.68
+    assert concept["evidence_summary"]["supporting_examples"][0]["anomaly_id"] == "anomaly-0001"
+    assert concept["evidence_summary"]["representative_examples"][0]["patch_size"] == 4
+    assert concept["evidence_summary"]["nearest_neighbors"][0]["item_id"] == "image_0_0_4_4"
+    assert report_data["evidence_summary"][0]["confidence_breakdown"]["final_confidence"] == 0.68
 
 
 def test_report_generator_tracks_run_metadata(tmp_path: Path) -> None:
@@ -238,6 +353,18 @@ def test_report_generator_tracks_run_metadata(tmp_path: Path) -> None:
     assert run_metadata["number_of_unreadable_files"] == 0
     assert run_metadata["estimated_patch_count"] == 1
     assert run_metadata["input_warnings"] == ["Unsupported files found: 1"]
+    assert run_metadata["average_concept_confidence"] == 0.68
+    assert run_metadata["average_concept_consistency"] == 1.0
+    assert run_metadata["memory_enabled"] is True
+    assert run_metadata["memory_metric"] == "euclidean"
+    assert run_metadata["memory_items_indexed"] == 3
+    assert run_metadata["total_patches"] == 1
+    assert run_metadata["patch_scales_used"] == ["s4"]
+    assert run_metadata["anomaly_selection_strategy"] == "diversity-aware"
+    assert run_metadata["novelty_strategy"] == "hybrid"
+    assert run_metadata["memory_aware_scoring_enabled"] is True
+    assert run_metadata["neighbor_top_k"] == 5
+    assert run_metadata["scoring_fallback_used"] is False
     assert run_metadata["pipeline_version"]
     assert run_metadata["human_review_required"] is True
     assert json_report["human_review_required"] is True

@@ -23,16 +23,58 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "preprocessing": {
         "patch_size": 64,
         "patch_stride": 64,
+        "patch_sizes": [64],
+        "patch_strides": [64],
     },
     "discovery": {
         "max_candidate_anomalies": 10,
         "top_k": None,
         "max_concepts": 5,
         "novelty_metric": "euclidean",
+        "novelty_strategy": "hybrid",
         "scoring_backend": "centroid_distance",
         "clustering_backend": "threshold_candidate_grouping",
         "cluster_distance_threshold": 0.35,
         "random_seed": 42,
+        "memory_aware_scoring": {
+            "enabled": True,
+            "neighbor_top_k": 5,
+            "exclude_same_source": False,
+            "weight_global_distance": 0.5,
+            "weight_neighbor_distance": 0.5,
+        },
+        "diversity": {
+            "enabled": True,
+            "min_spatial_distance": 32,
+            "max_per_image": 3,
+            "prefer_multiple_scales": True,
+        },
+        "concepts": {
+            "min_supporting_examples": 2,
+            "max_supporting_examples": 5,
+            "min_confidence_to_highlight": 0.5,
+        },
+    },
+    "memory": {
+        "enabled": True,
+        "metric": "euclidean",
+        "top_k_neighbors": 5,
+        "include_neighbors_in_report": True,
+    },
+    "feedback": {
+        "enabled": True,
+        "store_path": "data/feedback/feedback.jsonl",
+    },
+    "tabular": {
+        "id_column": None,
+        "max_categorical_cardinality": 50,
+        "missing_value_tokens": ["", "na", "n/a", "nan", "null", "none"],
+    },
+    "timeseries": {
+        "timestamp_column": None,
+        "entity_column": None,
+        "window_size": 3,
+        "missing_value_tokens": ["", "na", "n/a", "nan", "null", "none"],
     },
     "reporting": {
         "report_version": "1.0",
@@ -80,6 +122,7 @@ def load_config(config_path: Path | str | None = None) -> dict[str, Any]:
         raise ValueError(f"Config file must contain a mapping: {path}")
 
     merged = _deep_merge(config, loaded)
+    _normalize_preprocessing_config(merged, loaded)
     _validate_config(merged)
     return merged
 
@@ -103,6 +146,31 @@ def _deep_merge(
     return merged
 
 
+def _normalize_preprocessing_config(
+    config: dict[str, Any],
+    loaded: dict[str, Any],
+) -> dict[str, Any]:
+    """Preserve legacy patch_size/patch_stride behavior with multi-scale defaults."""
+
+    loaded_preprocessing = loaded.get("preprocessing")
+    if not isinstance(loaded_preprocessing, dict):
+        return config
+
+    preprocessing = config["preprocessing"]
+    if "patch_sizes" not in loaded_preprocessing and "patch_size" in loaded_preprocessing:
+        preprocessing["patch_sizes"] = [int(preprocessing["patch_size"])]
+    if "patch_strides" not in loaded_preprocessing:
+        if "patch_sizes" in loaded_preprocessing:
+            preprocessing["patch_strides"] = [
+                int(value) for value in preprocessing["patch_sizes"]
+            ]
+        elif "patch_stride" in loaded_preprocessing:
+            preprocessing["patch_strides"] = [int(preprocessing["patch_stride"])]
+        elif "patch_sizes" not in loaded_preprocessing and "patch_size" in loaded_preprocessing:
+            preprocessing["patch_strides"] = [int(preprocessing["patch_size"])]
+    return config
+
+
 def _validate_config(config: dict[str, Any]) -> None:
     """Validate config values with clear errors for user-editable settings."""
 
@@ -117,6 +185,12 @@ def _validate_config(config: dict[str, Any]) -> None:
     max_candidates = discovery.get("max_candidate_anomalies")
     if max_candidates is not None and int(max_candidates) <= 0:
         raise ValueError("discovery.max_candidate_anomalies must be greater than zero.")
+
+    strategy = str(discovery.get("novelty_strategy", "global_distance"))
+    valid_strategies = {"global_distance", "memory_neighbor_distance", "hybrid"}
+    if strategy not in valid_strategies:
+        expected = ", ".join(sorted(valid_strategies))
+        raise ValueError(f"discovery.novelty_strategy must be one of: {expected}")
 
     scoring_backend = str(discovery.get("scoring_backend", "centroid_distance"))
     if scoring_backend not in available_scoring_backends():
@@ -135,3 +209,17 @@ def _validate_config(config: dict[str, Any]) -> None:
             f"Unsupported discovery.clustering_backend: {clustering_backend}. "
             f"Supported backends: {supported}."
         )
+
+    scoring = discovery.get("memory_aware_scoring", {})
+    if not isinstance(scoring, dict):
+        raise ValueError("discovery.memory_aware_scoring must be a mapping.")
+    neighbor_top_k = int(scoring.get("neighbor_top_k", 5))
+    if neighbor_top_k <= 0:
+        raise ValueError("discovery.memory_aware_scoring.neighbor_top_k must be positive")
+
+    global_weight = float(scoring.get("weight_global_distance", 0.5))
+    neighbor_weight = float(scoring.get("weight_neighbor_distance", 0.5))
+    if global_weight < 0 or neighbor_weight < 0:
+        raise ValueError("memory-aware scoring weights must be non-negative")
+    if strategy == "hybrid" and global_weight + neighbor_weight == 0:
+        raise ValueError("hybrid novelty scoring weights must not sum to zero")

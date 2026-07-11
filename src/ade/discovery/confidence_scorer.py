@@ -13,6 +13,7 @@ class ConceptConfidence:
 
     concept_id: str
     score: float
+    breakdown: dict[str, float] | None = None
 
 
 class ConfidenceScorer:
@@ -27,10 +28,26 @@ class ConfidenceScorer:
         max_novelty = max(item.average_novelty for item in evidence_items) or 1.0
         confidences: list[ConceptConfidence] = []
         for item in evidence_items:
-            novelty_component = item.average_novelty / max_novelty
-            count_component = min(item.example_count / 5.0, 1.0)
-            score = 0.5 * novelty_component + 0.3 * count_component + 0.2 * item.consistency
+            if item.confidence_breakdown:
+                breakdown = dict(item.confidence_breakdown)
+                score = float(breakdown.get("final_confidence", item.confidence_score))
+            else:
+                novelty_component = item.average_novelty / max_novelty
+                count_component = min(item.example_count / 5.0, 1.0)
+                score = 0.5 * novelty_component + 0.3 * count_component + 0.2 * item.consistency
+                breakdown = {
+                    "novelty_strength": float(novelty_component),
+                    "support_count": float(count_component),
+                    "consistency": float(item.consistency),
+                    "source_diversity": float(item.diversity_score),
+                    "data_quality": 1.0,
+                    "final_confidence": float(min(score, 1.0)),
+                }
             confidences.append(
-                ConceptConfidence(concept_id=item.concept_id, score=float(min(score, 1.0)))
+                ConceptConfidence(
+                    concept_id=item.concept_id,
+                    score=float(min(score, 1.0)),
+                    breakdown=breakdown,
+                )
             )
         return confidences

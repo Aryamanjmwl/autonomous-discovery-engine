@@ -53,14 +53,16 @@ The current pipeline performs:
 
 1. Image-folder input validation and dataset profiling
 2. Image loading from a local folder
-3. Fixed-size patch extraction
+3. Single-scale or configured multi-scale patch extraction
 4. Deterministic statistical embeddings
-5. Novelty ranking
-6. Simple candidate concept grouping
-7. Evidence collection
-8. Confidence scoring
-9. Cautious hypothesis generation
-10. Markdown and JSON discovery report generation
+5. Strategy-based novelty ranking
+6. Diversity-aware candidate anomaly selection
+7. Simple candidate concept grouping
+8. Evidence bundle collection
+9. Concept consistency and confidence scoring
+10. Lightweight visual memory indexing and nearest-neighbor retrieval
+11. Cautious hypothesis generation
+12. Markdown and JSON discovery report generation
 
 For CSV files, ADE uses a separate lightweight tabular path: CSV validation,
 numeric/categorical profiling, deterministic row-level feature extraction,
@@ -108,14 +110,17 @@ ADE is designed to grow into a cross-industry discovery platform. Example future
 - Profile timestamped CSV files for time range, signal columns, duplicate timestamps, missing timestamps, and sampling intervals
 - Warn about unsupported files, unreadable images, small datasets, small images, and high estimated patch counts
 - Return image path and metadata
-- Split images into fixed-size patches
+- Split images into fixed-size or configured multi-scale patches
 - Create deterministic placeholder embeddings from image statistics
-- Rank candidate anomalies by distance from the dataset average
+- Rank candidate anomalies with global-distance, memory-neighbor, or hybrid scoring
+- Select a diverse candidate anomaly set across images, regions, and scales
 - Group similar candidate anomalies into candidate unknown concepts
-- Collect supporting patches and basic statistics
-- Produce a simple confidence score from novelty strength, example count, and cluster consistency
+- Collect structured supporting evidence with anomaly IDs, coordinates, ranks, and preview paths
+- Retrieve nearest visual matches from a local NumPy-backed embedding memory
+- Produce bounded consistency, diversity, and confidence signals for review prioritization
 - Generate cautious template-based hypotheses
 - Write a Markdown ADE Discovery Report and a structured JSON sidecar report
+- Record local human-review feedback for candidate anomalies and candidate concepts
 
 Current supported image formats are configured in `configs/default.yaml` and include `.jpg`, `.jpeg`, `.png`, `.bmp`, and `.webp`.
 
@@ -146,6 +151,16 @@ pip install -r requirements.txt
 pip install -e .
 ```
 
+## Documentation
+
+Start with `docs/README.md` for architecture, CLI reference, report schema,
+dashboard planning docs, release checklist, versioning policy, and private-alpha
+readiness notes.
+
+The current implementation is visual-data-first. Non-visual adapters, hosted
+workflows, dashboards, and deep model backends remain future work unless a
+specific branch documents and implements them.
+
 ## Demo
 
 Place images in `data/raw`, then run:
@@ -163,10 +178,11 @@ For example, this command creates both:
 - `data/reports/demo_report.json`
 
 The Markdown report is for human review. The JSON report stores structured
-candidate anomalies, candidate unknown concepts, confidence scores,
-hypotheses, evidence summaries, limitations, and the human-review requirement
-so future dashboards, APIs, databases, subscription workflows, or comparison
-tools can consume the same discovery results.
+candidate anomalies, candidate unknown concepts, evidence bundles,
+nearest-neighbor evidence, confidence breakdowns, hypotheses, limitations,
+and the human-review requirement so future dashboards, APIs, databases,
+subscription workflows, or comparison tools can consume the same discovery
+results.
 
 ## Generate Demo Data
 
@@ -233,12 +249,87 @@ You can also pass the config path explicitly:
 python -m ade.cli --input data/raw/demo_images --output data/reports/demo_report.md --config configs/default.yaml
 ```
 
-The current config covers settings such as patch size, patch stride, maximum
-candidate anomaly count, concept limits, report version, human-review
-requirement, report asset folders, run metadata folders, input validation
-thresholds, supported image extensions, and synthetic demo data settings.
+The current config covers settings such as patch size, patch stride, optional
+multi-scale patch sizes and strides, maximum candidate anomaly count,
+diversity-aware selection settings, concept limits, concept evidence
+thresholds, visual memory settings, report version, human-review requirement,
+report asset folders, run metadata folders, input validation thresholds,
+supported image extensions, and synthetic demo data settings.
 These settings are intended to make ADE runs easier to
 reproduce and compare as the project grows.
+
+### Multi-Scale Patch Extraction
+
+ADE defaults to one conservative patch scale to keep runtime predictable:
+
+```yaml
+preprocessing:
+  patch_size: 64
+  patch_stride: 64
+  patch_sizes:
+    - 64
+  patch_strides:
+    - 64
+```
+
+To inspect more than one visual scale, set matching `patch_sizes` and
+`patch_strides` lists. Each generated patch receives deterministic scale
+metadata such as `patch_size`, `patch_stride`, and `scale_label`.
+
+### Diversity-Aware Candidate Selection
+
+The visual pipeline can avoid filling reports with near-duplicate candidate
+anomalies from the same image or region:
+
+```yaml
+discovery:
+  diversity:
+    enabled: true
+    min_spatial_distance: 32
+    max_per_image: 3
+    prefer_multiple_scales: true
+```
+
+The selector still starts from novelty ranking. Diversity settings only affect
+which candidate anomalies are surfaced for review.
+
+### Novelty Scoring Strategies
+
+ADE supports configurable novelty scoring strategies for the current visual
+pipeline:
+
+- `global_distance`: distance from the dataset average embedding
+- `memory_neighbor_distance`: distance from nearest neighbors in local visual memory
+- `hybrid`: weighted combination of global and neighbor-distance scores
+
+The default uses the lightweight local memory index with a hybrid score:
+
+```yaml
+discovery:
+  novelty_strategy: "hybrid"
+  memory_aware_scoring:
+    enabled: true
+    neighbor_top_k: 5
+    exclude_same_source: false
+    weight_global_distance: 0.5
+    weight_neighbor_distance: 0.5
+```
+
+Each candidate anomaly keeps a JSON-safe score breakdown. These scores are
+review-prioritization signals only; they do not prove that a candidate anomaly
+is meaningful.
+
+## Visual Memory
+
+The current visual implementation can build a local in-memory index of patch
+embeddings during a run. The index uses NumPy and supports Euclidean or cosine
+nearest-neighbor retrieval. Reports can include concise nearest visual matches
+for candidate concepts when memory is enabled.
+
+This is a lightweight foundation for evidence retrieval, near-match lookup,
+future normal comparison retrieval, PatchCore-style memory-bank scoring, and
+eventual FAISS or vector database backends. It is not a persistent vector
+database and does not use deep learning.
 
 ## Input Validation
 
@@ -276,6 +367,24 @@ Show only the most recent runs:
 python -m ade.cli --list-runs --limit 5
 ```
 
+## Human Review Feedback
+
+ADE findings are candidate findings that require human review. Local reviewers
+can attach structured labels to candidate anomalies and candidate concepts in a
+generated JSON report.
+
+```bash
+python -m ade.cli --add-feedback data/reports/demo_report.json --target-type anomaly --target-id anomaly-0001 --label interesting --notes "Local review note" --reviewer local
+python -m ade.cli --add-feedback data/reports/demo_report.json --target-type concept --target-id concept-001 --label known_pattern --notes "Known recurring pattern" --reviewer local
+python -m ade.cli --list-feedback
+```
+
+Supported feedback labels are `interesting`, `known_pattern`,
+`false_positive`, `duplicate`, `important`, `not_useful`, and
+`needs_more_data`. Feedback is stored locally at
+`data/feedback/feedback.jsonl` by default and is ignored by Git. This is a
+foundation for future review queues, concept memory, and false-positive review;
+those systems are not implemented yet.
 ## Local Dashboard
 
 ADE can generate a lightweight static dashboard from existing local run history
@@ -305,6 +414,8 @@ ade/
 │   ├── adapters/            # Data input interfaces
 │   ├── preprocessing/       # Patch extraction and future transforms
 │   ├── representation/      # Placeholder embeddings and future encoders
+│   ├── memory/              # Local vector memory and nearest-neighbor retrieval
+│   ├── feedback/            # Local JSONL human-review feedback records
 │   ├── storage/             # Metadata and embedding stores
 │   ├── discovery/           # Novelty, concepts, evidence, and confidence
 │   ├── reasoning/           # Cautious hypothesis generation
@@ -324,7 +435,7 @@ Additional project docs:
 - `docs/TIME_SERIES.md`
 - `docs/ENTERPRISE_READINESS.md`
 - `docs/SECURITY_MODEL.md`
-- `docs/RELEASE_CHECKLIST.md`
+- `docs/release_checklist.md`
 - `docs/development_workflow.md`
 - `docs/research_and_ip_notes.md`
 - `docs/engineering_quality.md`
@@ -335,7 +446,7 @@ Additional project docs:
 
 ## Artifact Policy
 
-Generated demo images, reports, report assets, run metadata, run indexes, test temp folders, cache folders, bytecode, and package build metadata should not be committed. The repository keeps `.gitkeep` files only to preserve the intended empty data directories.
+Generated demo images, reports, report assets, run metadata, run indexes, local feedback records, test temp folders, cache folders, bytecode, and package build metadata should not be committed. The repository keeps `.gitkeep` files only to preserve the intended empty data directories.
 
 ## Patent/IP-Aware Development
 
@@ -356,6 +467,8 @@ The platform vision includes private workspaces, dataset management, configurabl
 - Add CSV and time-series adapters
 - Add support for industrial sensor data and robot logs
 - Add stronger embedding backends behind the existing representation interface
+- Add persistent memory backends and normal-reference memory banks
+- Add PatchCore-style normal-memory scoring experiments
 - Add richer concept clustering and evidence ranking
 - Add report exports with review annotations
 - Add secure upload, storage, and workspace isolation for a hosted product
@@ -364,3 +477,4 @@ The platform vision includes private workspaces, dataset management, configurabl
 ## Human Expert Review Required
 
 All ADE outputs are exploratory candidate findings. Candidate anomalies, candidate unknown concepts, possible relationships, and hypotheses require human expert review before any scientific, clinical, operational, commercial, or financial interpretation.
+

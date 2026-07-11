@@ -10,22 +10,40 @@ from typing import Any
 import numpy as np
 
 
+def _json_safe_value(value: Any) -> Any:
+    """Return a JSON-safe scalar or container value."""
+
+    if isinstance(value, Path):
+        return value.as_posix()
+    if isinstance(value, np.integer):
+        return int(value)
+    if isinstance(value, np.floating):
+        return float(value)
+    if isinstance(value, np.bool_):
+        return bool(value)
+    if isinstance(value, dict):
+        return {str(key): _json_safe_value(item) for key, item in value.items()}
+    if isinstance(value, list | tuple):
+        return [_json_safe_value(item) for item in value]
+    return value
+
+
 def _json_safe_metadata(metadata: dict[str, Any]) -> dict[str, Any]:
     """Return metadata with path and NumPy scalar values converted for JSON."""
 
-    safe: dict[str, Any] = {}
-    for key, value in metadata.items():
-        if isinstance(value, Path):
-            safe[key] = value.as_posix()
-        elif isinstance(value, np.integer):
-            safe[key] = int(value)
-        elif isinstance(value, np.floating):
-            safe[key] = float(value)
-        elif isinstance(value, np.bool_):
-            safe[key] = bool(value)
+    return {str(key): _json_safe_value(value) for key, value in metadata.items()}
+
+
+def _json_safe_evidence_items(items: list[Any]) -> list[Any]:
+    """Return JSON-safe evidence items while preserving legacy scalar IDs."""
+
+    safe_items: list[Any] = []
+    for item in items:
+        if isinstance(item, dict):
+            safe_items.append(_json_safe_metadata(item))
         else:
-            safe[key] = value
-    return safe
+            safe_items.append(_json_safe_value(item))
+    return safe_items
 
 
 @dataclass(frozen=True)
@@ -341,6 +359,33 @@ class PatchRecord:
 
         return (self.x, self.y, self.width, self.height)
 
+    @property
+    def patch_size(self) -> int:
+        """Return the configured extraction patch size."""
+
+        return int(self.metadata.get("patch_size", self.width))
+
+    @property
+    def patch_stride(self) -> int | None:
+        """Return the configured patch stride when known."""
+
+        value = self.metadata.get("patch_stride")
+        return int(value) if value is not None else None
+
+    @property
+    def scale_id(self) -> str | None:
+        """Return the extraction scale identifier when known."""
+
+        value = self.metadata.get("scale_id")
+        return str(value) if value is not None else None
+
+    @property
+    def scale_label(self) -> str | None:
+        """Return the human-readable extraction scale label when known."""
+
+        value = self.metadata.get("scale_label")
+        return str(value) if value is not None else None
+
     def to_dict(self) -> dict[str, Any]:
         """Return JSON-safe patch metadata without dumping the image array."""
 
@@ -352,6 +397,10 @@ class PatchRecord:
             "y": int(self.y),
             "width": int(self.width),
             "height": int(self.height),
+            "patch_size": self.patch_size,
+            "patch_stride": self.patch_stride,
+            "scale_id": self.scale_id,
+            "scale_label": self.scale_label,
             "metadata": _json_safe_metadata(self.metadata),
         }
 
@@ -397,6 +446,28 @@ class EmbeddingResult:
 
 
 @dataclass(frozen=True)
+class NeighborResult:
+    """Nearest-neighbor retrieval result from local vector memory."""
+
+    item_id: str
+    distance: float
+    similarity: float
+    rank: int
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-safe neighbor result."""
+
+        return {
+            "item_id": self.item_id,
+            "distance": float(self.distance),
+            "similarity": float(self.similarity),
+            "rank": int(self.rank),
+            "metadata": _json_safe_metadata(self.metadata),
+        }
+
+
+@dataclass(frozen=True)
 class CandidateAnomaly:
     """A patch ranked as a candidate anomaly."""
 
@@ -418,6 +489,10 @@ class CandidateAnomaly:
             "y": int(patch.y),
             "width": int(patch.width),
             "height": int(patch.height),
+            "patch_size": patch.patch_size,
+            "patch_stride": patch.patch_stride,
+            "scale_id": patch.scale_id,
+            "scale_label": patch.scale_label,
             "novelty_score": float(self.novelty_score),
             "preview_path": self.preview_path,
             "metadata": _json_safe_metadata(self.metadata),
@@ -500,17 +575,33 @@ class ConceptGroup:
 class EvidenceSummary:
     """Structured evidence attached to a candidate unknown concept."""
 
-    supporting_examples: list[str] = field(default_factory=list)
-    contradicting_examples: list[str] = field(default_factory=list)
+    supporting_examples: list[Any] = field(default_factory=list)
+    representative_examples: list[Any] = field(default_factory=list)
+    near_matches: list[Any] = field(default_factory=list)
+    nearest_neighbors: list[Any] = field(default_factory=list)
+    normal_comparisons: list[Any] = field(default_factory=list)
+    contradicting_examples: list[Any] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         """Return a JSON-safe evidence summary."""
 
         return {
-            "supporting_examples": list(self.supporting_examples),
-            "contradicting_examples": list(self.contradicting_examples),
+            "supporting_examples": _json_safe_evidence_items(self.supporting_examples),
+            "representative_examples": _json_safe_evidence_items(
+                self.representative_examples
+            ),
+            "near_matches": _json_safe_evidence_items(self.near_matches),
+            "nearest_neighbors": _json_safe_evidence_items(self.nearest_neighbors),
+            "normal_comparisons": _json_safe_evidence_items(
+                self.normal_comparisons
+            ),
+            "contradicting_examples": _json_safe_evidence_items(
+                self.contradicting_examples
+            ),
             "notes": list(self.notes),
+            "warnings": list(self.warnings),
         }
 
 
@@ -524,6 +615,10 @@ class UnknownConcept:
     average_novelty_score: float
     confidence_score: float | None
     evidence: EvidenceSummary
+    consistency_score: float | None = None
+    diversity_score: float | None = None
+    confidence_breakdown: dict[str, float] = field(default_factory=dict)
+    notes: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         """Return a JSON-safe candidate unknown concept representation."""
@@ -533,12 +628,27 @@ class UnknownConcept:
             "anomaly_ids": list(self.anomaly_ids),
             "representative_anomaly_id": self.representative_anomaly_id,
             "average_novelty_score": float(self.average_novelty_score),
+            "consistency_score": (
+                float(self.consistency_score)
+                if self.consistency_score is not None
+                else None
+            ),
+            "diversity_score": (
+                float(self.diversity_score)
+                if self.diversity_score is not None
+                else None
+            ),
             "confidence_score": (
                 float(self.confidence_score)
                 if self.confidence_score is not None
                 else None
             ),
+            "confidence_breakdown": {
+                str(key): float(value)
+                for key, value in self.confidence_breakdown.items()
+            },
             "evidence": self.evidence.to_dict(),
+            "notes": list(self.notes),
         }
 
 
@@ -563,6 +673,19 @@ class RunMetadata:
     number_of_unsupported_files: int | None = None
     number_of_unreadable_files: int | None = None
     estimated_patch_count: int | None = None
+    average_concept_confidence: float | None = None
+    average_concept_consistency: float | None = None
+    memory_enabled: bool | None = None
+    memory_metric: str | None = None
+    memory_items_indexed: int | None = None
+    total_patches: int | None = None
+    patch_scales_used: list[str] = field(default_factory=list)
+    anomaly_selection_strategy: str | None = None
+    novelty_strategy: str | None = None
+    memory_aware_scoring_enabled: bool | None = None
+    neighbor_top_k: int | None = None
+    scoring_fallback_used: bool | None = None
+    scoring_fallback_reason: str | None = None
     input_warnings: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
@@ -597,6 +720,34 @@ class RunMetadata:
             data["number_of_unreadable_files"] = int(self.number_of_unreadable_files)
         if self.estimated_patch_count is not None:
             data["estimated_patch_count"] = int(self.estimated_patch_count)
+        if self.average_concept_confidence is not None:
+            data["average_concept_confidence"] = float(self.average_concept_confidence)
+        if self.average_concept_consistency is not None:
+            data["average_concept_consistency"] = float(self.average_concept_consistency)
+        if self.memory_enabled is not None:
+            data["memory_enabled"] = bool(self.memory_enabled)
+        if self.memory_metric is not None:
+            data["memory_metric"] = self.memory_metric
+        if self.memory_items_indexed is not None:
+            data["memory_items_indexed"] = int(self.memory_items_indexed)
+        if self.total_patches is not None:
+            data["total_patches"] = int(self.total_patches)
+        if self.patch_scales_used:
+            data["patch_scales_used"] = list(self.patch_scales_used)
+        if self.anomaly_selection_strategy is not None:
+            data["anomaly_selection_strategy"] = self.anomaly_selection_strategy
+        if self.novelty_strategy is not None:
+            data["novelty_strategy"] = self.novelty_strategy
+        if self.memory_aware_scoring_enabled is not None:
+            data["memory_aware_scoring_enabled"] = bool(
+                self.memory_aware_scoring_enabled
+            )
+        if self.neighbor_top_k is not None:
+            data["neighbor_top_k"] = int(self.neighbor_top_k)
+        if self.scoring_fallback_used is not None:
+            data["scoring_fallback_used"] = bool(self.scoring_fallback_used)
+        if self.scoring_fallback_reason is not None:
+            data["scoring_fallback_reason"] = self.scoring_fallback_reason
         if self.input_warnings:
             data["input_warnings"] = list(self.input_warnings)
         return data
@@ -649,6 +800,69 @@ class RunMetadata:
             estimated_patch_count=(
                 int(data["estimated_patch_count"])
                 if data.get("estimated_patch_count") is not None
+                else None
+            ),
+            average_concept_confidence=(
+                float(data["average_concept_confidence"])
+                if data.get("average_concept_confidence") is not None
+                else None
+            ),
+            average_concept_consistency=(
+                float(data["average_concept_consistency"])
+                if data.get("average_concept_consistency") is not None
+                else None
+            ),
+            memory_enabled=(
+                bool(data["memory_enabled"])
+                if data.get("memory_enabled") is not None
+                else None
+            ),
+            memory_metric=(
+                str(data["memory_metric"])
+                if data.get("memory_metric") is not None
+                else None
+            ),
+            memory_items_indexed=(
+                int(data["memory_items_indexed"])
+                if data.get("memory_items_indexed") is not None
+                else None
+            ),
+            total_patches=(
+                int(data["total_patches"])
+                if data.get("total_patches") is not None
+                else None
+            ),
+            patch_scales_used=[
+                str(item) for item in data.get("patch_scales_used", [])
+            ],
+            anomaly_selection_strategy=(
+                str(data["anomaly_selection_strategy"])
+                if data.get("anomaly_selection_strategy") is not None
+                else None
+            ),
+            novelty_strategy=(
+                str(data["novelty_strategy"])
+                if data.get("novelty_strategy") is not None
+                else None
+            ),
+            memory_aware_scoring_enabled=(
+                bool(data["memory_aware_scoring_enabled"])
+                if data.get("memory_aware_scoring_enabled") is not None
+                else None
+            ),
+            neighbor_top_k=(
+                int(data["neighbor_top_k"])
+                if data.get("neighbor_top_k") is not None
+                else None
+            ),
+            scoring_fallback_used=(
+                bool(data["scoring_fallback_used"])
+                if data.get("scoring_fallback_used") is not None
+                else None
+            ),
+            scoring_fallback_reason=(
+                str(data["scoring_fallback_reason"])
+                if data.get("scoring_fallback_reason") is not None
                 else None
             ),
             input_warnings=[str(item) for item in data.get("input_warnings", [])],

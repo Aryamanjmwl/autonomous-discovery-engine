@@ -5,16 +5,46 @@ project:
 preprocessing:
   patch_size: 64
   patch_stride: 64
+  patch_sizes:
+    - 64
+  patch_strides:
+    - 64
 
 discovery:
   max_candidate_anomalies: 10
   top_k:
   max_concepts: 5
   novelty_metric: "euclidean"
+  novelty_strategy: "hybrid"
   scoring_backend: "centroid_distance"
   clustering_backend: "threshold_candidate_grouping"
   cluster_distance_threshold: 0.35
   random_seed: 42
+  memory_aware_scoring:
+    enabled: true
+    neighbor_top_k: 5
+    exclude_same_source: false
+    weight_global_distance: 0.5
+    weight_neighbor_distance: 0.5
+  diversity:
+    enabled: true
+    min_spatial_distance: 32
+    max_per_image: 3
+    prefer_multiple_scales: true
+  concepts:
+    min_supporting_examples: 2
+    max_supporting_examples: 5
+    min_confidence_to_highlight: 0.5
+
+memory:
+  enabled: true
+  metric: "euclidean"
+  top_k_neighbors: 5
+  include_neighbors_in_report: true
+
+feedback:
+  enabled: true
+  store_path: "data/feedback/feedback.jsonl"
 
 tabular:
   id_column:

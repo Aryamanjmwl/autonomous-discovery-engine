@@ -34,13 +34,14 @@ The current implementation supports a visual-data-first pipeline:
 - Candidate concept grouping
 - Evidence and confidence summaries
 - Cautious hypothesis generation
-- Markdown and JSON reports
+- Markdown, JSON, and static HTML reports
 - Run metadata and run history index
 - CLI run listing
+- Local human-review feedback records
 - Configuration via `configs/default.yaml`
 
 ## Not Supported Yet
 
-ADE does not yet implement video processing, non-visual adapters, deep visual embedding models, hosted uploads, dashboards, user accounts, billing, live streams, or production security controls.
+ADE does not yet implement production video processing, non-visual adapters, deep visual embedding models, hosted uploads, dashboards, user accounts, billing, live streams, or production security controls.
 
 ADE does not guarantee discoveries, replace experts, or make scientific, medical, legal, operational, or financial conclusions. All outputs are candidate findings that require human review.
