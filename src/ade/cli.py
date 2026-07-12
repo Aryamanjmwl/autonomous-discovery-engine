@@ -11,7 +11,7 @@ from ade.adapters.image_adapter import ImageAdapter
 from ade.adapters.tabular_adapter import TabularAdapter
 from ade.adapters.timeseries_adapter import TimeSeriesAdapter
 from ade.config import load_config
-from ade.dashboard import generate_dashboard
+from ade.dashboard import export_local_dashboard, generate_dashboard
 from ade.dashboard.service import DEFAULT_DASHBOARD_DIR
 from ade.discovery.anomaly_selector import AnomalySelector
 from ade.discovery.concept_clusterer import ConceptClusterer
@@ -112,6 +112,11 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         metavar="REPORT_JSON",
         help="Export a local HTML review report from an ADE JSON report and exit.",
+    )
+    parser.add_argument(
+        "--export-local-dashboard",
+        action="store_true",
+        help="Export a local static dashboard from existing ADE artifacts and exit.",
     )
     parser.add_argument(
         "--add-feedback",
@@ -917,6 +922,24 @@ def main() -> None:
         print(f"ADE HTML report written to {output_path}")
         return
 
+    if args.export_local_dashboard:
+        if args.output is None:
+            parser.error("--output is required with --export-local-dashboard.")
+        try:
+            result = export_local_dashboard(output_dir=args.output)
+        except OSError as error:
+            parser.error(str(error))
+        print(f"ADE local dashboard written to {result.index_path}")
+        print(f"Dashboard data written to {result.data_path}")
+        print(
+            "Artifacts included: "
+            f"{result.run_count} runs, "
+            f"{result.report_count} reports, "
+            f"{result.benchmark_count} benchmarks, "
+            f"{result.feedback_count} feedback records"
+        )
+        return
+
     if args.add_feedback is not None:
         try:
             config = load_config(args.config)
@@ -994,7 +1017,8 @@ def main() -> None:
     if args.input is None or args.output is None:
         parser.error(
             "--input and --output are required unless --list-runs, "
-            "--validate-report, --export-html-report, --add-feedback, "
+            "--validate-report, --export-html-report, --export-local-dashboard, "
+            "--add-feedback, "
             "--list-feedback, or --summarize-feedback-memory is used."
         )
 

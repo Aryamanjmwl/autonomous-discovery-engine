@@ -75,6 +75,17 @@ def verification_steps(python_executable: str = sys.executable) -> list[Verifica
             ],
         ),
         VerificationStep(
+            "local dashboard export",
+            [
+                python_executable,
+                "-m",
+                "ade.cli",
+                "--export-local-dashboard",
+                "--output",
+                "data/dashboard",
+            ],
+        ),
+        VerificationStep(
             "run listing",
             [python_executable, "-m", "ade.cli", "--list-runs", "--limit", "5"],
         ),

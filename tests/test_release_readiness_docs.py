@@ -59,6 +59,7 @@ def test_cli_reference_covers_local_verification_and_benchmark() -> None:
 
     assert "scripts/verify_local.py" in cli_reference
     assert "scripts/run_benchmark.py" in cli_reference
+    assert "--export-local-dashboard" in cli_reference
 
 
 def test_report_schema_documents_stable_feedback_targets() -> None:
