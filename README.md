@@ -58,6 +58,20 @@ streams, or production streams; it does not provide cloud hosting, auth,
 database-backed review queues, billing, production personalization, or
 enterprise deployment. All candidate findings require human review.
 
+## Private-Alpha Demo and Release Status
+
+Release polish materials for private-alpha review:
+
+- [v0.1.0 private-alpha release notes](docs/releases/v0.1.0-private-alpha.md)
+- [Interview demo script](examples/demo_script.md)
+- [Portfolio case study](docs/portfolio_case_study.md)
+- [CV/project wording](docs/cv_project_description.md)
+- [Modality capability matrix](docs/modality_capability_matrix.md)
+- [Local dashboard export docs](docs/dashboard/dashboard_product_spec.md)
+
+This branch is prepared for local demo review and manual release tagging. It is
+not a production SaaS release, and all candidate findings require human review.
+
 ## What Problem ADE Solves
 
 Most AI tools are built around known questions: classify this image, summarize this text, forecast this metric, or answer this prompt. Many real-world datasets contain useful signals that users do not yet know to ask about.

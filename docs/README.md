@@ -23,6 +23,9 @@ All findings are candidate findings and require human review.
 - [Release checklist](release_checklist.md): private-alpha verification checklist.
 - [Versioning policy](versioning_policy.md): pre-1.0 version and schema expectations.
 - [Private-alpha readiness audit](releases/private_alpha_readiness_audit.md): current release-readiness assessment.
+- [v0.1.0 private-alpha release notes](releases/v0.1.0-private-alpha.md): release scope, verification, limitations, and compatibility notes.
+- [GitHub release body draft](releases/github_release_body_v0.1.0-private-alpha.md): copy-paste release text for GitHub Releases.
+- [Demo asset guidance](demo_assets.md): manual screenshot plan and safe release attachment guidance.
 
 ## Architecture and Extension Points
 
