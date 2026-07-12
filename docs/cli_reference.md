@@ -1,8 +1,8 @@
 # ADE CLI Reference
 
 These examples are written for PowerShell from the repository root. ADE is a
-general autonomous discovery platform; the current CLI implementation is
-visual-data-first and expects an image folder for analysis.
+general autonomous discovery platform; the current CLI supports image-folder
+analysis plus lightweight tabular CSV and explicit time-series CSV workflows.
 
 ## Install
 
@@ -16,10 +16,13 @@ pip install -e .[dev]
 
 ```powershell
 python scripts/create_demo_data.py
+python scripts/create_tabular_demo_data.py
+python scripts/create_timeseries_demo_data.py
 ```
 
-This creates synthetic PNG files in `data/raw/demo_images/`. The images are
-local test data only.
+These create synthetic local demo files under `data/raw/demo_images/`,
+`data/raw/demo_tabular/`, and `data/raw/demo_timeseries/`. They are local test
+data only.
 
 ## Run Analysis
 
@@ -36,6 +39,26 @@ python -m ade.cli --input data/raw/demo_images --output data/reports/demo_report
 The command writes a Markdown report, a JSON sidecar report, preview assets, run
 metadata, and a run-index entry. Candidate anomalies and candidate concepts are
 review targets, not final conclusions.
+
+## Run Tabular Analysis
+
+```powershell
+python -m ade.cli --input data/raw/demo_tabular/operations.csv --output data/reports/tabular_demo_report.md --modality tabular
+```
+
+For `.csv` inputs, ADE defaults to the tabular path unless `--modality
+timeseries` is supplied. The tabular workflow performs row-level candidate
+anomaly ranking and simple candidate pattern grouping.
+
+## Run Time-Series Analysis
+
+```powershell
+python -m ade.cli --input data/raw/demo_timeseries/machine_metrics.csv --output data/reports/timeseries_demo_report.md --modality timeseries --timestamp-column timestamp --entity-column machine
+```
+
+The time-series workflow is explicit. It performs timestamped point/window-style
+candidate anomaly ranking and simple candidate pattern grouping. It does not
+implement forecasting, production streaming, live sensors, or alerting.
 
 ## Validate a Report
 
