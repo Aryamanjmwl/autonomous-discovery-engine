@@ -1,6 +1,6 @@
-# Private-Alpha Release Checklist
+# Technical Preview Release Checklist
 
-Use this checklist before tagging or sharing a private-alpha build. It is a
+Use this checklist before tagging or sharing a technical preview build. It is a
 review aid, not a production certification.
 
 ## Local Verification
@@ -49,7 +49,7 @@ review aid, not a production certification.
 
 ## Final Release Verification Block
 
-Run this block from the repository root before creating a private-alpha tag:
+Run this block from the repository root before creating a technical preview tag:
 
 ```powershell
 ruff check
@@ -67,8 +67,8 @@ Suggested manual tag commands after review. Do not run these until the release
 contents have been manually inspected:
 
 ```powershell
-git tag -a v0.1.0-private-alpha -m "ADE v0.1.0 private alpha"
-git push origin v0.1.0-private-alpha
+git tag -a v0.1.0-preview -m "ADE v0.1.0 Technical Preview"
+git push origin v0.1.0-preview
 ```
 
 Generated demo data, reports, benchmark JSON, dashboard output, and feedback

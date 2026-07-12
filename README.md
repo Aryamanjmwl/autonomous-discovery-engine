@@ -19,7 +19,7 @@ data review. It is designed to surface candidate anomalies, candidate concepts,
 and possible patterns with evidence so a human reviewer can decide what is
 worth deeper investigation.
 
-The current private-alpha implementation is strongest on the visual/image-folder
+The current local technical preview implementation is strongest on the visual/image-folder
 workflow. It also includes lightweight CSV tabular and CSV time-series
 workflows with local CLI reports, plus a static local dashboard export for
 reviewing generated artifacts. Outputs are review aids, not automated truth.
@@ -58,18 +58,18 @@ streams, or production streams; it does not provide cloud hosting, auth,
 database-backed review queues, billing, production personalization, or
 enterprise deployment. All candidate findings require human review.
 
-## Private-Alpha Demo and Release Status
+## Technical Preview Demo and Release Status
 
-Release polish materials for private-alpha review:
+Release polish materials for technical preview review:
 
-- [v0.1.0 private-alpha release notes](docs/releases/v0.1.0-private-alpha.md)
+- [v0.1.0 Technical Preview release notes](docs/releases/v0.1.0-preview.md)
 - [Interview demo script](examples/demo_script.md)
 - [Portfolio case study](docs/portfolio_case_study.md)
 - [CV/project wording](docs/cv_project_description.md)
 - [Modality capability matrix](docs/modality_capability_matrix.md)
 - [Local dashboard export docs](docs/dashboard/dashboard_product_spec.md)
 
-This branch is prepared for local demo review and manual release tagging. It is
+ADE v0.1.0 Technical Preview is prepared for local demo review and manual release tagging. It is
 not a production SaaS release, and all candidate findings require human review.
 
 ## What Problem ADE Solves
@@ -92,7 +92,7 @@ adding those heavy dependencies to the current prototype.
 
 ## Current Prototype Status
 
-This version is a local/private-alpha MVP. It demonstrates a visual-first
+This version is a local technical preview MVP. It demonstrates a visual-first
 end-to-end workflow and lightweight CSV tabular/time-series foundations without
 using advanced AI, proprietary models, or deep learning.
 
@@ -223,7 +223,7 @@ pip install -e .
 ## Documentation
 
 Start with `docs/README.md` for architecture, CLI reference, report schema,
-dashboard planning docs, release checklist, versioning policy, and private-alpha
+dashboard planning docs, release checklist, versioning policy, and technical preview
 readiness notes.
 
 The current implementation includes a visual-first local workflow plus
@@ -266,7 +266,7 @@ Review memory is feedback-informed ranking support. It does not replace human
 review, does not prove that a candidate anomaly is meaningful, and does not
 implement supervised learning or production personalization. Future work may add
 a reviewer dashboard and concept memory, with the local JSONL store remaining
-the private-alpha source of feedback state for now.
+the preview source of feedback state for now.
 
 ## Generate Demo Data
 

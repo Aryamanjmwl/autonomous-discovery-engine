@@ -18,18 +18,18 @@ ignore unknown fields and prefer stable identifiers such as `anomaly_id`,
 Newly generated reports should include stable target IDs for feedback workflows.
 Legacy reports may validate with warnings if they predate those fields.
 
-## Private-Alpha Limits
+## Technical Preview Limits
 
-Private-alpha versions do not claim production readiness, scientific validity,
+Technical preview versions do not claim production readiness, scientific validity,
 medical or financial usefulness, hosted security controls, compliance status, or
 enterprise deployment support.
 
 ## Tag Naming
 
-Suggested private-alpha tag forms:
+Suggested technical preview tag forms:
 
-- `v0.1.0-alpha.1`
-- `v0.1.0-alpha.2`
-- `private-alpha-YYYYMMDD`
+- `v0.1.0-preview`
+- `v0.1.1-preview`
+- `preview-YYYYMMDD`
 
 Use one convention consistently once releases begin.

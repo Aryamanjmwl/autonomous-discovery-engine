@@ -1,7 +1,7 @@
 # ADE Report Schema
 
 ADE reports are written as Markdown for review and JSON for downstream tooling.
-The schema is intended to be stable enough for private-alpha workflows while
+The schema is intended to be stable enough for technical preview workflows while
 remaining pre-1.0 and subject to additive changes.
 
 All discoveries are candidate findings and require human review.
@@ -28,7 +28,7 @@ Common top-level JSON fields include:
 - `artifact_manifest`: optional generated artifact references when present.
 
 The exact set of fields may grow through additive changes during the private
-alpha. Existing fields should not be renamed without a compatibility note.
+preview. Existing fields should not be renamed without a compatibility note.
 
 ## Candidate Anomalies
 
@@ -143,7 +143,7 @@ replace human review.
 
 ## Backward Compatibility
 
-During the private alpha:
+During the technical preview:
 
 - Additive fields are acceptable.
 - Stable IDs (`anomaly_id`, `concept_id`) should be present on newly generated reports.

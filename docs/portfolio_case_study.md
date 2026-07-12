@@ -2,7 +2,7 @@
 
 ## Project Summary
 
-ADE is an adapter-based autonomous discovery platform for local, private-alpha
+ADE is an adapter-based autonomous discovery platform for local technical preview
 data review. The current implementation focuses on a mature visual/image-folder
 workflow and lightweight CSV tabular and CSV time-series workflows. It produces
 candidate anomalies, candidate concepts, evidence summaries, and reports that
@@ -40,7 +40,7 @@ The system is organized as a local pipeline:
 
 The design keeps input handling, scoring, reporting, feedback, and dashboard
 export concerns separated so each layer can evolve without turning the current
-private-alpha workflow into a production service.
+technical preview workflow into a production service.
 
 ## Architecture Choices
 
@@ -93,7 +93,7 @@ python scripts/verify_local.py
 
 That verification path runs linting, tests, demo data generation, analysis,
 report validation, HTML export, benchmark generation, local dashboard export,
-and run listing. The release documentation keeps private-alpha expectations
+and run listing. The release documentation keeps technical preview expectations
 explicit and avoids production SaaS claims.
 
 ## Limitations

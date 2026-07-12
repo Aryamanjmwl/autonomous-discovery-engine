@@ -1,11 +1,11 @@
-# Private-Alpha Readiness Audit
+# Technical Preview Readiness Audit
 
 Date: 2026-07-09
 
 Branch under review: `chore/enterprise-roadmap-foundation`
 
 This audit summarizes whether ADE is understandable, verifiable, and reviewable
-as a private-alpha research prototype. It does not certify production readiness.
+as a technical preview research prototype. It does not certify production readiness.
 
 ## Scope Reviewed
 
@@ -67,9 +67,9 @@ python scripts/verify_local.py
 - Dashboard materials are documentation only; no deployed dashboard app exists in this branch.
 - Generated reports, benchmarks, demo images, run metadata, and feedback logs must remain out of version control.
 
-## Private-Alpha Gate
+## Technical Preview Gate
 
-Before sharing a private-alpha package, confirm:
+Before sharing a technical preview package, confirm:
 
 - Local verification commands pass on a clean environment.
 - The changelog, CLI reference, report schema, release checklist, and status docs are current.

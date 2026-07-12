@@ -1,10 +1,10 @@
-# ADE v0.1.0 Private Alpha
+# ADE v0.1.0 Technical Preview
 
-ADE v0.1.0 Private Alpha packages the current local workflow for recruiter
-review, technical interviews, and early private-alpha feedback.
+ADE v0.1.0 Technical Preview packages the current local workflow for recruiter
+review, technical interviews, and early preview feedback.
 
 ADE is an adapter-based autonomous discovery platform. The current release is a
-local/private-alpha build: the visual/image-folder workflow is the most mature
+local technical preview build: the visual/image-folder workflow is the most mature
 path, while CSV tabular and CSV time-series workflows are lightweight
 foundations with local CLI reports.
 
@@ -60,5 +60,5 @@ python -m ade.cli --export-local-dashboard --output data/dashboard
 - Expand concept memory and review-informed ranking support.
 - Evaluate optional stronger representation backends behind existing
   interfaces.
-- Keep production/hosted architecture design separate from the local
-  private-alpha workflow.
+- Keep production/hosted architecture design separate from the local technical
+  preview workflow.

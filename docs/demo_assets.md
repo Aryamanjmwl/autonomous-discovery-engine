@@ -9,7 +9,7 @@ generated dashboard output, or screenshots that reveal private datasets.
 
 - README top section:
   - Suggested filename: `ade-readme-top.png`
-  - Capture the project title, private-alpha positioning, and capability table.
+  - Capture the project title, technical preview positioning, and capability table.
 - Terminal `verify_local.py` pass:
   - Suggested filename: `ade-verify-local-pass.png`
   - Capture the final `Local verification passed.` line.
@@ -37,7 +37,7 @@ docs/assets/demo/
 ```
 
 Only commit screenshots if they contain synthetic/public data and are intended
-for the repository. Keep private-alpha customer data, local generated reports,
+for the repository. Keep preview customer data, local generated reports,
 feedback logs, and dashboard exports out of Git.
 
 ## Portfolio Page Guidance
@@ -57,5 +57,5 @@ feedback logs, and dashboard exports out of Git.
 - Prefer synthetic demo data screenshots generated from repository scripts.
 - Do not attach generated JSONL feedback with private reviewer notes.
 - Do not attach generated dashboard folders or private report archives.
-- Link to `docs/releases/v0.1.0-private-alpha.md` and
+- Link to `docs/releases/v0.1.0-preview.md` and
   `examples/demo_script.md` for reproducible local commands.
