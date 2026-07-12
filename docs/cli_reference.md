@@ -78,6 +78,22 @@ python -m ade.cli --export-html-report data/reports/demo_report.json --output da
 The HTML export is a static local review artifact. It does not start a dashboard
 or hosted service.
 
+## Export Local Dashboard
+
+```powershell
+python -m ade.cli --export-local-dashboard --output data/dashboard
+```
+
+This command does not run analysis. It reads existing local artifacts where
+present, including `data/reports/runs/index.json`, report JSON files, static
+HTML reports, benchmark JSON files, and `data/feedback/feedback.jsonl`. It
+writes `index.html` and `dashboard_data.json` under the requested output
+directory and treats missing folders as empty states.
+
+The export is a local static demo viewer for review support. It is not a hosted
+dashboard app, does not add authentication or a database, and does not turn
+candidate findings into automated truth.
+
 ## Add Human Review Feedback
 
 Use a real target ID from the JSON report:
@@ -132,11 +148,11 @@ python scripts/verify_local.py
 ```
 
 The verification script runs linting, tests, demo data generation, analysis,
-report validation, HTML export, benchmarking, and run listing in sequence. It
-fails fast on the first unsuccessful command.
+report validation, HTML export, benchmarking, local dashboard export, and run
+listing in sequence. It fails fast on the first unsuccessful command.
 
 ## Dashboard Status
 
-This branch may include dashboard UX documentation or static report exports, but
-it does not implement a hosted dashboard application, authentication, billing,
-or database-backed review workflow.
+This branch includes local static dashboard exports and dashboard planning docs,
+but it does not implement a hosted dashboard application, dashboard server,
+authentication, billing, or database-backed review workflow.

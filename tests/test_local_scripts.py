@@ -132,12 +132,14 @@ def test_verify_local_exposes_deterministic_steps() -> None:
         "report validation",
         "html export",
         "benchmark",
+        "local dashboard export",
         "run listing",
     ]
     assert ["ruff", "check"] in commands
     assert ["pytest"] in commands
     assert any("--validate-report" in command for command in commands)
     assert any("--export-html-report" in command for command in commands)
+    assert any("--export-local-dashboard" in command for command in commands)
     assert any("scripts/run_benchmark.py" in command for command in commands)
 
 

@@ -1,12 +1,30 @@
 # Dashboard Frontend Contract
 
-This contract describes the local data shapes a future ADE dashboard should read.
-It is documentation only; no dashboard app is implemented in this branch.
+This contract describes the local data shapes an ADE dashboard should read. The
+current branch includes a local static dashboard export, but no dashboard app,
+server, authentication, database, or hosted deployment is implemented.
 Candidate findings require human review.
 
 Fields marked current are produced by the current local pipeline or helper
 scripts. Fields marked planned are useful for dashboard design but should not be
 assumed to exist until implemented.
+
+## Local Static Dashboard Export
+
+Current command:
+
+```powershell
+python -m ade.cli --export-local-dashboard --output data/dashboard
+```
+
+Current outputs:
+
+- `data/dashboard/index.html`
+- `data/dashboard/dashboard_data.json`
+
+The export reads existing local artifacts and tolerates missing report,
+benchmark, run-history, and feedback files. It is a demo viewer and review aid,
+not a deployed dashboard app.
 
 ## Report JSON Payload
 

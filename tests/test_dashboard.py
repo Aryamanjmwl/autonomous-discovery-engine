@@ -2,6 +2,11 @@ import json
 from pathlib import Path
 
 from ade.cli import main
+from ade.dashboard.local_dashboard import (
+    collect_dashboard_data,
+    export_local_dashboard,
+    render_dashboard_html,
+)
 from ade.dashboard.service import generate_dashboard
 
 
@@ -101,6 +106,67 @@ def _write_report(report_path: Path) -> None:
     )
 
 
+def _write_local_dashboard_report(report_path: Path) -> None:
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    html_path = report_path.with_suffix(".html")
+    html_path.write_text("<!doctype html><title>Report</title>", encoding="utf-8")
+    report_path.write_text(
+        json.dumps(
+            {
+                "project_name": "ADE",
+                "report_version": "1.0",
+                "run_id": "ade_20260707_120000_abcdef",
+                "generated_at": "2026-07-07T12:00:00+00:00",
+                "modality": "tabular",
+                "run_metadata": {"run_id": "ade_20260707_120000_abcdef"},
+                "number_of_candidate_anomalies": 2,
+                "number_of_candidate_unknown_concepts": 1,
+                "candidate_anomalies": [{"anomaly_id": "row-000001"}],
+                "candidate_unknown_concepts": [{"concept_id": "concept-001"}],
+                "human_review_required": True,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
+def _write_benchmark(path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(
+            {
+                "benchmark_id": "bench_20260707_120000_abcdef",
+                "generated_at": "2026-07-07T12:05:00+00:00",
+                "duration_seconds": 1.25,
+                "report_valid": True,
+                "input_path": "data/raw/demo_images",
+                "config_path": "configs/default.yaml",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
+def _write_feedback(path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(
+            {
+                "feedback_id": "feedback-1",
+                "run_id": "ade_20260707_120000_abcdef",
+                "report_path": "data/reports/demo_report.json",
+                "target_type": "anomaly",
+                "target_id": "row-000001",
+                "label": "interesting",
+                "reviewer": "local",
+                "created_at": "2026-07-07T12:10:00+00:00",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
 def test_dashboard_handles_empty_run_history(tmp_path: Path) -> None:
     result = generate_dashboard(
         index_path=tmp_path / "reports" / "runs" / "index.json",
@@ -113,6 +179,84 @@ def test_dashboard_handles_empty_run_history(tmp_path: Path) -> None:
     assert result.run_count == 0
     assert "No ADE runs found yet." in index_html
     assert "Run an analysis before generating the dashboard" in runs_html
+
+
+def test_local_dashboard_exporter_handles_missing_artifacts(tmp_path: Path) -> None:
+    result = export_local_dashboard(
+        output_dir=tmp_path / "dashboard",
+        run_index_path=tmp_path / "missing" / "index.json",
+        reports_dir=tmp_path / "missing_reports",
+        benchmarks_dir=tmp_path / "missing_benchmarks",
+        feedback_path=tmp_path / "missing_feedback.jsonl",
+    )
+    data = json.loads(result.data_path.read_text(encoding="utf-8"))
+    html = result.index_path.read_text(encoding="utf-8")
+
+    assert result.run_count == 0
+    assert result.report_count == 0
+    assert result.benchmark_count == 0
+    assert result.feedback_count == 0
+    assert data["summary"]["total_runs"] == 0
+    assert "ADE Local Dashboard" in html
+    assert "No run history found." in html
+
+
+def test_local_dashboard_data_includes_artifact_summaries(tmp_path: Path) -> None:
+    report_path = tmp_path / "reports" / "demo_report.json"
+    index_path = tmp_path / "reports" / "runs" / "index.json"
+    benchmark_path = tmp_path / "benchmarks" / "demo_benchmark.json"
+    feedback_path = tmp_path / "feedback" / "feedback.jsonl"
+    _write_local_dashboard_report(report_path)
+    _write_index(index_path, [_run_summary("ade_20260707_120000_abcdef", report_path)])
+    _write_benchmark(benchmark_path)
+    _write_feedback(feedback_path)
+
+    data = collect_dashboard_data(
+        run_index_path=index_path,
+        reports_dir=report_path.parent,
+        benchmarks_dir=benchmark_path.parent,
+        feedback_path=feedback_path,
+    )
+
+    assert data["summary"]["total_runs"] == 1
+    assert data["summary"]["total_candidate_anomalies"] == 1
+    assert data["summary"]["total_candidate_concepts"] == 1
+    assert data["summary"]["benchmark_count"] == 1
+    assert data["summary"]["feedback_count"] == 1
+    assert data["reports"][0]["validation_status"] == "valid"
+    assert data["reports"][0]["html_report_path"].endswith("demo_report.html")
+    assert data["benchmarks"][0]["benchmark_id"] == "bench_20260707_120000_abcdef"
+    assert data["feedback"]["label_counts"] == {"interesting": 1}
+
+
+def test_local_dashboard_html_escapes_unsafe_strings() -> None:
+    html = render_dashboard_html(
+        {
+            "summary": {
+                "total_runs": 1,
+                "total_candidate_anomalies": 0,
+                "total_candidate_concepts": 0,
+                "latest_run_timestamp": "<script>alert(1)</script>",
+                "benchmark_count": 0,
+                "feedback_count": 0,
+            },
+            "runs": [
+                {
+                    "run_id": "<img src=x onerror=alert(1)>",
+                    "generated_at": "now",
+                    "input_path": "<script>alert(2)</script>",
+                }
+            ],
+            "reports": [],
+            "benchmarks": [],
+            "feedback": {"total_feedback_records": 0, "label_counts": {}, "recent_records": []},
+            "limitations": ["Findings require human review."],
+        }
+    )
+
+    assert "<script>alert(1)</script>" not in html
+    assert "&lt;script&gt;alert(1)&lt;/script&gt;" in html
+    assert "<img src=x onerror=alert(1)>" not in html
 
 
 def test_dashboard_handles_malformed_report_json(tmp_path: Path) -> None:
@@ -173,3 +317,49 @@ def test_cli_dashboard_generates_static_files(
     assert "Open locally:" in output
     assert (tmp_path / "dashboard" / "index.html").is_file()
     assert (tmp_path / "dashboard" / "runs.html").is_file()
+
+
+def test_cli_export_local_dashboard_generates_static_files(
+    tmp_path: Path,
+    monkeypatch,
+    capsys,
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(
+        "sys.argv",
+        ["ade", "--export-local-dashboard", "--output", str(tmp_path / "local_dashboard")],
+    )
+
+    main()
+
+    output = capsys.readouterr().out
+    assert "ADE local dashboard written to" in output
+    assert "Dashboard data written to" in output
+    assert (tmp_path / "local_dashboard" / "index.html").is_file()
+    assert (tmp_path / "local_dashboard" / "dashboard_data.json").is_file()
+
+
+def test_cli_export_html_report_still_generates_static_file(
+    tmp_path: Path,
+    monkeypatch,
+    capsys,
+) -> None:
+    report_path = tmp_path / "reports" / "demo_report.json"
+    output_path = tmp_path / "reports" / "demo_report.html"
+    _write_local_dashboard_report(report_path)
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "ade",
+            "--export-html-report",
+            str(report_path),
+            "--output",
+            str(output_path),
+        ],
+    )
+
+    main()
+
+    output = capsys.readouterr().out
+    assert "HTML report written to" in output
+    assert output_path.is_file()

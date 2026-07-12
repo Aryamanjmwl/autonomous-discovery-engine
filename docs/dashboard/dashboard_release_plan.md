@@ -4,11 +4,12 @@ This plan describes a staged path from the current static report outputs toward
 a dashboard review experience. Future phases are not implemented unless a branch
 adds code, tests, and documentation for them.
 
-## Phase 0: Current Static HTML Report
+## Phase 0: Current Static Reports and Local Dashboard Export
 
 Scope:
 
 - Use existing Markdown, JSON, and static HTML reports.
+- Export a local static dashboard-style artifact summary from existing files.
 - Keep analysis and review file-based.
 - Require human review for candidate findings.
 
@@ -16,6 +17,7 @@ Deliverables:
 
 - JSON report validation.
 - Static HTML export.
+- Local static dashboard export with `index.html` and `dashboard_data.json`.
 - Stable `anomaly_id` and `concept_id` fields.
 - Local feedback JSONL foundation.
 - Dashboard product spec and frontend contract.
@@ -24,12 +26,15 @@ Acceptance criteria:
 
 - `python scripts/verify_local.py` passes.
 - HTML export renders a local review artifact.
+- `python -m ade.cli --export-local-dashboard --output data/dashboard` writes a
+  local static demo viewer without running analysis.
 - Report validation passes for generated reports.
-- Documentation states that no dashboard app is implemented.
+- Documentation states that no dashboard app, server, authentication, database,
+  or hosted deployment is implemented.
 
 Risks:
 
-- Static reports do not support interactive filtering.
+- Static exports do not support interactive filtering.
 - Feedback is local and not a production audit trail.
 - Generated artifacts must remain out of version control.
 

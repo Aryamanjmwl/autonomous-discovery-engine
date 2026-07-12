@@ -62,17 +62,27 @@ create a production audit trail. A later analysis can include review-memory
 signals in Markdown, JSON, and HTML reports when the configured feedback store
 contains prior feedback.
 
-## 7. Run a Benchmark
+## 7. Export Local Dashboard
+
+```powershell
+python -m ade.cli --export-local-dashboard --output data/dashboard
+```
+
+This creates a local static demo viewer from existing run history, reports,
+HTML exports, benchmarks, and feedback files where present. It does not run
+analysis and does not replace human review.
+
+## 8. Run a Benchmark
 
 ```powershell
 python scripts/run_benchmark.py --input data/raw/demo_images --config configs/default.yaml --output data/benchmarks/demo_benchmark.json
 ```
 
-## 8. Run Full Local Verification
+## 9. Run Full Local Verification
 
 ```powershell
 python scripts/verify_local.py
 ```
 
-Generated demo images, reports, preview assets, benchmarks, feedback logs, and
-run metadata should remain untracked.
+Generated demo images, reports, preview assets, benchmarks, dashboard exports,
+feedback logs, and run metadata should remain untracked.

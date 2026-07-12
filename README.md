@@ -424,6 +424,7 @@ Supported feedback labels are `interesting`, `known_pattern`,
 `data/feedback/feedback.jsonl` by default and is ignored by Git. This is a
 foundation for future review queues, concept memory, and false-positive review;
 those systems are not implemented yet.
+
 ## Local Dashboard
 
 ADE can generate a lightweight static dashboard from existing local run history
@@ -437,6 +438,18 @@ The dashboard is written to `data/reports/dashboard/index.html` by default and
 the command prints a local `file://` URL. It shows run history, report paths,
 dataset summaries, top candidate findings, candidate concept groups, evidence
 items, and available preview assets.
+
+ADE can also export a broader local dashboard-style artifact summary without
+running analysis:
+
+```bash
+python -m ade.cli --export-local-dashboard --output data/dashboard
+```
+
+This writes `data/dashboard/index.html` and `data/dashboard/dashboard_data.json`
+from existing local reports, run history, benchmark JSON, static HTML reports,
+and feedback JSONL when those files are present. Missing folders are handled as
+empty states. Generated dashboard output is ignored by Git.
 
 This is a local review tool only. It does not add authentication, uploads,
 multi-user support, a database, or production hosting assumptions.

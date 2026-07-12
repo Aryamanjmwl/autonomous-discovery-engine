@@ -46,6 +46,8 @@ data/reports/runs/
 data/reports/runs/*
 data/reports/dashboard/
 data/reports/dashboard/*
+data/dashboard/
+data/dashboard/*
 data/benchmarks/
 data/cache/
 data/feedback/
