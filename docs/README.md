@@ -1,15 +1,17 @@
 # ADE Documentation
 
-ADE is a general autonomous discovery platform. The current implementation is
-visual-data-first: it profiles image folders, extracts image patches, computes
-lightweight statistical representations, ranks candidate anomalies, groups
-candidate concepts, and writes reviewable reports.
+ADE is an adapter-based autonomous discovery platform. The current
+implementation includes a mature visual/image-folder workflow plus lightweight
+CSV adapter foundations where implemented. It profiles inputs, builds
+deterministic representations, ranks candidate anomalies, groups candidate
+concepts, and writes reviewable reports.
 
 All findings are candidate findings and require human review.
 
 ## Start Here
 
 - [Product scope](product_scope.md): current scope, future adapters, and non-goals.
+- [Modality capability matrix](modality_capability_matrix.md): implemented, foundation, and planned modality status.
 - [Architecture](ARCHITECTURE.md): ADE layers, extension points, visual pipeline, and feedback flow.
 - [Development workflow](development_workflow.md): install, test, demo, config, benchmark, and local verification commands.
 - [CLI reference](cli_reference.md): PowerShell-friendly command examples.

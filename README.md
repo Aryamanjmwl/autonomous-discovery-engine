@@ -1,10 +1,16 @@
 # ADE: Autonomous Discovery Engine
 
-ADE is a modular unsupervised discovery platform. It ingests datasets, builds representations, discovers candidate anomalies and hidden concepts, groups evidence, explains findings, and exports reviewable reports.
+ADE is an adapter-based autonomous discovery platform. It ingests datasets
+through modality adapters, builds representations, discovers candidate anomalies
+and candidate concepts, groups evidence, explains findings, and exports
+reviewable reports.
 
 Core principle: discovery with evidence, not only anomaly scores.
 
-The current implementation focuses on visual data. Computer vision is the first supported adapter, not the final scope of the product.
+The current private-alpha implementation includes a mature visual/image-folder
+workflow plus adapter foundations for selected CSV modalities where implemented.
+Visual discovery is the most complete workflow today, but ADE is not a
+visual-only system.
 
 ADE is not only for NASA and not only for scientific or aerospace datasets. The long-term goal is a general discovery assistant for individuals, companies, researchers, students, startups, factories, robotics teams, healthcare research teams, finance and data teams, climate and satellite analysts, logistics companies, security and monitoring teams, agriculture companies, space and aerospace organizations, and any user who has data and wants to investigate unknown patterns.
 
@@ -30,22 +36,45 @@ adding those heavy dependencies to the current prototype.
 
 ## Current Prototype Status
 
-This version is a minimal working MVP for image-folder input. It demonstrates a visual-data-first end-to-end discovery pipeline without using advanced AI, proprietary models, or deep learning.
+This version is a private-alpha foundation for adapter-based discovery. It
+demonstrates a mature visual/image-folder workflow without using advanced AI,
+proprietary models, or deep learning, and includes lightweight CSV tabular and
+CSV time-series foundations.
 
-Current supported inputs:
+Implemented / working inputs:
 
 - Image folders
+
+Foundation / partial inputs:
+
 - CSV files for lightweight row-level tabular discovery
 - CSV files with explicit time-series mode for timestamped point/window discovery
+- Video adapter placeholder with no decoded frame workflow yet
 
-Planned future supported data types:
+Planned future adapter targets:
 
 - Videos
 - Logs
 - Audio
+- Sensor streams
+- Live satellite feeds
+- Scientific instrument data
 - Documents
 - Multimodal datasets
 - Live streams
+
+## Implemented vs Planned
+
+- Implemented / working: visual image-folder workflow, report generation,
+  report validation, static HTML export, local human-review feedback,
+  benchmark script, and local verification script.
+- Foundation / partial: tabular CSV adapter, time-series CSV adapter, and video
+  adapter placeholder where present.
+- Planned: sensor streams, live satellite feeds, audio input, logs/events,
+  scientific instrument data, documents, multimodal datasets, and production
+  streaming pipelines.
+
+See `docs/modality_capability_matrix.md` for the current modality status.
 
 ## Current MVP Pipeline
 
@@ -126,7 +155,7 @@ Current supported image formats are configured in `configs/default.yaml` and inc
 
 ## What This Version Cannot Do Yet
 
-- Process videos, live streams, CSV files, robot logs, audio, documents, multimodal datasets, or industrial sensor data
+- Process production video workflows, live streams, robot logs, audio, documents, multimodal datasets, or industrial sensor streams
 - Use deep learning encoders such as CLIP, DINOv2, medical imaging models, or satellite-specific encoders
 - Guarantee that a candidate anomaly is meaningful
 - Prove scientific, clinical, operational, or financial conclusions
@@ -157,9 +186,11 @@ Start with `docs/README.md` for architecture, CLI reference, report schema,
 dashboard planning docs, release checklist, versioning policy, and private-alpha
 readiness notes.
 
-The current implementation is visual-data-first. Non-visual adapters, hosted
-workflows, dashboards, and deep model backends remain future work unless a
-specific branch documents and implements them.
+The current implementation is adapter-based. Visual discovery is the mature
+workflow; CSV tabular and CSV time-series are lightweight foundations where
+implemented. Hosted workflows, production dashboards, cloud services, and deep
+model backends remain future work unless a specific branch documents and
+implements them.
 
 ## Demo
 

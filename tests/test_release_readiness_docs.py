@@ -15,6 +15,7 @@ def test_private_alpha_docs_exist() -> None:
         "docs/README.md",
         "docs/cli_reference.md",
         "docs/report_schema.md",
+        "docs/modality_capability_matrix.md",
         "docs/dashboard/dashboard_product_spec.md",
         "docs/dashboard/dashboard_frontend_contract.md",
         "docs/dashboard/design_tokens.json",
@@ -24,6 +25,7 @@ def test_private_alpha_docs_exist() -> None:
         "docs/releases/private_alpha_readiness_audit.md",
         "examples/README.md",
         "examples/demo_workflow.md",
+        "examples/modalities/README.md",
         "CHANGELOG.md",
     ]
 
@@ -37,6 +39,7 @@ def test_private_alpha_docs_keep_human_review_language() -> None:
         "README.md",
         "docs/README.md",
         "docs/report_schema.md",
+        "docs/modality_capability_matrix.md",
         "docs/dashboard/dashboard_product_spec.md",
         "docs/dashboard/dashboard_frontend_contract.md",
         "docs/dashboard/dashboard_release_plan.md",
@@ -60,6 +63,41 @@ def test_report_schema_documents_stable_feedback_targets() -> None:
 
     assert "anomaly_id" in report_schema
     assert "concept_id" in report_schema
+
+
+def test_modality_positioning_docs_are_adapter_based() -> None:
+    combined_docs = "\n".join(
+        [
+            _read("README.md"),
+            _read("docs/product_scope.md"),
+            _read("docs/architecture.md"),
+            _read("docs/modality_capability_matrix.md"),
+            _read("examples/modalities/README.md"),
+        ]
+    ).lower()
+
+    assert "adapter-based" in combined_docs
+    assert "computer-vision-only" not in combined_docs
+    assert "visual-only system" in combined_docs
+
+
+def test_modality_matrix_covers_current_and_planned_modalities() -> None:
+    matrix = _read("docs/modality_capability_matrix.md").lower()
+
+    for keyword in [
+        "visual image folders",
+        "tabular csv",
+        "time-series csv",
+        "sensor streams",
+        "live satellite feeds",
+        "audio input",
+    ]:
+        assert keyword in matrix
+
+    for keyword in ["sensor streams", "live satellite feeds", "audio input"]:
+        section_start = matrix.index(keyword)
+        section = matrix[section_start : section_start + 240]
+        assert "planned" in section or "future" in section
 
 
 def test_dashboard_frontend_contract_documents_stable_targets() -> None:

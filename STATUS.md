@@ -1,6 +1,20 @@
 # ADE Status
 
-ADE is a general autonomous discovery platform. The current implementation focuses on visual data. Computer vision is the first supported adapter, not the final scope of the product.
+ADE is an adapter-based autonomous discovery platform. The current
+private-alpha foundation includes a mature visual/image-folder workflow plus
+lightweight adapter foundations where implemented. Findings are candidate
+anomalies, candidate concepts, or possible patterns that require human review.
+
+## Current Status
+
+- Private-alpha foundation for local, adapter-based discovery workflows
+- Mature visual workflow for local image folders
+- Tabular CSV foundation for row-level candidate anomaly and concept review
+- Time-series CSV foundation for explicit timestamped CSV workflows
+- Video adapter placeholder; no decoded frame workflow yet
+- Local human-review feedback through JSONL records
+- Dashboard UX docs and frontend contracts; no production dashboard app
+- Not production SaaS: no hosted uploads, auth, billing, database, or cloud deployment
 
 ## Done
 
@@ -8,6 +22,9 @@ ADE is a general autonomous discovery platform. The current implementation focus
 - Config system using `configs/default.yaml`
 - Synthetic image demo data generator
 - Image folder adapter
+- Tabular CSV adapter foundation
+- Time-series CSV adapter foundation
+- Video adapter placeholder
 - Visual input validation and dataset profiling
 - Single-scale and configured multi-scale patch extraction
 - Deterministic statistical embedding backend
@@ -33,21 +50,21 @@ ADE is a general autonomous discovery platform. The current implementation focus
 
 ## Partially Done
 
-- Internal dataclasses exist, but adapter contracts are still visual-data-oriented.
-- Dataset profiling currently covers image folders only.
+- Adapter contracts exist, but adapter-specific evidence views are still early.
+- Dataset profiling is strongest for image folders and lightweight for CSV foundations.
 - Multi-scale extraction is supported, but the default config intentionally uses one conservative scale.
 - Memory is in-process only; persistent memory banks, coreset selection, and vector database backends are not implemented.
 - Memory-aware scoring uses the current run's local patch memory, not a validated normal-reference memory bank.
 - Reporting is useful for the visual MVP, and local feedback capture exists, but dashboard review queues and richer collaborative review workflows are not implemented.
 - Dashboard documentation exists, but no dashboard app is implemented.
-- Config supports current pipeline parameters, but broader adapter configuration is not designed yet.
+- Config supports current visual and CSV foundation parameters, but broader adapter configuration is not designed yet.
 - Run history exists locally, but there is no dashboard, database, user account model, or hosted audit system.
 - Private-alpha docs are prepared for technical review, but they are not a production release certification.
 
 ## Not Done
 
-- Video adapter implementation
-- Tabular, time-series, log, audio, document, multimodal, or live stream adapters
+- Production video processing
+- Log, audio, document, multimodal, sensor-stream, live satellite feed, or live stream adapters
 - Deep visual embedding backend
 - Persistent vector memory, FAISS integration, or vector database storage
 - PatchCore-style normal memory bank scoring
@@ -60,7 +77,7 @@ ADE is a general autonomous discovery platform. The current implementation focus
 ## Next Recommended Engineering Steps
 
 1. Keep generated artifacts out of version control.
-2. Add explicit adapter interfaces before adding non-visual data types.
+2. Use the modality capability matrix before describing adapter support publicly.
 3. Add stronger visual feature backends behind the existing representation interface.
 4. Evaluate useful multi-scale presets on controlled demo and private datasets.
 5. Design normal-reference memory banks before adding PatchCore-style anomaly scoring.
