@@ -16,6 +16,9 @@ def test_private_alpha_docs_exist() -> None:
         "docs/cli_reference.md",
         "docs/modality_capability_matrix.md",
         "docs/report_schema.md",
+        "docs/portfolio_case_study.md",
+        "docs/sample_outputs.md",
+        "docs/cv_project_description.md",
         "docs/dashboard/dashboard_product_spec.md",
         "docs/dashboard/dashboard_frontend_contract.md",
         "docs/dashboard/design_tokens.json",
@@ -44,7 +47,11 @@ def test_private_alpha_docs_keep_human_review_language() -> None:
         "docs/dashboard/dashboard_product_spec.md",
         "docs/dashboard/dashboard_frontend_contract.md",
         "docs/dashboard/dashboard_release_plan.md",
+        "docs/portfolio_case_study.md",
+        "docs/sample_outputs.md",
+        "docs/cv_project_description.md",
         "docs/releases/private_alpha_readiness_audit.md",
+        "examples/demo_script.md",
         "examples/demo_workflow.md",
         "examples/modalities/tabular_workflow.md",
         "examples/modalities/timeseries_workflow.md",
@@ -112,6 +119,36 @@ def test_dashboard_docs_do_not_claim_deployed_app() -> None:
 def test_release_audit_and_demo_workflow_exist() -> None:
     assert (PROJECT_ROOT / "docs/releases/private_alpha_readiness_audit.md").is_file()
     assert (PROJECT_ROOT / "examples/demo_workflow.md").is_file()
+
+
+def test_portfolio_docs_exist_and_keep_private_alpha_framing() -> None:
+    required_paths = [
+        "docs/portfolio_case_study.md",
+        "docs/sample_outputs.md",
+        "docs/cv_project_description.md",
+        "examples/demo_script.md",
+    ]
+
+    for path in required_paths:
+        assert (PROJECT_ROOT / path).is_file(), path
+
+    portfolio = _read("docs/portfolio_case_study.md").lower()
+    sample_outputs = _read("docs/sample_outputs.md").lower()
+    cv_description = _read("docs/cv_project_description.md").lower()
+
+    assert "human review" in portfolio
+    assert "ignored by git" in sample_outputs
+    assert "not a production saas" in cv_description
+
+
+def test_readme_includes_portfolio_demo_status_language() -> None:
+    readme = _read("README.md").lower()
+
+    assert "--export-local-dashboard" in readme
+    assert "implemented" in readme
+    assert "foundation" in readme
+    assert "planned" in readme
+    assert "requires human review" in readme or "require human review" in readme
 
 
 def test_design_tokens_json_files_are_valid_when_present() -> None:
