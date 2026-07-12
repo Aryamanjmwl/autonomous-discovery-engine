@@ -74,6 +74,17 @@ python -m ade.cli --list-feedback
 python -m ade.cli --list-feedback --run-id <run_id>
 ```
 
+## Summarize Feedback Memory
+
+```powershell
+python -m ade.cli --summarize-feedback-memory
+python -m ade.cli --summarize-feedback-memory --run-id <run_id>
+```
+
+This reads the configured local JSONL feedback store and prints a concise
+Markdown-style summary. It does not run analysis. The summary is
+feedback-informed ranking support and does not replace human review.
+
 ## List Runs
 
 ```powershell

@@ -21,6 +21,7 @@ Common top-level JSON fields include:
 - `candidate_concepts` or `candidate_unknown_concepts`: grouped candidate concept records.
 - `evidence_summary`: supporting examples, near matches, confidence context, and warnings.
 - `confidence_scores`: bounded review-prioritization signals when available.
+- `review_memory_summary`: optional local feedback-memory counts when enabled.
 - `hypotheses`: cautious template-based hypotheses.
 - `limitations`: current limitations and human-review requirements.
 - `feedback`: local feedback metadata when feedback support is enabled.
@@ -42,6 +43,8 @@ Each newly generated candidate anomaly should include:
 - `score_breakdown`: scoring components when available.
 - `preview_path`: relative asset path when a preview image was generated.
 - `reason`: concise factual explanation when available.
+- `review_memory_signal`: optional feedback-informed ranking hint when prior
+  local feedback matches the candidate target.
 
 `anomaly_id` is the preferred feedback target ID for `--target-type anomaly`.
 Older reports may only include legacy `id` fields; validators should warn rather
@@ -59,6 +62,8 @@ Each newly generated candidate concept should include:
 - `evidence_items`: supporting candidate anomalies or patches.
 - `confidence_score` and component breakdowns when available.
 - `nearest_neighbors` or near-match evidence when visual memory is enabled.
+- `review_memory_signal`: optional feedback-informed ranking hint when prior
+  local feedback matches the candidate concept.
 
 `concept_id` is the preferred feedback target ID for `--target-type concept`.
 
@@ -97,6 +102,29 @@ Reports can advertise local feedback support through fields such as:
 
 Feedback records are stored separately as local JSONL artifacts and should not be
 treated as production audit records.
+
+## Review Memory Fields
+
+`review_memory_summary` is an additive report object derived from the local
+feedback JSONL store. It may include total feedback count, label counts, label
+counts by target type, configured positive/negative/neutral labels, and an
+explanation that the data is review-informed ranking support.
+
+Candidate-level `review_memory_signal` objects may include:
+
+- `priority_delta`
+- `matched_feedback_count`
+- `positive_feedback_count`
+- `negative_feedback_count`
+- `known_pattern_count`
+- `duplicate_count`
+- `needs_more_data_count`
+- `notes`
+- `explanation`
+
+These fields are deterministic summaries of human-review feedback. They do not
+prove that a candidate anomaly or candidate concept is meaningful and do not
+replace human review.
 
 ## Backward Compatibility
 

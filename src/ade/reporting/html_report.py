@@ -41,6 +41,7 @@ def render_html_report(report: dict[str, Any]) -> str:
     )
     anomaly_items = "\n".join(_anomaly_item(item) for item in anomalies if isinstance(item, dict))
     concept_items = "\n".join(_concept_item(item) for item in concepts if isinstance(item, dict))
+    review_memory_section = _review_memory_section(report)
     feedback_section = _feedback_section(report)
 
     return f"""<!doctype html>
@@ -59,6 +60,7 @@ def render_html_report(report: dict[str, Any]) -> str:
   <h1>ADE Local Review Report</h1>
   <p class="muted">Run ID: <code>{run_id}</code></p>
   <p>All findings are candidate findings and require human review.</p>
+  {review_memory_section}
   <h2>Candidate Anomalies</h2>
   {anomaly_items or "<p>No candidate anomalies reported.</p>"}
   <h2>Candidate Concepts</h2>
@@ -78,6 +80,7 @@ def _anomaly_item(item: dict[str, Any]) -> str:
         f"<h3>{_text(anomaly_id)}</h3>"
         f"<p>Novelty score: {_text(score)}</p>"
         f"<p>Source: <code>{_text(source)}</code></p>"
+        f"<p>Review memory: {_text(_signal_text(item.get('review_memory_signal')))}</p>"
         "</section>"
     )
 
@@ -89,8 +92,34 @@ def _concept_item(item: dict[str, Any]) -> str:
         '<section class="card">'
         f"<h3>{_text(concept_id)}</h3>"
         f"<p>Supporting examples: {_text(count)}</p>"
+        f"<p>Review memory: {_text(_signal_text(item.get('review_memory_signal')))}</p>"
         "</section>"
     )
+
+
+def _review_memory_section(report: dict[str, Any]) -> str:
+    summary = report.get("review_memory_summary")
+    if not isinstance(summary, dict):
+        return """
+  <h2>Review Memory</h2>
+  <p>No review-memory summary is attached to this report.</p>
+"""
+    total = summary.get("total_feedback_count", 0)
+    label_counts = summary.get("label_counts")
+    labels = ""
+    if isinstance(label_counts, dict) and label_counts:
+        labels = "<ul>" + "".join(
+            f"<li>{_text(label)}: {_text(count)}</li>"
+            for label, count in sorted(label_counts.items())
+        ) + "</ul>"
+    else:
+        labels = "<p>No feedback labels were available.</p>"
+    return f"""
+  <h2>Review Memory</h2>
+  <p>Review-memory signals are feedback-informed ranking support, not automated truth.</p>
+  <p>Feedback records available: {_text(total)}</p>
+  {labels}
+"""
 
 
 def _feedback_section(report: dict[str, Any]) -> str:
@@ -123,6 +152,18 @@ def _feedback_section(report: dict[str, Any]) -> str:
   <pre><code>{_text(anomaly_command)}</code></pre>
   <pre><code>{_text(concept_command)}</code></pre>
 """
+
+
+def _signal_text(value: object) -> str:
+    if not isinstance(value, dict):
+        return "no signal"
+    matched = int(value.get("matched_feedback_count") or 0)
+    if matched == 0:
+        return "no matching feedback"
+    delta = float(value.get("priority_delta") or 0.0)
+    notes = value.get("notes")
+    note_text = "; ".join(str(note) for note in notes) if isinstance(notes, list) else ""
+    return f"delta {delta:+.2f}" + (f"; {note_text}" if note_text else "")
 
 
 def _text(value: object) -> str:

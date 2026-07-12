@@ -61,8 +61,9 @@ The current pipeline performs:
 8. Evidence bundle collection
 9. Concept consistency and confidence scoring
 10. Lightweight visual memory indexing and nearest-neighbor retrieval
-11. Cautious hypothesis generation
-12. Markdown and JSON discovery report generation
+11. Local review-memory summarization from human feedback JSONL
+12. Cautious hypothesis generation
+13. Markdown and JSON discovery report generation
 
 For CSV files, ADE uses a separate lightweight tabular path: CSV validation,
 numeric/categorical profiling, deterministic row-level feature extraction,
@@ -121,6 +122,7 @@ ADE is designed to grow into a cross-industry discovery platform. Example future
 - Generate cautious template-based hypotheses
 - Write a Markdown ADE Discovery Report and a structured JSON sidecar report
 - Record local human-review feedback for candidate anomalies and candidate concepts
+- Summarize prior local feedback as review-informed ranking support in future reports
 
 Current supported image formats are configured in `configs/default.yaml` and include `.jpg`, `.jpeg`, `.png`, `.bmp`, and `.webp`.
 
@@ -129,6 +131,7 @@ Current supported image formats are configured in `configs/default.yaml` and inc
 - Process videos, live streams, CSV files, robot logs, audio, documents, multimodal datasets, or industrial sensor data
 - Use deep learning encoders such as CLIP, DINOv2, medical imaging models, or satellite-specific encoders
 - Guarantee that a candidate anomaly is meaningful
+- Learn production personalization or supervised truth labels from feedback
 - Prove scientific, clinical, operational, or financial conclusions
 - Provide medical diagnosis or financial advice
 - Replace human experts or domain review
@@ -179,10 +182,24 @@ For example, this command creates both:
 
 The Markdown report is for human review. The JSON report stores structured
 candidate anomalies, candidate unknown concepts, evidence bundles,
-nearest-neighbor evidence, confidence breakdowns, hypotheses, limitations,
-and the human-review requirement so future dashboards, APIs, databases,
-subscription workflows, or comparison tools can consume the same discovery
-results.
+nearest-neighbor evidence, confidence breakdowns, optional review-memory
+signals, hypotheses, limitations, and the human-review requirement so future
+dashboards, APIs, databases, subscription workflows, or comparison tools can
+consume the same discovery results.
+
+## Review Memory
+
+ADE stores reviewer labels in a local JSONL feedback store. When review memory
+is enabled, future image reports can include a `review_memory_summary` and
+candidate-level `review_memory_signal` objects. These signals are simple,
+deterministic counts from labels such as `important`, `interesting`,
+`false_positive`, `known_pattern`, and `duplicate`.
+
+Review memory is feedback-informed ranking support. It does not replace human
+review, does not prove that a candidate anomaly is meaningful, and does not
+implement supervised learning or production personalization. Future work may add
+a reviewer dashboard and concept memory, with the local JSONL store remaining
+the private-alpha source of feedback state for now.
 
 ## Generate Demo Data
 
