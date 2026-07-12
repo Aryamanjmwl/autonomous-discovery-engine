@@ -2,7 +2,7 @@
 
 ## Short CV Bullet
 
-- Built ADE, a private-alpha Python discovery platform with adapter-based visual,
+- Built ADE, a technical preview Python discovery platform with adapter-based visual,
   CSV tabular, and CSV time-series workflows, producing validated local reports,
   human-review feedback, review-informed ranking signals, benchmarks, and static
   dashboard exports.
@@ -18,7 +18,7 @@ artifacts, records local human-review feedback, and packages generated outputs
 through a static local dashboard export.
 
 The project emphasizes practical ML systems design, cautious reporting, and
-human-in-the-loop review. It is a private-alpha local workflow, not a production
+human-in-the-loop review. It is a technical preview local workflow, not a production
 SaaS platform.
 
 ## Longer Interview Version
@@ -51,11 +51,11 @@ inspect the project without cloud services.
 - CI and test coverage for local workflows.
 - Human-in-the-loop review mechanics.
 - Local dashboard and static export workflows.
-- Documentation for private-alpha product scope and limitations.
+- Documentation for technical preview product scope and limitations.
 
 ## Honest Status Wording
 
-ADE is a local/private-alpha project, not a production SaaS product. It
+ADE is a local technical preview project, not a production SaaS product. It
 demonstrates an adapter-based discovery workflow with mature visual reports and
 lightweight CSV foundations. It does not implement hosted dashboards,
 auth/users, database services, billing, production streaming, audio analysis,

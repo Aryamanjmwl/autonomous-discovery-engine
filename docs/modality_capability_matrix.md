@@ -19,5 +19,5 @@ adapter paths.
 
 All current outputs are candidate findings for human review. ADE does not claim
 automated truth, supervised learning, production personalization, cloud hosting,
-authentication, billing, or production streaming in this local private-alpha
+authentication, billing, or production streaming in this local technical preview
 workflow.
