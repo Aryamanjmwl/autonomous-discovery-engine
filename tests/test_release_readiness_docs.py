@@ -14,6 +14,7 @@ def test_private_alpha_docs_exist() -> None:
     required_paths = [
         "docs/README.md",
         "docs/cli_reference.md",
+        "docs/modality_capability_matrix.md",
         "docs/report_schema.md",
         "docs/dashboard/dashboard_product_spec.md",
         "docs/dashboard/dashboard_frontend_contract.md",
@@ -24,6 +25,8 @@ def test_private_alpha_docs_exist() -> None:
         "docs/releases/private_alpha_readiness_audit.md",
         "examples/README.md",
         "examples/demo_workflow.md",
+        "examples/modalities/tabular_workflow.md",
+        "examples/modalities/timeseries_workflow.md",
         "CHANGELOG.md",
     ]
 
@@ -37,11 +40,14 @@ def test_private_alpha_docs_keep_human_review_language() -> None:
         "README.md",
         "docs/README.md",
         "docs/report_schema.md",
+        "docs/modality_capability_matrix.md",
         "docs/dashboard/dashboard_product_spec.md",
         "docs/dashboard/dashboard_frontend_contract.md",
         "docs/dashboard/dashboard_release_plan.md",
         "docs/releases/private_alpha_readiness_audit.md",
         "examples/demo_workflow.md",
+        "examples/modalities/tabular_workflow.md",
+        "examples/modalities/timeseries_workflow.md",
     ]
 
     for path in checked_docs:
@@ -60,6 +66,15 @@ def test_report_schema_documents_stable_feedback_targets() -> None:
 
     assert "anomaly_id" in report_schema
     assert "concept_id" in report_schema
+
+
+def test_modality_matrix_reflects_tabular_and_timeseries_status() -> None:
+    matrix = _read("docs/modality_capability_matrix.md").lower()
+
+    assert "tabular csv | implemented lightweight adapter foundation and cli workflow" in matrix
+    assert "time-series csv | implemented lightweight adapter foundation" in matrix
+    assert "live streams | planned adapter path" in matrix
+    assert "human review" in matrix
 
 
 def test_dashboard_frontend_contract_documents_stable_targets() -> None:

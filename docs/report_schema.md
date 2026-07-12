@@ -14,7 +14,7 @@ Common top-level JSON fields include:
 - `run_id`: stable ID for the analysis run.
 - `run_metadata`: timestamp, input path, output paths, counts, pipeline version, and review flags.
 - `dataset_summary`: high-level dataset and patch counts.
-- `dataset_profile`: input validation results for the current image-folder adapter.
+- `dataset_profile`: input validation/profile results for the current adapter.
 - `configuration`: selected runtime settings when included by the report generator.
 - `feature_summary`: lightweight representation strategy details when included.
 - `candidate_anomalies`: ranked candidate anomaly records.
@@ -79,8 +79,23 @@ Each newly generated candidate concept should include:
 - warnings
 - validity flag
 
-The current implementation profiles image folders only. Future adapters should
-add their own profiles without claiming support before implementation exists.
+The current implementation profiles image folders, tabular CSV files, and
+timestamped CSV files. Tabular reports may include `tabular_profile`;
+time-series reports may include `timeseries_profile`. Future adapters should add
+their own profiles without claiming support before implementation exists.
+
+## Tabular and Time-Series Reports
+
+Tabular reports use `modality: "tabular"` and include row-level
+`candidate_anomalies`, candidate tabular concepts, `tabular_profile`, backend
+metadata, and run metadata. Time-series reports use `modality: "timeseries"` and
+include timestamped candidate findings, candidate time-series concepts,
+`timeseries_profile`, backend metadata, and run metadata.
+
+Both report types are lightweight adapter-foundation reports. Their candidate
+anomalies and possible patterns require human review. They do not imply
+supervised learning, production personalization, forecasting, streaming, live
+sensor ingestion, or database-backed workflows.
 
 ## Evidence and Confidence Fields
 

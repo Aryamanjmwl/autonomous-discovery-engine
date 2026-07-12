@@ -7,7 +7,10 @@ ADE is a general autonomous discovery platform. The current implementation focus
 - Python package scaffold with `src/` layout
 - Config system using `configs/default.yaml`
 - Synthetic image demo data generator
+- Synthetic tabular and time-series CSV demo data generators
 - Image folder adapter
+- Tabular CSV adapter and lightweight row-level CLI workflow
+- Time-series CSV adapter and explicit point/window-level CLI workflow
 - Visual input validation and dataset profiling
 - Single-scale and configured multi-scale patch extraction
 - Deterministic statistical embedding backend
@@ -34,21 +37,23 @@ ADE is a general autonomous discovery platform. The current implementation focus
 
 ## Partially Done
 
-- Internal dataclasses exist, but adapter contracts are still visual-data-oriented.
-- Dataset profiling currently covers image folders only.
+- Internal dataclasses exist, but adapter contracts still need more hardening before broader external plugin use.
+- Dataset profiling is implemented for image folders, tabular CSV, and time-series CSV; other modalities remain planned.
 - Multi-scale extraction is supported, but the default config intentionally uses one conservative scale.
 - Memory is in-process only; persistent memory banks, coreset selection, and vector database backends are not implemented.
 - Memory-aware scoring uses the current run's local patch memory, not a validated normal-reference memory bank.
 - Reporting is useful for the visual MVP, and local feedback capture can inform future ranking annotations, but dashboard review queues and richer collaborative review workflows are not implemented.
 - Dashboard documentation exists, but no dashboard app is implemented.
-- Config supports current pipeline parameters, but broader adapter configuration is not designed yet.
+- Config supports current visual, tabular, and time-series pipeline parameters, but broader adapter configuration is not designed yet.
 - Run history exists locally, but there is no dashboard, database, user account model, or hosted audit system.
 - Private-alpha docs are prepared for technical review, but they are not a production release certification.
 
 ## Not Done
 
 - Video adapter implementation
-- Tabular, time-series, log, audio, document, multimodal, or live stream adapters
+- Log, audio, document, multimodal, or live stream adapters
+- Production tabular database ingestion, joins, or personalization
+- Production time-series forecasting, live sensors, streaming, or alerting
 - Deep visual embedding backend
 - Persistent vector memory, FAISS integration, or vector database storage
 - PatchCore-style normal memory bank scoring
@@ -62,7 +67,7 @@ ADE is a general autonomous discovery platform. The current implementation focus
 ## Next Recommended Engineering Steps
 
 1. Keep generated artifacts out of version control.
-2. Add explicit adapter interfaces before adding non-visual data types.
+2. Keep hardening adapter interfaces before adding more non-visual data types.
 3. Add stronger visual feature backends behind the existing representation interface.
 4. Evaluate useful multi-scale presets on controlled demo and private datasets.
 5. Design normal-reference memory banks before adding PatchCore-style anomaly scoring.

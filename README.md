@@ -4,7 +4,9 @@ ADE is a modular unsupervised discovery platform. It ingests datasets, builds re
 
 Core principle: discovery with evidence, not only anomaly scores.
 
-The current implementation focuses on visual data. Computer vision is the first supported adapter, not the final scope of the product.
+The current implementation has a mature local visual workflow plus lightweight
+tabular and time-series adapter foundations with CLI reports. Computer vision
+is the first mature adapter, not the final scope of the product.
 
 ADE is not only for NASA and not only for scientific or aerospace datasets. The long-term goal is a general discovery assistant for individuals, companies, researchers, students, startups, factories, robotics teams, healthcare research teams, finance and data teams, climate and satellite analysts, logistics companies, security and monitoring teams, agriculture companies, space and aerospace organizations, and any user who has data and wants to investigate unknown patterns.
 
@@ -30,7 +32,9 @@ adding those heavy dependencies to the current prototype.
 
 ## Current Prototype Status
 
-This version is a minimal working MVP for image-folder input. It demonstrates a visual-data-first end-to-end discovery pipeline without using advanced AI, proprietary models, or deep learning.
+This version is a local/private-alpha MVP. It demonstrates a visual-first
+end-to-end workflow and lightweight CSV tabular/time-series foundations without
+using advanced AI, proprietary models, or deep learning.
 
 Current supported inputs:
 
@@ -128,7 +132,9 @@ Current supported image formats are configured in `configs/default.yaml` and inc
 
 ## What This Version Cannot Do Yet
 
-- Process videos, live streams, CSV files, robot logs, audio, documents, multimodal datasets, or industrial sensor data
+- Process videos, live streams, robot logs, audio, documents, multimodal datasets, or industrial sensor data
+- Provide production-grade tabular or time-series semantics such as database
+  joins, forecasting, live sensors, or streaming alerts
 - Use deep learning encoders such as CLIP, DINOv2, medical imaging models, or satellite-specific encoders
 - Guarantee that a candidate anomaly is meaningful
 - Learn production personalization or supervised truth labels from feedback
@@ -160,9 +166,10 @@ Start with `docs/README.md` for architecture, CLI reference, report schema,
 dashboard planning docs, release checklist, versioning policy, and private-alpha
 readiness notes.
 
-The current implementation is visual-data-first. Non-visual adapters, hosted
-workflows, dashboards, and deep model backends remain future work unless a
-specific branch documents and implements them.
+The current implementation includes a visual-first local workflow plus
+lightweight tabular CSV and explicit time-series CSV workflows. Hosted
+workflows, dashboards, production streaming, live feeds, and deep model backends
+remain future work unless a specific branch documents and implements them.
 
 ## Demo
 
@@ -219,21 +226,36 @@ python -m ade.cli --input data/raw/demo_images --output data/reports/demo_report
 
 ## CSV Demo Commands
 
+Generate a deterministic tabular CSV:
+
+```bash
+python scripts/create_tabular_demo_data.py
+```
+
 Run ADE on a CSV file by passing the file path as `--input`:
 
 ```bash
-python -m ade.cli --input data/raw/example.csv --output data/reports/tabular_report.md
+python -m ade.cli --input data/raw/demo_tabular/operations.csv --output data/reports/tabular_demo_report.md --modality tabular
 ```
 
 The current tabular implementation performs row-level discovery only. Findings
 are candidate row anomalies and candidate tabular concepts that require human
 review.
 
+Generate a deterministic timestamped CSV:
+
+```bash
+python scripts/create_timeseries_demo_data.py
+```
+
 Run ADE on a timestamped CSV file by explicitly selecting time-series mode:
 
 ```bash
-python -m ade.cli --input data/raw/series.csv --output data/reports/timeseries_report.md --modality timeseries --timestamp-column timestamp
+python -m ade.cli --input data/raw/demo_timeseries/machine_metrics.csv --output data/reports/timeseries_demo_report.md --modality timeseries --timestamp-column timestamp --entity-column machine
 ```
+
+See `docs/modality_capability_matrix.md` and `examples/modalities/` for the
+current modality status.
 
 The current time-series implementation performs point/window-feature discovery
 only. It does not perform forecasting, streaming ingestion, or production

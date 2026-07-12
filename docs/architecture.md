@@ -141,10 +141,12 @@ is loaded, so unsupported names fail before the pipeline starts processing data.
 ## Current Boundaries
 
 The current implementation includes image-folder inputs, plain CSV tabular
-inputs, and explicit timestamped CSV time-series inputs. It does not include
-video, audio, document, log, database, live-stream, forecasting, or production
-monitoring adapters. Deep learning backends and enterprise storage are planned
-extension points, not current capabilities.
+inputs, and explicit timestamped CSV time-series inputs. Tabular and time-series
+support are lightweight adapter foundations with end-to-end local CLI reports.
+They do not include relational database ingestion, forecasting, live sensors,
+streaming alerts, or production monitoring. Video, audio, document, log,
+multimodal, live-stream, deep-learning backends, and enterprise storage are
+planned extension points, not current capabilities.
 
 Heavy model dependencies are intentionally delayed until the lightweight
 pipeline, report schema, and backend contracts are stable.

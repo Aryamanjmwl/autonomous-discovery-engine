@@ -35,6 +35,8 @@ data/processed/*
 data/embeddings/*
 data/reports/*
 data/raw/demo_images/
+data/raw/demo_tabular/
+data/raw/demo_timeseries/
 data/reports/*.md
 data/reports/*.json
 data/reports/*.html
