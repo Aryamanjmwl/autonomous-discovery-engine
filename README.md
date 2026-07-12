@@ -12,6 +12,52 @@ ADE is not only for NASA and not only for scientific or aerospace datasets. The 
 
 The current repository is an early private research prototype. It produces candidate anomalies, candidate unknown concepts, possible relationships, and hypotheses that require human expert review. ADE is not a final truth machine and does not replace domain experts.
 
+## Portfolio Evaluation Snapshot
+
+ADE is an adapter-based autonomous discovery platform for local exploratory
+data review. It is designed to surface candidate anomalies, candidate concepts,
+and possible patterns with evidence so a human reviewer can decide what is
+worth deeper investigation.
+
+The current private-alpha implementation is strongest on the visual/image-folder
+workflow. It also includes lightweight CSV tabular and CSV time-series
+workflows with local CLI reports, plus a static local dashboard export for
+reviewing generated artifacts. Outputs are review aids, not automated truth.
+
+| Status | Capabilities |
+| --- | --- |
+| Implemented | Visual/image-folder local workflow; Markdown, JSON, and HTML reports; report validation; run history; benchmark script; local dashboard export; human-review feedback; review-informed memory signals; local verification and CI |
+| Foundation | CSV tabular workflow; CSV time-series workflow; adapter interfaces; dashboard contracts |
+| Planned | Audio; live satellite feeds; sensor streams; production streaming; hosted dashboard; auth/users; database/backend service; enterprise deployment |
+
+One-command local verification:
+
+```bash
+python scripts/verify_local.py
+```
+
+Demo workflow:
+
+```bash
+python scripts/create_demo_data.py
+python -m ade.cli --input data/raw/demo_images --output data/reports/demo_report.md
+python -m ade.cli --validate-report data/reports/demo_report.json
+python -m ade.cli --export-html-report data/reports/demo_report.json --output data/reports/demo_report.html
+python scripts/run_benchmark.py --input data/raw/demo_images --config configs/default.yaml --output data/benchmarks/demo_benchmark.json
+python -m ade.cli --export-local-dashboard --output data/dashboard
+```
+
+Example outputs include `data/reports/demo_report.md`,
+`data/reports/demo_report.json`, `data/reports/demo_report.html`,
+`data/reports/runs/index.json`, `data/benchmarks/demo_benchmark.json`, and
+`data/dashboard/index.html`. Generated artifacts stay local and are ignored by
+Git.
+
+Current limitations: ADE does not process audio, live satellite feeds, sensor
+streams, or production streams; it does not provide cloud hosting, auth,
+database-backed review queues, billing, production personalization, or
+enterprise deployment. All candidate findings require human review.
+
 ## What Problem ADE Solves
 
 Most AI tools are built around known questions: classify this image, summarize this text, forecast this metric, or answer this prompt. Many real-world datasets contain useful signals that users do not yet know to ask about.
