@@ -19,6 +19,7 @@ def test_private_alpha_docs_exist() -> None:
         "docs/portfolio_case_study.md",
         "docs/sample_outputs.md",
         "docs/cv_project_description.md",
+        "docs/demo_assets.md",
         "docs/dashboard/dashboard_product_spec.md",
         "docs/dashboard/dashboard_frontend_contract.md",
         "docs/dashboard/design_tokens.json",
@@ -26,6 +27,8 @@ def test_private_alpha_docs_exist() -> None:
         "docs/release_checklist.md",
         "docs/versioning_policy.md",
         "docs/releases/private_alpha_readiness_audit.md",
+        "docs/releases/v0.1.0-private-alpha.md",
+        "docs/releases/github_release_body_v0.1.0-private-alpha.md",
         "examples/README.md",
         "examples/demo_workflow.md",
         "examples/modalities/tabular_workflow.md",
@@ -50,7 +53,10 @@ def test_private_alpha_docs_keep_human_review_language() -> None:
         "docs/portfolio_case_study.md",
         "docs/sample_outputs.md",
         "docs/cv_project_description.md",
+        "docs/demo_assets.md",
         "docs/releases/private_alpha_readiness_audit.md",
+        "docs/releases/v0.1.0-private-alpha.md",
+        "docs/releases/github_release_body_v0.1.0-private-alpha.md",
         "examples/demo_script.md",
         "examples/demo_workflow.md",
         "examples/modalities/tabular_workflow.md",
@@ -145,10 +151,28 @@ def test_readme_includes_portfolio_demo_status_language() -> None:
     readme = _read("README.md").lower()
 
     assert "--export-local-dashboard" in readme
+    assert "v0.1.0-private-alpha.md" in readme
     assert "implemented" in readme
     assert "foundation" in readme
     assert "planned" in readme
     assert "requires human review" in readme or "require human review" in readme
+
+
+def test_private_alpha_release_docs_are_release_ready_without_overclaiming() -> None:
+    release_note = _read("docs/releases/v0.1.0-private-alpha.md").lower()
+    release_body = _read(
+        "docs/releases/github_release_body_v0.1.0-private-alpha.md"
+    ).lower()
+    demo_assets = _read("docs/demo_assets.md").lower()
+    checklist = _read("docs/release_checklist.md").lower()
+
+    assert "human review" in release_note
+    assert "not a production saas" in release_note
+    assert "not a production saas" in release_body
+    assert "verify_local.py" in checklist
+    assert "--export-local-dashboard" in checklist
+    assert "git tag -a v0.1.0-private-alpha" in checklist
+    assert "do not commit generated private data" in demo_assets
 
 
 def test_design_tokens_json_files_are_valid_when_present() -> None:

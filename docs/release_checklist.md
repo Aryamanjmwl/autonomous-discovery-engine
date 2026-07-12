@@ -46,6 +46,33 @@ review aid, not a production certification.
 - Docs and examples match the commands that actually work.
 - No secrets, local paths, generated artifacts, or unrelated files are included.
 - Changelog is updated for user-visible changes.
+
+## Final Release Verification Block
+
+Run this block from the repository root before creating a private-alpha tag:
+
+```powershell
+ruff check
+pytest
+python scripts/verify_local.py
+python scripts/create_demo_data.py
+python -m ade.cli --input data/raw/demo_images --output data/reports/demo_report.md
+python -m ade.cli --validate-report data/reports/demo_report.json
+python -m ade.cli --export-html-report data/reports/demo_report.json --output data/reports/demo_report.html
+python scripts/run_benchmark.py --input data/raw/demo_images --config configs/default.yaml --output data/benchmarks/demo_benchmark.json
+python -m ade.cli --export-local-dashboard --output data/dashboard
+```
+
+Suggested manual tag commands after review. Do not run these until the release
+contents have been manually inspected:
+
+```powershell
+git tag -a v0.1.0-private-alpha -m "ADE v0.1.0 private alpha"
+git push origin v0.1.0-private-alpha
+```
+
+Generated demo data, reports, benchmark JSON, dashboard output, and feedback
+logs must remain ignored and uncommitted.
 # Release Checklist
 
 Use this checklist before creating an internal or public release.
