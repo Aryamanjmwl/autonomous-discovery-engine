@@ -46,6 +46,20 @@ feedback:
   enabled: true
   store_path: "data/feedback/feedback.jsonl"
 
+review_memory:
+  enabled: true
+  feedback_store_path: "data/feedback/feedback.jsonl"
+  positive_labels:
+    - interesting
+    - important
+  negative_labels:
+    - false_positive
+    - not_useful
+  neutral_labels:
+    - known_pattern
+    - duplicate
+    - needs_more_data
+
 tabular:
   id_column:
   max_categorical_cardinality: 50

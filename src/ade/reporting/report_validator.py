@@ -73,8 +73,11 @@ def validate_report_dict(report: dict[str, Any]) -> ReportValidationResult:
 
     _require_list(report, "candidate_anomalies", errors)
     _require_list(report, "candidate_unknown_concepts", errors)
+    _require_optional_object(report, "review_memory_summary", errors)
     _warn_for_missing_ids(report.get("candidate_anomalies"), "anomaly_id", warnings)
     _warn_for_missing_ids(report.get("candidate_unknown_concepts"), "concept_id", warnings)
+    _warn_for_review_memory_signals(report.get("candidate_anomalies"), warnings)
+    _warn_for_review_memory_signals(report.get("candidate_unknown_concepts"), warnings)
 
     return ReportValidationResult(is_valid=not errors, errors=errors, warnings=warnings)
 
@@ -85,9 +88,47 @@ def _require_list(report: dict[str, Any], field_name: str, errors: list[str]) ->
         errors.append(f"{field_name} must be a list.")
 
 
+def _require_optional_object(
+    report: dict[str, Any],
+    field_name: str,
+    errors: list[str],
+) -> None:
+    value = report.get(field_name)
+    if value is not None and not isinstance(value, dict):
+        errors.append(f"{field_name} must be an object when present.")
+
+
 def _warn_for_missing_ids(value: object, id_field: str, warnings: list[str]) -> None:
     if not isinstance(value, list):
         return
     for index, item in enumerate(value, start=1):
         if isinstance(item, dict) and not item.get(id_field):
             warnings.append(f"{id_field} missing for item {index}.")
+
+
+def _warn_for_review_memory_signals(value: object, warnings: list[str]) -> None:
+    if not isinstance(value, list):
+        return
+    required_fields = {
+        "priority_delta",
+        "matched_feedback_count",
+        "positive_feedback_count",
+        "negative_feedback_count",
+        "known_pattern_count",
+        "duplicate_count",
+        "notes",
+        "explanation",
+    }
+    for index, item in enumerate(value, start=1):
+        if not isinstance(item, dict) or "review_memory_signal" not in item:
+            continue
+        signal = item["review_memory_signal"]
+        if not isinstance(signal, dict):
+            warnings.append(f"review_memory_signal must be an object for item {index}.")
+            continue
+        missing = sorted(required_fields.difference(signal))
+        if missing:
+            warnings.append(
+                f"review_memory_signal missing fields for item {index}: "
+                + ", ".join(missing)
+            )

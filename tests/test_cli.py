@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from ade.cli import format_run_history, main, run_pipeline
+from ade.feedback import FeedbackStore, ReviewFeedback
 
 
 def _sample_run(run_id: str) -> dict[str, object]:
@@ -204,6 +205,45 @@ demo_data:
     assert report_data["run_index_path"].endswith("run_records/index.json")
     assert (tmp_path / "preview_assets").is_dir()
     assert (tmp_path / "run_records" / "index.json").is_file()
+
+
+def test_run_pipeline_includes_review_memory_summary_when_feedback_exists(
+    tmp_path: Path,
+) -> None:
+    pytest.importorskip("PIL.Image")
+    image_dir = tmp_path / "images"
+    report_path = tmp_path / "report.md"
+    feedback_path = tmp_path / "feedback.jsonl"
+    config_path = tmp_path / "config.yaml"
+    _load_demo_module().generate_demo_images(output_dir=image_dir)
+    FeedbackStore(feedback_path).append(
+        ReviewFeedback.create(
+            run_id="prior-run",
+            report_path=tmp_path / "prior_report.json",
+            target_type="anomaly",
+            target_id="anomaly-0001",
+            label="important",
+        )
+    )
+    config_path.write_text(
+        "review_memory:\n"
+        "  enabled: true\n"
+        f"  feedback_store_path: \"{feedback_path.as_posix()}\"\n"
+        "discovery:\n"
+        "  max_candidate_anomalies: 2\n",
+        encoding="utf-8",
+    )
+
+    run_pipeline(
+        input_dir=image_dir,
+        output_path=report_path,
+        config_path=config_path,
+    )
+
+    report_data = json.loads(report_path.with_suffix(".json").read_text(encoding="utf-8"))
+
+    assert report_data["review_memory_summary"]["total_feedback_count"] == 1
+    assert "review_memory_signal" in report_data["candidate_anomalies"][0]
 
 
 def test_run_pipeline_rejects_mismatched_patch_scale_config(tmp_path: Path) -> None:

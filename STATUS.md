@@ -25,6 +25,7 @@ ADE is a general autonomous discovery platform. The current implementation focus
 - Run history index
 - CLI run listing with optional limit
 - Local JSONL human-review feedback records for report targets
+- Local review-memory summary and report annotations from human-review feedback
 - Report validation, static HTML export, benchmark, and local verification scripts
 - Private-alpha documentation package with CLI, schema, versioning, release checklist, audit, and examples
 - Dashboard UX documentation, frontend data contract, design tokens, and phased release plan
@@ -38,7 +39,7 @@ ADE is a general autonomous discovery platform. The current implementation focus
 - Multi-scale extraction is supported, but the default config intentionally uses one conservative scale.
 - Memory is in-process only; persistent memory banks, coreset selection, and vector database backends are not implemented.
 - Memory-aware scoring uses the current run's local patch memory, not a validated normal-reference memory bank.
-- Reporting is useful for the visual MVP, and local feedback capture exists, but dashboard review queues and richer collaborative review workflows are not implemented.
+- Reporting is useful for the visual MVP, and local feedback capture can inform future ranking annotations, but dashboard review queues and richer collaborative review workflows are not implemented.
 - Dashboard documentation exists, but no dashboard app is implemented.
 - Config supports current pipeline parameters, but broader adapter configuration is not designed yet.
 - Run history exists locally, but there is no dashboard, database, user account model, or hosted audit system.
@@ -53,6 +54,7 @@ ADE is a general autonomous discovery platform. The current implementation focus
 - PatchCore-style normal memory bank scoring
 - Production dashboard
 - Database-backed review queues or user-specific feedback workflows
+- Supervised learning or production personalization from feedback
 - Subscription platform
 - User authentication, hosted storage, billing, or workspace isolation
 - Validated scientific, medical, legal, financial, or operational conclusions
@@ -66,6 +68,7 @@ ADE is a general autonomous discovery platform. The current implementation focus
 5. Design normal-reference memory banks before adding PatchCore-style anomaly scoring.
 6. Add normal-comparison evidence once baseline/reference selection is designed.
 7. Improve report review workflows with human annotations.
-8. Add run comparison tools for candidate anomalies and candidate concepts across experiments.
-9. Continue documenting original decisions and experiments before public disclosure.
-10. Run linting and type checking before a tagged internal release once the development environment includes those optional tools.
+8. Design reviewer dashboard and concept-memory flows around the local feedback JSONL contract.
+9. Add run comparison tools for candidate anomalies and candidate concepts across experiments.
+10. Continue documenting original decisions and experiments before public disclosure.
+11. Run linting and type checking before a tagged internal release once the development environment includes those optional tools.

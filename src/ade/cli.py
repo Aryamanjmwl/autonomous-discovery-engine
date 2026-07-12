@@ -27,6 +27,7 @@ from ade.feedback import (
     FeedbackStore,
     ReviewFeedback,
 )
+from ade.memory.review_memory import build_review_memory_summary
 from ade.memory.vector_memory import VectorMemory
 from ade.models import CandidateAnomaly, DatasetProfile
 from ade.preprocessing.input_validator import profile_image_folder
@@ -140,6 +141,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="List local review feedback summary.",
     )
+    parser.add_argument(
+        "--summarize-feedback-memory",
+        action="store_true",
+        help="Summarize local review-memory signals from human-review feedback.",
+    )
     parser.add_argument("--run-id", help="Optional run ID filter for feedback listing.")
     parser.add_argument(
         "--limit",
@@ -201,7 +207,29 @@ def run_pipeline(
     project = config["project"]
     validation = config["validation"]
     memory_config = config["memory"]
+    review_memory_config = config.get("review_memory", {})
     scoring_config = discovery["memory_aware_scoring"]
+    review_memory_summary = None
+    if isinstance(review_memory_config, dict) and bool(review_memory_config.get("enabled", True)):
+        feedback_records = FeedbackStore(_review_memory_store_path(config)).read_all()
+        review_memory_summary = build_review_memory_summary(
+            feedback_records,
+            positive_labels=_review_memory_labels(
+                review_memory_config,
+                "positive_labels",
+                ["interesting", "important"],
+            ),
+            negative_labels=_review_memory_labels(
+                review_memory_config,
+                "negative_labels",
+                ["false_positive", "not_useful"],
+            ),
+            neutral_labels=_review_memory_labels(
+                review_memory_config,
+                "neutral_labels",
+                ["known_pattern", "duplicate", "needs_more_data"],
+            ),
+        )
 
     patch_sizes, patch_strides = _resolve_patch_scales(
         preprocessing=preprocessing,
@@ -349,6 +377,7 @@ def run_pipeline(
             ),
             **novelty_scorer.last_metadata.to_dict(),
         },
+        review_memory_summary=review_memory_summary,
     )
 
 
@@ -754,6 +783,47 @@ def format_feedback_summary(
     return "\n".join(lines)
 
 
+def format_review_memory_summary(
+    store_path: Path = Path("data/feedback/feedback.jsonl"),
+    run_id: str | None = None,
+    *,
+    positive_labels: list[str] | None = None,
+    negative_labels: list[str] | None = None,
+    neutral_labels: list[str] | None = None,
+) -> str:
+    """Return a concise Markdown-style review-memory summary."""
+
+    store = FeedbackStore(store_path)
+    records = store.filter_by_run_id(run_id) if run_id else store.read_all()
+    summary = build_review_memory_summary(
+        records,
+        positive_labels=positive_labels or ["interesting", "important"],
+        negative_labels=negative_labels or ["false_positive", "not_useful"],
+        neutral_labels=neutral_labels or ["known_pattern", "duplicate", "needs_more_data"],
+    )
+    lines = [
+        "## ADE Review Memory Summary",
+        "",
+        f"Run ID: {run_id}" if run_id else "Run ID: all",
+        f"Feedback records: {summary.total_feedback_count}",
+        "",
+        "Review-memory signals are feedback-informed ranking support. "
+        "They do not replace human review.",
+    ]
+    if summary.label_counts:
+        lines.extend(["", "Labels:"])
+        for label, count in sorted(summary.label_counts.items()):
+            lines.append(f"- {label}: {count}")
+    if summary.label_counts_by_target_type:
+        lines.extend(["", "Target types:"])
+        for target_type, counts in sorted(summary.label_counts_by_target_type.items()):
+            count_text = ", ".join(
+                f"{label}: {count}" for label, count in sorted(counts.items())
+            )
+            lines.append(f"- {target_type}: {count_text}")
+    return "\n".join(lines)
+
+
 def _read_json_object(path: Path) -> dict[str, Any]:
     try:
         loaded = json.loads(path.read_text(encoding="utf-8"))
@@ -797,6 +867,26 @@ def _feedback_store_path(config: dict[str, Any]) -> Path:
     if not isinstance(feedback_config, dict):
         feedback_config = {}
     return Path(str(feedback_config.get("store_path", "data/feedback/feedback.jsonl")))
+
+
+def _review_memory_store_path(config: dict[str, Any]) -> Path:
+    review_memory_config = config.get("review_memory", {})
+    if isinstance(review_memory_config, dict) and review_memory_config.get(
+        "feedback_store_path"
+    ):
+        return Path(str(review_memory_config["feedback_store_path"]))
+    return _feedback_store_path(config)
+
+
+def _review_memory_labels(
+    review_memory_config: dict[str, Any],
+    key: str,
+    default: list[str],
+) -> list[str]:
+    labels = review_memory_config.get(key, default)
+    if not isinstance(labels, list):
+        return list(default)
+    return [str(label) for label in labels]
 
 
 def main() -> None:
@@ -856,6 +946,37 @@ def main() -> None:
             parser.error(str(error))
         return
 
+    if args.summarize_feedback_memory:
+        try:
+            config = load_config(args.config)
+            review_memory_config = config.get("review_memory", {})
+            if not isinstance(review_memory_config, dict):
+                review_memory_config = {}
+            print(
+                format_review_memory_summary(
+                    _review_memory_store_path(config),
+                    run_id=args.run_id,
+                    positive_labels=_review_memory_labels(
+                        review_memory_config,
+                        "positive_labels",
+                        ["interesting", "important"],
+                    ),
+                    negative_labels=_review_memory_labels(
+                        review_memory_config,
+                        "negative_labels",
+                        ["false_positive", "not_useful"],
+                    ),
+                    neutral_labels=_review_memory_labels(
+                        review_memory_config,
+                        "neutral_labels",
+                        ["known_pattern", "duplicate", "needs_more_data"],
+                    ),
+                )
+            )
+        except (FileNotFoundError, ValueError) as error:
+            parser.error(str(error))
+        return
+
     if args.command == "dashboard":
         result = generate_dashboard(output_dir=args.dashboard_output)
         print(f"ADE dashboard written to {result.index_path}")
@@ -874,7 +995,7 @@ def main() -> None:
         parser.error(
             "--input and --output are required unless --list-runs, "
             "--validate-report, --export-html-report, --add-feedback, "
-            "or --list-feedback is used."
+            "--list-feedback, or --summarize-feedback-memory is used."
         )
 
     try:

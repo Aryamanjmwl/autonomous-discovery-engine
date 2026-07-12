@@ -17,6 +17,11 @@ from ade.discovery.confidence_scorer import ConceptConfidence
 from ade.discovery.evidence_collector import ConceptEvidence
 from ade.discovery.novelty_scorer import CandidateAnomaly
 from ade.feedback import ALLOWED_FEEDBACK_LABELS
+from ade.memory.review_memory import (
+    ReviewMemorySignal,
+    ReviewMemorySummary,
+    score_candidate_with_review_memory,
+)
 from ade.models import (
     DatasetProfile,
     EvidenceSummary,
@@ -108,6 +113,7 @@ class ReportGenerator:
         run_id: str | None = None,
         dataset_profile: DatasetProfile | None = None,
         analysis_metadata: dict[str, object] | None = None,
+        review_memory_summary: ReviewMemorySummary | None = None,
     ) -> str:
         """Return an ADE Discovery Report in Markdown format."""
 
@@ -141,6 +147,10 @@ class ReportGenerator:
             "",
             *self._analysis_metadata_lines(analysis_metadata, candidates),
             "",
+            "## Review Memory",
+            "",
+            *self._review_memory_lines(review_memory_summary),
+            "",
             "## Top Candidate Anomalies",
             "",
         ]
@@ -148,12 +158,21 @@ class ReportGenerator:
         if candidates:
             lines.extend(
                 [
-                    "| Rank | Preview | Source | Coordinates | Patch scale | Novelty score |",
-                    "| --- | --- | --- | --- | --- | ---: |",
+                    "| Rank | Preview | Source | Coordinates | Patch scale | Novelty score | Review memory |",
+                    "| --- | --- | --- | --- | --- | ---: | --- |",
                 ]
             )
             for index, candidate in enumerate(candidates, start=1):
                 patch = candidate.embedding.patch
+                signal = (
+                    score_candidate_with_review_memory(
+                        candidate,
+                        "anomaly",
+                        review_memory_summary,
+                    )
+                    if review_memory_summary is not None
+                    else None
+                )
                 preview = self._markdown_image(
                     alt_text=f"candidate anomaly {index}",
                     relative_path=assets.anomaly_previews.get(index),
@@ -162,7 +181,8 @@ class ReportGenerator:
                     f"| {index} | {preview} | `{patch.source_path}` | "
                     f"`{patch.coordinates}` | "
                     f"`{patch.scale_label or 'single-scale'}` / {patch.patch_size}px | "
-                    f"{candidate.novelty_score:.4f} |"
+                    f"{candidate.novelty_score:.4f} | "
+                    f"{self._review_memory_signal_cell(signal)} |"
                 )
         else:
             lines.append("No candidate anomalies were identified by the placeholder scorer.")
@@ -188,6 +208,16 @@ class ReportGenerator:
                             f"- Confidence score: {confidence.score:.4f}"
                             if confidence
                             else "- Confidence score: unavailable"
+                        ),
+                        "- Review memory signal: "
+                        + self._review_memory_signal_cell(
+                            score_candidate_with_review_memory(
+                                {"concept_id": evidence.concept_id},
+                                "concept",
+                                review_memory_summary,
+                            )
+                            if review_memory_summary is not None
+                            else None
                         ),
                         "- Confidence breakdown:",
                         *self._confidence_breakdown_lines(
@@ -266,6 +296,7 @@ class ReportGenerator:
         dataset_profile: DatasetProfile | None = None,
         memory_metadata: dict[str, object] | None = None,
         analysis_metadata: dict[str, object] | None = None,
+        review_memory_summary: ReviewMemorySummary | None = None,
     ) -> Path:
         """Write a Markdown report and return the output path."""
 
@@ -301,6 +332,7 @@ class ReportGenerator:
             run_id=run_id,
             dataset_profile=dataset_profile,
             analysis_metadata=analysis_metadata,
+            review_memory_summary=review_memory_summary,
         )
         path.write_text(report, encoding="utf-8")
         json_report = self.generate_json(
@@ -314,6 +346,7 @@ class ReportGenerator:
             run_metadata=run_metadata,
             dataset_profile=dataset_profile,
             analysis_metadata=analysis_metadata,
+            review_memory_summary=review_memory_summary,
         )
         json_path.write_text(
             json.dumps(json_report, indent=2, sort_keys=True),
@@ -341,6 +374,7 @@ class ReportGenerator:
         run_metadata: dict[str, object] | None = None,
         dataset_profile: DatasetProfile | None = None,
         analysis_metadata: dict[str, object] | None = None,
+        review_memory_summary: ReviewMemorySummary | None = None,
     ) -> dict[str, object]:
         """Return a machine-readable ADE discovery report."""
 
@@ -349,7 +383,7 @@ class ReportGenerator:
         assets = assets or ReportAssets(anomaly_previews={}, concept_previews={})
 
         candidate_anomalies = [
-            self._candidate_anomaly_json(index, candidate, assets)
+            self._candidate_anomaly_json(index, candidate, assets, review_memory_summary)
             for index, candidate in enumerate(candidates, start=1)
         ]
         candidate_unknown_concepts = [
@@ -358,6 +392,7 @@ class ReportGenerator:
                 confidence=confidence_by_id.get(evidence.concept_id),
                 hypothesis=hypothesis_by_id.get(evidence.concept_id),
                 assets=assets,
+                review_memory_summary=review_memory_summary,
             )
             for evidence in evidence_items
         ]
@@ -392,6 +427,11 @@ class ReportGenerator:
             "backend_metadata": self._backend_metadata_json(
                 analysis_metadata,
                 candidates,
+            ),
+            "review_memory_summary": (
+                review_memory_summary.to_dict()
+                if review_memory_summary is not None
+                else None
             ),
             "number_of_images": int(dataset_summary.image_count),
             "number_of_patches": int(dataset_summary.patch_count),
@@ -593,6 +633,7 @@ class ReportGenerator:
         rank: int,
         candidate: CandidateAnomaly,
         assets: ReportAssets,
+        review_memory_summary: ReviewMemorySummary | None = None,
     ) -> dict[str, object]:
         """Return one candidate anomaly as JSON-safe data."""
 
@@ -603,7 +644,7 @@ class ReportGenerator:
             anomaly_id=candidate.anomaly_id or f"anomaly-{rank:04d}",
             preview_path=assets.anomaly_previews.get(rank),
         ).to_dict()
-        return {
+        anomaly_data = {
             "rank": int(rank),
             "anomaly_id": candidate.anomaly_id or f"anomaly-{rank:04d}",
             "source_path": anomaly["source_path"],
@@ -625,6 +666,13 @@ class ReportGenerator:
             "label": "candidate anomaly",
             "requires_human_review": self.human_review_required,
         }
+        if review_memory_summary is not None:
+            anomaly_data["review_memory_signal"] = score_candidate_with_review_memory(
+                anomaly_data,
+                "anomaly",
+                review_memory_summary,
+            ).to_dict()
+        return anomaly_data
 
     def _concept_json(
         self,
@@ -632,6 +680,7 @@ class ReportGenerator:
         confidence: ConceptConfidence | None,
         hypothesis: Hypothesis | None,
         assets: ReportAssets,
+        review_memory_summary: ReviewMemorySummary | None = None,
     ) -> dict[str, object]:
         """Return one candidate unknown concept as JSON-safe data."""
 
@@ -686,7 +735,7 @@ class ReportGenerator:
         )
         concept_data = concept_model.to_dict()
 
-        return {
+        concept_data = {
             "concept_id": evidence.concept_id,
             "label": "candidate unknown concept",
             "anomaly_ids": concept_data["anomaly_ids"],
@@ -707,6 +756,13 @@ class ReportGenerator:
             "examples": examples,
             "requires_human_review": self.human_review_required,
         }
+        if review_memory_summary is not None:
+            concept_data["review_memory_signal"] = score_candidate_with_review_memory(
+                concept_data,
+                "concept",
+                review_memory_summary,
+            ).to_dict()
+        return concept_data
 
     def save_assets(
         self,
@@ -916,6 +972,42 @@ class ReportGenerator:
                     + ", ".join(str(item) for item in analysis_metadata["patch_scales_used"])
                 )
         return lines
+
+    @staticmethod
+    def _review_memory_lines(
+        review_memory_summary: ReviewMemorySummary | None,
+    ) -> list[str]:
+        """Return Markdown lines for local review-memory context."""
+
+        if review_memory_summary is None:
+            return [
+                "Review-memory ranking support was not enabled for this report.",
+                "All candidate findings still require human review.",
+            ]
+        lines = [
+            "Review-memory signals summarize local human-review feedback as "
+            "ranking hints, not automated truth.",
+            f"- Feedback records available: {review_memory_summary.total_feedback_count}",
+        ]
+        if not review_memory_summary.label_counts:
+            lines.append("- Label counts: none")
+            return lines
+
+        lines.append("- Label counts:")
+        for label, count in sorted(review_memory_summary.label_counts.items()):
+            lines.append(f"  - `{label}`: {count}")
+        return lines
+
+    @staticmethod
+    def _review_memory_signal_cell(signal: object | None) -> str:
+        """Return a compact Markdown rendering for one review-memory signal."""
+
+        if not isinstance(signal, ReviewMemorySignal):
+            return "no signal"
+        if signal.matched_feedback_count == 0:
+            return "no matching feedback"
+        notes = "; ".join(signal.notes) if signal.notes else signal.explanation
+        return f"delta {signal.priority_delta:+.2f}; {notes}"
 
     @staticmethod
     def _backend_metadata_json(

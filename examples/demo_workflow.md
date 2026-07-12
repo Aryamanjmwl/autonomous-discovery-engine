@@ -54,10 +54,13 @@ Use real IDs from the report when recording feedback.
 ```powershell
 python -m ade.cli --add-feedback data/reports/demo_report.json --target-type anomaly --target-id anomaly_001 --label interesting --notes "Local review note" --reviewer local
 python -m ade.cli --list-feedback
+python -m ade.cli --summarize-feedback-memory
 ```
 
 Feedback is local JSONL review data. It does not replace human review or
-create a production audit trail.
+create a production audit trail. A later analysis can include review-memory
+signals in Markdown, JSON, and HTML reports when the configured feedback store
+contains prior feedback.
 
 ## 7. Run a Benchmark
 

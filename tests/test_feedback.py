@@ -5,7 +5,12 @@ from pathlib import Path
 
 import pytest
 
-from ade.cli import add_feedback_from_report, format_feedback_summary, main
+from ade.cli import (
+    add_feedback_from_report,
+    format_feedback_summary,
+    format_review_memory_summary,
+    main,
+)
 from ade.feedback import FeedbackStore, ReviewFeedback
 
 
@@ -216,6 +221,11 @@ def test_cli_add_feedback_and_list_feedback_use_configured_store(
     assert "Total feedback: 1" in summary
     assert "interesting: 1" in summary
 
+    memory_summary = format_review_memory_summary(store_path)
+    assert "ADE Review Memory Summary" in memory_summary
+    assert "Feedback records: 1" in memory_summary
+    assert "interesting: 1" in memory_summary
+
 
 def test_cli_add_feedback_rejects_invalid_label(
     tmp_path: Path,
@@ -240,3 +250,27 @@ def test_cli_add_feedback_rejects_invalid_label(
 
     with pytest.raises(SystemExit):
         main()
+
+
+def test_cli_summarize_feedback_memory_tolerates_missing_store(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        "review_memory:\n"
+        "  enabled: true\n"
+        f"  feedback_store_path: \"{(tmp_path / 'missing.jsonl').as_posix()}\"\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        "sys.argv",
+        ["ade", "--config", str(config_path), "--summarize-feedback-memory"],
+    )
+
+    main()
+
+    output = capsys.readouterr().out
+    assert "ADE Review Memory Summary" in output
+    assert "Feedback records: 0" in output
