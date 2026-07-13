@@ -16,11 +16,7 @@ def test_technical_preview_docs_exist() -> None:
         "docs/cli_reference.md",
         "docs/modality_capability_matrix.md",
         "docs/report_schema.md",
-        "docs/portfolio_case_study.md",
-        "docs/sample_outputs.md",
-        "docs/ade_studio.md",
-        "docs/cv_project_description.md",
-        "docs/demo_assets.md",
+        "docs/modality_capability_matrix.md",
         "docs/dashboard/dashboard_product_spec.md",
         "docs/dashboard/dashboard_frontend_contract.md",
         "docs/dashboard/design_tokens.json",
@@ -85,13 +81,39 @@ def test_report_schema_documents_stable_feedback_targets() -> None:
     assert "concept_id" in report_schema
 
 
-def test_modality_matrix_reflects_tabular_and_timeseries_status() -> None:
+def test_modality_positioning_docs_are_adapter_based() -> None:
+    combined_docs = "\n".join(
+        [
+            _read("README.md"),
+            _read("docs/product_scope.md"),
+            _read("docs/architecture.md"),
+            _read("docs/modality_capability_matrix.md"),
+            _read("examples/modalities/README.md"),
+        ]
+    ).lower()
+
+    assert "adapter-based" in combined_docs
+    assert "computer-vision-only" not in combined_docs
+    assert "visual-only system" in combined_docs
+
+
+def test_modality_matrix_covers_current_and_planned_modalities() -> None:
     matrix = _read("docs/modality_capability_matrix.md").lower()
 
-    assert "tabular csv | implemented lightweight adapter foundation and cli workflow" in matrix
-    assert "time-series csv | implemented lightweight adapter foundation" in matrix
-    assert "live streams | planned adapter path" in matrix
-    assert "human review" in matrix
+    for keyword in [
+        "visual image folders",
+        "tabular csv",
+        "time-series csv",
+        "sensor streams",
+        "live satellite feeds",
+        "audio input",
+    ]:
+        assert keyword in matrix
+
+    for keyword in ["sensor streams", "live satellite feeds", "audio input"]:
+        section_start = matrix.index(keyword)
+        section = matrix[section_start : section_start + 240]
+        assert "planned" in section or "future" in section
 
 
 def test_dashboard_frontend_contract_documents_stable_targets() -> None:

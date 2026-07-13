@@ -36,7 +36,15 @@ def _candidate_patch() -> tuple[Patch, CandidateAnomaly]:
         },
     )
     candidate = CandidateAnomaly(
-        embedding=PatchEmbedding(patch=patch, vector=np.zeros(8, dtype=np.float32)),
+        embedding=PatchEmbedding(
+            patch=patch,
+            vector=np.zeros(8, dtype=np.float32),
+            metadata={
+                "backend_name": "statistical_visual_v2",
+                "feature_count": 8,
+                "feature_names": [f"feature_{index}" for index in range(8)],
+            },
+        ),
         novelty_score=0.42,
         metadata={
             "selection_reason": "diversity selected",
@@ -280,6 +288,7 @@ def test_report_generator_writes_structured_json_report(tmp_path: Path) -> None:
         "number_of_patches",
         "number_of_candidate_anomalies",
         "number_of_candidate_unknown_concepts",
+        "top_discoveries",
         "candidate_anomalies",
         "candidate_unknown_concepts",
         "candidate_concepts",

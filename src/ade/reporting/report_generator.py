@@ -187,6 +187,13 @@ class ReportGenerator:
         else:
             lines.append("No candidate anomalies were identified by the placeholder scorer.")
 
+        lines.extend(["", "## Evidence Items", ""])
+        if candidates:
+            for index, candidate in enumerate(candidates, start=1):
+                lines.extend(self._candidate_evidence_lines(index, candidate, assets))
+        else:
+            lines.append("No evidence items were available.")
+
         lines.extend(["", "## Candidate Unknown Concepts", ""])
 
         if evidence_items:
@@ -280,6 +287,13 @@ class ReportGenerator:
                 "candidate unknown concepts, possible relationships, and hypotheses "
                 "require human expert review before any scientific, clinical, "
                 "operational, commercial, or financial interpretation.",
+                "",
+                "## Reproducibility Notes",
+                "",
+                "This report uses deterministic lightweight visual features and configured "
+                "pipeline settings. Re-running with the same input files and configuration "
+                "should produce stable rankings, apart from unique run identifiers and "
+                "timestamps.",
                 "",
             ]
         )
@@ -437,6 +451,7 @@ class ReportGenerator:
             "number_of_patches": int(dataset_summary.patch_count),
             "number_of_candidate_anomalies": len(candidate_anomalies),
             "number_of_candidate_unknown_concepts": len(candidate_unknown_concepts),
+            "top_discoveries": candidate_anomalies,
             "candidate_anomalies": candidate_anomalies,
             "candidate_unknown_concepts": candidate_unknown_concepts,
             "candidate_concepts": candidate_unknown_concepts,
@@ -906,6 +921,62 @@ class ReportGenerator:
             if isinstance(breakdown, dict) and breakdown.get("strategy") is not None:
                 return str(breakdown["strategy"])
         return "global_distance"
+
+    def _candidate_evidence_lines(
+        self,
+        index: int,
+        candidate: CandidateAnomaly,
+        assets: ReportAssets,
+    ) -> list[str]:
+        """Return concise Markdown evidence for one candidate anomaly."""
+
+        patch = candidate.embedding.patch
+        preview = self._markdown_image(
+            alt_text=f"candidate anomaly {index}",
+            relative_path=assets.anomaly_previews.get(index),
+        )
+        lines = [
+            f"### Candidate anomaly {index}: `{candidate.anomaly_id or f'anomaly-{index:04d}'}`",
+            "",
+            f"- Source: `{patch.source_path.as_posix()}`",
+            f"- Coordinates: x={patch.x}, y={patch.y}, width={patch.width}, height={patch.height}",
+            f"- Patch scale: `{patch.scale_label or 'single-scale'}` / {patch.patch_size}px",
+            f"- Novelty score: {candidate.novelty_score:.4f}",
+        ]
+        if preview:
+            lines.extend(["", preview, ""])
+
+        reason = candidate.metadata.get("reason")
+        if reason:
+            lines.append(f"- Evidence note: {reason}")
+        nearest_neighbor = candidate.metadata.get(
+            "nearest_neighbor_id",
+        ) or candidate.metadata.get("nearest_neighbor_patch_id")
+        if nearest_neighbor:
+            lines.append(f"- Nearest visual neighbor: `{nearest_neighbor}`")
+
+        score_breakdown = candidate.metadata.get("score_breakdown")
+        if isinstance(score_breakdown, dict) and score_breakdown:
+            lines.append("- Score breakdown:")
+            for key, value in sorted(score_breakdown.items()):
+                if isinstance(value, int | float):
+                    lines.append(f"  - `{key}`: {float(value):.4f}")
+                else:
+                    lines.append(f"  - `{key}`: `{value}`")
+
+        deviations = candidate.metadata.get("feature_deviations")
+        if isinstance(deviations, list) and deviations:
+            lines.append("- Largest feature deviations:")
+            for item in deviations[:3]:
+                if not isinstance(item, dict):
+                    continue
+                feature = item.get("feature")
+                deviation = item.get("deviation", item.get("z_deviation"))
+                if feature is None or not isinstance(deviation, int | float):
+                    continue
+                lines.append(f"  - `{feature}`: {float(deviation):+.4f}")
+        lines.append("")
+        return lines
 
     @staticmethod
     def _scoring_metadata_json(

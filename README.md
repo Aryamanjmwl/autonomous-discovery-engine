@@ -1,6 +1,9 @@
 # ADE: Autonomous Discovery Engine
 
-ADE is a modular unsupervised discovery platform. It ingests datasets, builds representations, discovers candidate anomalies and hidden concepts, groups evidence, explains findings, and exports reviewable reports.
+ADE is an adapter-based autonomous discovery platform. It ingests datasets
+through modality adapters, builds representations, discovers candidate anomalies
+and candidate concepts, groups evidence, explains findings, and exports
+reviewable reports.
 
 Core principle: discovery with evidence, not only anomaly scores.
 
@@ -71,7 +74,12 @@ Release polish materials for technical preview review:
 - [ADE Studio local UI foundation](docs/ade_studio.md)
 
 ADE v0.1.0 Technical Preview is prepared for local demo review and manual release tagging. It is
-not a production SaaS release, and all candidate findings require human review.
+not a hosted product release, and all candidate findings require human review.
+
+ADE Studio is an early local UI foundation under `apps/studio/frontend`. It uses
+mock data to present local run telemetry, evidence, review status, novelty
+score, and confidence score surfaces for candidate findings. It is not wired to
+a backend service yet.
 
 ADE Studio is an early local UI foundation under `apps/studio/frontend`. It uses
 mock data to present local run telemetry, evidence, review status, novelty
@@ -102,20 +110,40 @@ This version is a local technical preview MVP. It demonstrates a visual-first
 end-to-end workflow and lightweight CSV tabular/time-series foundations without
 using advanced AI, proprietary models, or deep learning.
 
-Current supported inputs:
+Implemented / working inputs:
 
 - Image folders
+
+Foundation / partial inputs:
+
 - CSV files for lightweight row-level tabular discovery
 - CSV files with explicit time-series mode for timestamped point/window discovery
+- Video adapter placeholder with no decoded frame workflow yet
 
-Planned future supported data types:
+Planned future adapter targets:
 
 - Videos
 - Logs
 - Audio
+- Sensor streams
+- Live satellite feeds
+- Scientific instrument data
 - Documents
 - Multimodal datasets
 - Live streams
+
+## Implemented vs Planned
+
+- Implemented / working: visual image-folder workflow, report generation,
+  report validation, static HTML export, local human-review feedback,
+  benchmark script, and local verification script.
+- Foundation / partial: tabular CSV adapter, time-series CSV adapter, and video
+  adapter placeholder where present.
+- Planned: sensor streams, live satellite feeds, audio input, logs/events,
+  scientific instrument data, documents, multimodal datasets, and production
+  streaming pipelines.
+
+See `docs/modality_capability_matrix.md` for the current modality status.
 
 ## Current MVP Pipeline
 
@@ -145,7 +173,7 @@ path with timestamp profiling, numeric signal detection, deterministic
 point/window-style features, point-level novelty ranking, simple candidate
 concept grouping, and Markdown/JSON reports with time-series metadata.
 
-The embedding system currently uses simple image statistics such as color means, standard deviations, brightness, and edge density. This is intentionally basic so the architecture can later support stronger encoders for specific domains.
+The embedding system currently uses deterministic lightweight visual statistics: size and aspect ratio features, brightness and contrast summaries, color channel statistics, color histograms, simple texture estimates, and gradient-based edge features. This is intentionally dependency-light so the architecture can later support stronger encoders such as CLIP, DINOv2, or custom domain models behind the same representation boundary.
 
 Discovery backends are selected through configuration. The current lightweight
 scoring options are centroid distance, nearest-neighbor distance, and robust
@@ -232,10 +260,11 @@ Start with `docs/README.md` for architecture, CLI reference, report schema,
 dashboard planning docs, release checklist, versioning policy, and technical preview
 readiness notes.
 
-The current implementation includes a visual-first local workflow plus
-lightweight tabular CSV and explicit time-series CSV workflows. Hosted
-workflows, dashboards, production streaming, live feeds, and deep model backends
-remain future work unless a specific branch documents and implements them.
+The current implementation is adapter-based. Visual discovery is the mature
+workflow; CSV tabular and CSV time-series are lightweight foundations where
+implemented. Hosted workflows, production dashboards, cloud services, and deep
+model backends remain future work unless a specific branch documents and
+implements them.
 
 ## Demo
 
