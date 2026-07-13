@@ -20,6 +20,7 @@ class CandidateConcept:
     consistency: float
     representative_anomaly_id: str | None = None
     average_score: float = 0.0
+    average_novelty: float = 0.0
     item_count: int = 0
     diversity_score: float = 0.0
     confidence_breakdown: dict[str, float] | None = None
@@ -34,7 +35,7 @@ class ConceptClusterer:
 
     def __init__(
         self,
-        distance_threshold: float = 0.35,
+        distance_threshold: float = 2.5,
         max_concepts: int | None = None,
         min_supporting_examples: int = 2,
         max_supporting_examples: int = 5,
@@ -59,15 +60,24 @@ class ConceptClusterer:
 
         if scores is not None:
             candidates = scores
+        if not candidates:
+            return []
 
+        normalized_vectors = self._normalized_candidate_vectors(candidates)
         concepts: list[CandidateConcept] = []
-        for candidate in candidates:
-            assigned_index = self._nearest_concept_index(candidate, concepts)
+        vectors_by_id = {
+            id(candidate): normalized_vectors[index]
+            for index, candidate in enumerate(candidates)
+        }
+        for index, candidate in enumerate(candidates):
+            vector = normalized_vectors[index]
+            assigned_index = self._nearest_concept_index(vector, concepts)
             if assigned_index is None:
                 concepts.append(
                     self._build_concept(
                         concept_id=f"concept-{len(concepts) + 1:03d}",
                         candidates=[candidate],
+                        vectors_by_id=vectors_by_id,
                     )
                 )
             else:
@@ -76,7 +86,9 @@ class ConceptClusterer:
                 concepts[assigned_index] = self._build_concept(
                     concept_id=existing.concept_id,
                     candidates=updated_candidates,
+                    vectors_by_id=vectors_by_id,
                 )
+        concepts.sort(key=lambda concept: (-concept.average_score, concept.concept_id))
         if self.max_concepts is not None:
             return concepts[: self.max_concepts]
         return concepts
@@ -85,18 +97,21 @@ class ConceptClusterer:
         self,
         concept_id: str,
         candidates: list[CandidateAnomaly],
+        vectors_by_id: dict[int, np.ndarray],
     ) -> CandidateConcept:
         """Build a scored candidate concept."""
 
-        centroid = np.vstack([item.embedding.vector for item in candidates]).mean(axis=0)
+        centroid = np.vstack([vectors_by_id[id(item)] for item in candidates]).mean(axis=0)
         concept_score = self.scorer.score(candidates)
+        average_score = self._average_score(candidates)
         return CandidateConcept(
             concept_id=concept_id,
             candidates=candidates,
             centroid=centroid,
             consistency=concept_score.consistency_score,
             representative_anomaly_id=self._representative_id(candidates),
-            average_score=self._average_score(candidates),
+            average_score=average_score,
+            average_novelty=average_score,
             item_count=len(candidates),
             diversity_score=concept_score.diversity_score,
             confidence_breakdown=concept_score.confidence_breakdown,
@@ -106,7 +121,7 @@ class ConceptClusterer:
 
     def _nearest_concept_index(
         self,
-        candidate: CandidateAnomaly,
+        candidate_vector: np.ndarray,
         concepts: list[CandidateConcept],
     ) -> int | None:
         """Return the nearest concept index when it falls within threshold."""
@@ -115,7 +130,7 @@ class ConceptClusterer:
             return None
 
         distances = [
-            float(np.linalg.norm(candidate.embedding.vector - concept.centroid))
+            float(np.linalg.norm(candidate_vector - concept.centroid))
             for concept in concepts
         ]
         nearest_index = int(np.argmin(distances))
@@ -150,3 +165,23 @@ class ConceptClusterer:
             f"{len(candidates)} candidate anomalies grouped as a possible shared "
             "visual structure."
         )
+
+    @staticmethod
+    def _normalized_candidate_vectors(
+        candidates: list[CandidateAnomaly],
+    ) -> list[np.ndarray]:
+        """Return finite unit-scale vectors for deterministic grouping."""
+
+        vectors: list[np.ndarray] = []
+        for candidate in candidates:
+            vector = np.nan_to_num(
+                candidate.embedding.vector.astype(np.float32),
+                nan=0.0,
+                posinf=0.0,
+                neginf=0.0,
+            )
+            norm = float(np.linalg.norm(vector))
+            if norm > 0:
+                vector = vector / norm
+            vectors.append(vector)
+        return vectors

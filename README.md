@@ -74,7 +74,7 @@ Release polish materials for technical preview review:
 - [ADE Studio local UI foundation](docs/ade_studio.md)
 
 ADE v0.1.0 Technical Preview is prepared for local demo review and manual release tagging. It is
-not a production SaaS release, and all candidate findings require human review.
+not a hosted product release, and all candidate findings require human review.
 
 ADE Studio is an early local UI foundation under `apps/studio/frontend`. It uses
 mock data to present local run telemetry, evidence, review status, novelty
@@ -168,7 +168,7 @@ path with timestamp profiling, numeric signal detection, deterministic
 point/window-style features, point-level novelty ranking, simple candidate
 concept grouping, and Markdown/JSON reports with time-series metadata.
 
-The embedding system currently uses simple image statistics such as color means, standard deviations, brightness, and edge density. This is intentionally basic so the architecture can later support stronger encoders for specific domains.
+The embedding system currently uses deterministic lightweight visual statistics: size and aspect ratio features, brightness and contrast summaries, color channel statistics, color histograms, simple texture estimates, and gradient-based edge features. This is intentionally dependency-light so the architecture can later support stronger encoders such as CLIP, DINOv2, or custom domain models behind the same representation boundary.
 
 Discovery backends are selected through configuration. The current lightweight
 scoring options are centroid distance, nearest-neighbor distance, and robust
