@@ -12,7 +12,7 @@ All findings are candidate findings and require human review.
 
 - [Product scope](product_scope.md): current scope, future adapters, and non-goals.
 - [Modality capability matrix](modality_capability_matrix.md): implemented, foundation, and planned modality status.
-- [Architecture](ARCHITECTURE.md): ADE layers, extension points, visual pipeline, and feedback flow.
+- [Architecture](architecture.md): ADE layers, extension points, visual pipeline, and feedback flow.
 - [Development workflow](development_workflow.md): install, test, demo, config, benchmark, and local verification commands.
 - [CLI reference](cli_reference.md): PowerShell-friendly command examples.
 - [Report schema](report_schema.md): JSON report fields, stable IDs, feedback metadata, and compatibility notes.
@@ -22,6 +22,9 @@ All findings are candidate findings and require human review.
 - [ADE Studio](ade_studio.md): local UI foundation, mock data scope, and future integration path.
 - [CV project description](cv_project_description.md): concise project wording for resumes, portfolios, and interviews.
 - [Engineering quality](engineering_quality.md): coding, testing, artifact, review, and release standards.
+- [Security policy](../SECURITY.md): local-first privacy posture, reporting guidance, and security scope.
+- [Extension examples](extension_examples.md): adding adapters, scoring backends, and export steps.
+- [Public release checklist](public_release_checklist.md): public repository readiness checklist.
 - [Roadmap](ROADMAP.md): staged product and engineering direction.
 - [Release checklist](release_checklist.md): technical preview verification checklist.
 - [Versioning policy](versioning_policy.md): pre-1.0 version and schema expectations.

@@ -13,17 +13,19 @@ Required behavior:
 - `iter_records()` yields records in deterministic order.
 - `load()` may be kept as a convenience wrapper for existing code.
 
-Current adapter:
+Current adapters:
 
 - Image folder adapter
+- Tabular CSV adapter foundation
+- Time-series CSV adapter foundation
+- Video adapter placeholder
 
 Future adapters:
 
-- Tabular
-- Time-series
 - Logs
-- Video
 - Audio/spectrogram
+- Sensor streams
+- Live satellite feeds
 - Multimodal
 
 ## EmbeddingBackend
@@ -78,7 +80,8 @@ Current evidence records include rank, anomaly score, source path, coordinates, 
 
 ## ReportRenderer
 
-A report renderer exports review artifacts. Markdown and JSON exist today; HTML is a planned format.
+A report renderer exports review artifacts. Markdown, JSON, and static HTML
+exports exist today.
 Evidence should include enough context for review: source records, coordinates
 when available, scores, cluster membership, and conservative reason text.
 
@@ -88,7 +91,8 @@ available, and concise reason text.
 
 ## ReportRenderer
 
-A report renderer exports review artifacts. Markdown and JSON exist today; HTML is a planned format.
+A report renderer exports review artifacts. Markdown, JSON, and static HTML
+exports exist today.
 
 Report renderers should return artifact references and preserve human-review
 language. They should not convert candidate findings into unsupported claims.

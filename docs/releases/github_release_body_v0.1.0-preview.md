@@ -45,7 +45,7 @@ python -m ade.cli --export-local-dashboard --output data/dashboard
 ## Limitations
 
 - Findings are candidate findings and require human review.
-- This is not a production SaaS release.
+- This is not a hosted product release.
 - No hosted dashboard, auth/users, database service, billing, cloud deployment,
   production streaming, or enterprise deployment is included.
 - Audio, live satellite feeds, and sensor streams remain planned/future adapter

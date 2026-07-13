@@ -5,13 +5,12 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "ade-discovery-engine"
 version = "0.1.0"
-description = "Autonomous Discovery Engine private research prototype"
+description = "Autonomous Discovery Engine local Technical Preview"
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [{ name = "ADE Research" }]
 keywords = ["discovery", "anomaly-detection", "research", "visual-data"]
 classifiers = [
-  "Development Status :: 2 - Pre-Alpha",
   "Intended Audience :: Developers",
   "Intended Audience :: Science/Research",
   "Programming Language :: Python :: 3.11",

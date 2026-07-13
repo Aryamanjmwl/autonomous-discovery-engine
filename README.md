@@ -1,31 +1,75 @@
 # ADE: Autonomous Discovery Engine
 
-ADE is an adapter-based autonomous discovery platform. It ingests datasets
-through modality adapters, builds representations, discovers candidate anomalies
-and candidate concepts, groups evidence, explains findings, and exports
-reviewable reports.
+[![CI workflow](https://img.shields.io/badge/CI-GitHub%20Actions-informational)](.github/workflows/ci.yml)
+[![Python](https://img.shields.io/badge/Python-%3E%3D3.11-blue)](pyproject.toml)
+[![Status](https://img.shields.io/badge/Status-Technical%20Preview-yellow)](docs/releases/v0.1.0-preview.md)
+[![License](https://img.shields.io/badge/License-see%20LICENSE.md-lightgrey)](LICENSE.md)
 
-Core principle: discovery with evidence, not only anomaly scores.
-
-The current implementation has a mature local visual workflow plus lightweight
-tabular and time-series adapter foundations with CLI reports. Computer vision
-is the first mature adapter, not the final scope of the product.
-
-ADE is not only for NASA and not only for scientific or aerospace datasets. The long-term goal is a general discovery assistant for individuals, companies, researchers, students, startups, factories, robotics teams, healthcare research teams, finance and data teams, climate and satellite analysts, logistics companies, security and monitoring teams, agriculture companies, space and aerospace organizations, and any user who has data and wants to investigate unknown patterns.
-
-The current repository is an early private research prototype. It produces candidate anomalies, candidate unknown concepts, possible relationships, and hypotheses that require human expert review. ADE is not a final truth machine and does not replace domain experts.
-
-## Portfolio Evaluation Snapshot
+Most AI tools answer known questions. ADE helps surface candidate patterns,
+anomalies, and concepts you may not know to ask for yet.
 
 ADE is an adapter-based autonomous discovery platform for local exploratory
 data review. It is designed to surface candidate anomalies, candidate concepts,
 and possible patterns with evidence so a human reviewer can decide what is
 worth deeper investigation.
 
-The current local technical preview implementation is strongest on the visual/image-folder
+Core principle: discovery with evidence, not only anomaly scores.
+
+## What ADE Does Today
+
+The current local Technical Preview is strongest on the visual/image-folder
 workflow. It also includes lightweight CSV tabular and CSV time-series
-workflows with local CLI reports, plus a static local dashboard export for
-reviewing generated artifacts. Outputs are review aids, not automated truth.
+workflows with local CLI reports, local JSON/Markdown/HTML report artifacts,
+run history, benchmark support, human-review feedback, review-informed ranking
+signals, and a static local dashboard export. Outputs are review aids, not
+automated truth.
+
+ADE Studio is a local UI foundation under `apps/studio/frontend`. It uses mock
+data to present local run telemetry, evidence, review status, novelty score,
+and confidence score surfaces for candidate findings. It is not wired to a
+backend service yet.
+
+All candidate anomalies, candidate concepts, and possible patterns require
+human review.
+
+## Try It Locally
+
+Run the full local verification workflow:
+
+```bash
+python scripts/verify_local.py
+```
+
+Run the visual demo workflow:
+
+```bash
+python scripts/create_demo_data.py
+python -m ade.cli --input data/raw/demo_images --output data/reports/demo_report.md
+python -m ade.cli --validate-report data/reports/demo_report.json
+python -m ade.cli --export-html-report data/reports/demo_report.json --output data/reports/demo_report.html
+python -m ade.cli --export-local-dashboard --output data/dashboard
+```
+
+## Demo Outputs
+
+Generated demo artifacts stay local and are ignored by Git:
+
+- Markdown report: `data/reports/demo_report.md`
+- JSON report: `data/reports/demo_report.json`
+- HTML report: `data/reports/demo_report.html`
+- Run history: `data/reports/runs/index.json`
+- Benchmark output: `data/benchmarks/demo_benchmark.json`
+- Local dashboard export: `data/dashboard/index.html`
+
+Helpful docs:
+
+- [Sample outputs](docs/sample_outputs.md)
+- [Local dashboard export docs](docs/dashboard/dashboard_product_spec.md)
+- [ADE Studio local UI foundation](docs/ade_studio.md)
+- [Demo script](examples/demo_script.md)
+- [Demo asset guidance](docs/demo_assets.md)
+
+## Implemented vs Planned
 
 | Status | Capabilities |
 | --- | --- |
@@ -33,58 +77,22 @@ reviewing generated artifacts. Outputs are review aids, not automated truth.
 | Foundation | CSV tabular workflow; CSV time-series workflow; adapter interfaces; dashboard contracts |
 | Planned | Audio; live satellite feeds; sensor streams; production streaming; hosted dashboard; auth/users; database/backend service; enterprise deployment |
 
-One-command local verification:
-
-```bash
-python scripts/verify_local.py
-```
-
-Demo workflow:
-
-```bash
-python scripts/create_demo_data.py
-python -m ade.cli --input data/raw/demo_images --output data/reports/demo_report.md
-python -m ade.cli --validate-report data/reports/demo_report.json
-python -m ade.cli --export-html-report data/reports/demo_report.json --output data/reports/demo_report.html
-python scripts/run_benchmark.py --input data/raw/demo_images --config configs/default.yaml --output data/benchmarks/demo_benchmark.json
-python -m ade.cli --export-local-dashboard --output data/dashboard
-```
-
-Example outputs include `data/reports/demo_report.md`,
-`data/reports/demo_report.json`, `data/reports/demo_report.html`,
-`data/reports/runs/index.json`, `data/benchmarks/demo_benchmark.json`, and
-`data/dashboard/index.html`. Generated artifacts stay local and are ignored by
-Git.
-
 Current limitations: ADE does not process audio, live satellite feeds, sensor
 streams, or production streams; it does not provide cloud hosting, auth,
 database-backed review queues, billing, production personalization, or
 enterprise deployment. All candidate findings require human review.
 
-## Technical Preview Demo and Release Status
+## Release Status
 
-Release polish materials for technical preview review:
+ADE v0.1.0 Technical Preview is prepared for local demo review and manual
+release tagging. It is not a hosted product release.
 
 - [v0.1.0 Technical Preview release notes](docs/releases/v0.1.0-preview.md)
-- [Interview demo script](examples/demo_script.md)
 - [Portfolio case study](docs/portfolio_case_study.md)
 - [CV/project wording](docs/cv_project_description.md)
 - [Modality capability matrix](docs/modality_capability_matrix.md)
-- [Local dashboard export docs](docs/dashboard/dashboard_product_spec.md)
-- [ADE Studio local UI foundation](docs/ade_studio.md)
-
-ADE v0.1.0 Technical Preview is prepared for local demo review and manual release tagging. It is
-not a hosted product release, and all candidate findings require human review.
-
-ADE Studio is an early local UI foundation under `apps/studio/frontend`. It uses
-mock data to present local run telemetry, evidence, review status, novelty
-score, and confidence score surfaces for candidate findings. It is not wired to
-a backend service yet.
-
-ADE Studio is an early local UI foundation under `apps/studio/frontend`. It uses
-mock data to present local run telemetry, evidence, review status, novelty
-score, and confidence score surfaces for candidate findings. It is not wired to
-a backend service yet.
+- [License notice](LICENSE.md): currently all rights reserved; choose a public
+  license before promoting the repository as open source.
 
 ## What Problem ADE Solves
 

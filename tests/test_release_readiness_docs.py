@@ -12,9 +12,12 @@ def _read(path: str) -> str:
 
 def test_technical_preview_docs_exist() -> None:
     required_paths = [
+        "SECURITY.md",
         "docs/README.md",
         "docs/cli_reference.md",
+        "docs/extension_examples.md",
         "docs/modality_capability_matrix.md",
+        "docs/public_release_checklist.md",
         "docs/report_schema.md",
         "docs/modality_capability_matrix.md",
         "docs/dashboard/dashboard_product_spec.md",
@@ -169,12 +172,13 @@ def test_portfolio_docs_exist_and_keep_technical_preview_framing() -> None:
 
     assert "human review" in portfolio
     assert "ignored by git" in sample_outputs
-    assert "not a production saas" in cv_description
+    assert "not a hosted product deployment" in cv_description
 
 
 def test_readme_includes_portfolio_demo_status_language() -> None:
     readme = _read("README.md").lower()
 
+    assert "most ai tools answer known questions" in readme
     assert "--export-local-dashboard" in readme
     assert "v0.1.0-preview.md" in readme
     assert "ade v0.1.0 technical preview" in readme
@@ -182,6 +186,9 @@ def test_readme_includes_portfolio_demo_status_language() -> None:
     assert "foundation" in readme
     assert "planned" in readme
     assert "requires human review" in readme or "require human review" in readme
+    assert "ade studio" in readme
+    assert "backend service yet" in readme
+    assert "license.md" in readme
 
 
 def test_ade_studio_frontend_package_metadata() -> None:
@@ -237,12 +244,44 @@ def test_technical_preview_release_docs_are_release_ready_without_overclaiming()
 
     assert "human review" in release_note
     assert "technical preview" in release_note
-    assert "not a production saas" in release_note
-    assert "not a production saas" in release_body
+    assert "not a hosted product" in release_note
+    assert "not a hosted product" in release_body
     assert "verify_local.py" in checklist
     assert "--export-local-dashboard" in checklist
     assert "git tag -a v0.1.0-preview" in checklist
     assert "do not commit generated private data" in demo_assets
+
+
+def test_public_release_readiness_docs_exist_and_are_discoverable() -> None:
+    docs_index = _read("docs/README.md").lower()
+    security = _read("SECURITY.md").lower()
+    extension_examples = _read("docs/extension_examples.md").lower()
+    checklist = _read("docs/public_release_checklist.md").lower()
+    demo_assets = _read("docs/demo_assets.md").lower()
+
+    assert "local-first" in security
+    assert "no intentional cloud upload" in security
+    assert "formal security audit" in security
+    assert "add a new adapter" in extension_examples
+    assert "lightweight scoring backend" in extension_examples
+    assert "custom report" in extension_examples
+    assert "license is selected" in checklist
+    assert "security.md" in checklist
+    assert "ade studio overview" in demo_assets
+    assert "findings review" in demo_assets
+    assert "extension_examples.md" in docs_index
+    assert "public_release_checklist.md" in docs_index
+    assert "security.md" in docs_index
+
+
+def test_license_notice_is_not_promoted_as_open_source_license() -> None:
+    readme = _read("README.md").lower()
+    license_text = _read("LICENSE.md").lower()
+    checklist = _read("docs/public_release_checklist.md").lower()
+
+    assert "all rights" in license_text and "reserved" in license_text
+    assert "choose a public" in readme and "license before promoting" in readme
+    assert "before promoting the repository as open source" in checklist
 
 
 def test_project_release_docs_and_readme_do_not_use_old_release_branding() -> None:
@@ -253,6 +292,9 @@ def test_project_release_docs_and_readme_do_not_use_old_release_branding() -> No
         "docs/releases/technical_preview_readiness_audit.md",
         "docs/releases/v0.1.0-preview.md",
         "docs/releases/github_release_body_v0.1.0-preview.md",
+        "SECURITY.md",
+        "docs/extension_examples.md",
+        "docs/public_release_checklist.md",
     ]
     forbidden = ["private-alpha", "private alpha", "Private Alpha"]
 
@@ -260,6 +302,47 @@ def test_project_release_docs_and_readme_do_not_use_old_release_branding() -> No
         text = _read(path)
         for phrase in forbidden:
             assert phrase not in text, f"{phrase!r} found in {path}"
+
+
+def test_public_docs_do_not_use_hosted_product_overclaims() -> None:
+    checked_paths = [
+        "README.md",
+        "SECURITY.md",
+        "docs/README.md",
+        "docs/cv_project_description.md",
+        "docs/extension_examples.md",
+        "docs/portfolio_case_study.md",
+        "docs/public_release_checklist.md",
+        "docs/releases/v0.1.0-preview.md",
+        "docs/releases/github_release_body_v0.1.0-preview.md",
+    ]
+    forbidden = [
+        "production saas",
+        "guaranteed detection",
+        "fully autonomous truth",
+        "cloud intelligence",
+        "most-starred",
+    ]
+
+    for path in checked_paths:
+        text = _read(path).lower()
+        for phrase in forbidden:
+            assert phrase not in text, f"{phrase!r} found in {path}"
+
+
+def test_docs_do_not_claim_published_pip_package() -> None:
+    checked_paths = [
+        "README.md",
+        "docs/README.md",
+        "docs/cli_reference.md",
+        "docs/development_workflow.md",
+        "examples/demo_workflow.md",
+    ]
+
+    for path in checked_paths:
+        text = _read(path).lower()
+        assert "pip install ade" not in text, path
+        assert "pip install ade-discovery-engine" not in text, path
 
 
 def test_design_tokens_json_files_are_valid_when_present() -> None:
