@@ -28,7 +28,7 @@ Future adapters:
 
 ## EmbeddingBackend
 
-An embedding backend converts records or patches into comparable representations. The default visual implementation uses deterministic statistical features.
+An embedding backend converts records or patches into comparable representations. The default visual implementation uses deterministic lightweight statistics: patch geometry, brightness and contrast summaries, color channel statistics, histograms, simple texture estimates, and gradient features.
 
 Future backends should be optional and should not add heavy dependencies to the default install.
 
@@ -73,6 +73,8 @@ representative candidate, average score, and consistency.
 ## EvidenceRanker
 
 An evidence ranker selects examples that make a finding reviewable.
+
+Current evidence records include rank, anomaly score, source path, coordinates, nearest-neighbor context, feature deviations, preview asset paths when available, and conservative reason text.
 
 ## ReportRenderer
 

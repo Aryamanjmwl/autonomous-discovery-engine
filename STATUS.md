@@ -1,20 +1,20 @@
 # ADE Status
 
 ADE is an adapter-based autonomous discovery platform. The current
-private-alpha foundation includes a mature visual/image-folder workflow plus
+Technical Preview foundation includes a mature visual/image-folder workflow plus
 lightweight adapter foundations where implemented. Findings are candidate
 anomalies, candidate concepts, or possible patterns that require human review.
 
 ## Current Status
 
-- Private-alpha foundation for local, adapter-based discovery workflows
+- Technical Preview foundation for local, adapter-based discovery workflows
 - Mature visual workflow for local image folders
 - Tabular CSV foundation for row-level candidate anomaly and concept review
 - Time-series CSV foundation for explicit timestamped CSV workflows
 - Video adapter placeholder; no decoded frame workflow yet
 - Local human-review feedback through JSONL records
 - Dashboard UX docs and frontend contracts; no production dashboard app
-- Not production SaaS: no hosted uploads, auth, billing, database, or cloud deployment
+- Not a hosted product deployment: no hosted uploads, auth, billing, database, or cloud deployment
 
 ## Done
 
@@ -46,7 +46,7 @@ anomalies, candidate concepts, or possible patterns that require human review.
 - Local review-memory summary and report annotations from human-review feedback
 - Report validation, static HTML export, benchmark, local dashboard export, and
   local verification scripts
-- Private-alpha documentation package with CLI, schema, versioning, release checklist, audit, and examples
+- Technical Preview documentation package with CLI, schema, versioning, release checklist, audit, and examples
 - Local static dashboard export plus dashboard UX documentation, frontend data
   contract, design tokens, and phased release plan
 - Basic tests for config, models, patch extraction, novelty scoring, reports, demo data, and CLI behavior
@@ -68,7 +68,7 @@ anomalies, candidate concepts, or possible patterns that require human review.
 - Config supports current visual, tabular, and time-series pipeline parameters, but broader adapter configuration is not designed yet.
 - Run history exists locally, but there is no database, user account model, or
   hosted audit system.
-- Private-alpha docs are prepared for technical review, but they are not a production release certification.
+- Technical Preview docs are prepared for technical review, but they are not a production release certification.
 
 ## Not Done
 

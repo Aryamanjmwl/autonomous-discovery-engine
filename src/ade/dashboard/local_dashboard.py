@@ -128,7 +128,7 @@ def render_dashboard_html(data: dict[str, Any]) -> str:
             "</head>",
             "<body>",
             "<header>",
-            "<p class=\"eyebrow\">Private-alpha demo viewer</p>",
+            "<p class=\"eyebrow\">Technical Preview demo viewer</p>",
             "<h1>ADE Local Dashboard</h1>",
             "<p class=\"notice\">Local static export for existing ADE artifacts. "
             "Candidate findings require human review.</p>",
