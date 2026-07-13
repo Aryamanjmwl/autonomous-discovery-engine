@@ -73,8 +73,24 @@ to protect module boundaries without requiring a large plugin framework.
 5. Score candidate anomalies.
 6. Group candidate visual concepts.
 7. Collect evidence and confidence summaries.
-8. Generate cautious hypotheses.
-9. Export Markdown, JSON, preview assets, run metadata, and run index entries.
+8. Summarize local review feedback as optional review-memory ranking signals.
+9. Generate cautious hypotheses.
+10. Export Markdown, JSON, preview assets, run metadata, and run index entries.
+
+## Review Memory
+
+The current review-memory loop is local and deterministic. It reads the existing
+JSONL feedback store, counts human-review labels by target type and target ID,
+and attaches transparent ranking hints to future image reports when enabled.
+Positive labels such as `interesting` and `important` can raise review priority;
+negative labels such as `false_positive` and `not_useful` can lower it; labels
+such as `known_pattern`, `duplicate`, and `needs_more_data` add review context.
+
+This is feedback-informed ranking support, not automated truth, supervised
+learning, or production personalization. Candidate anomalies and candidate
+concepts still require human review. Future reviewer dashboards and concept
+memory should build on this local contract rather than replacing it with hidden
+state.
 
 ## Current Tabular Pipeline
 

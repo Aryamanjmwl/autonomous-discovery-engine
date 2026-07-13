@@ -7,14 +7,79 @@ reviewable reports.
 
 Core principle: discovery with evidence, not only anomaly scores.
 
-The current private-alpha implementation includes a mature visual/image-folder
-workflow plus adapter foundations for selected CSV modalities where implemented.
-Visual discovery is the most complete workflow today, but ADE is not a
-visual-only system.
+The current implementation has a mature local visual workflow plus lightweight
+tabular and time-series adapter foundations with CLI reports. Computer vision
+is the first mature adapter, not the final scope of the product.
 
 ADE is not only for NASA and not only for scientific or aerospace datasets. The long-term goal is a general discovery assistant for individuals, companies, researchers, students, startups, factories, robotics teams, healthcare research teams, finance and data teams, climate and satellite analysts, logistics companies, security and monitoring teams, agriculture companies, space and aerospace organizations, and any user who has data and wants to investigate unknown patterns.
 
 The current repository is an early private research prototype. It produces candidate anomalies, candidate unknown concepts, possible relationships, and hypotheses that require human expert review. ADE is not a final truth machine and does not replace domain experts.
+
+## Portfolio Evaluation Snapshot
+
+ADE is an adapter-based autonomous discovery platform for local exploratory
+data review. It is designed to surface candidate anomalies, candidate concepts,
+and possible patterns with evidence so a human reviewer can decide what is
+worth deeper investigation.
+
+The current local technical preview implementation is strongest on the visual/image-folder
+workflow. It also includes lightweight CSV tabular and CSV time-series
+workflows with local CLI reports, plus a static local dashboard export for
+reviewing generated artifacts. Outputs are review aids, not automated truth.
+
+| Status | Capabilities |
+| --- | --- |
+| Implemented | Visual/image-folder local workflow; Markdown, JSON, and HTML reports; report validation; run history; benchmark script; local dashboard export; human-review feedback; review-informed memory signals; local verification and CI |
+| Foundation | CSV tabular workflow; CSV time-series workflow; adapter interfaces; dashboard contracts |
+| Planned | Audio; live satellite feeds; sensor streams; production streaming; hosted dashboard; auth/users; database/backend service; enterprise deployment |
+
+One-command local verification:
+
+```bash
+python scripts/verify_local.py
+```
+
+Demo workflow:
+
+```bash
+python scripts/create_demo_data.py
+python -m ade.cli --input data/raw/demo_images --output data/reports/demo_report.md
+python -m ade.cli --validate-report data/reports/demo_report.json
+python -m ade.cli --export-html-report data/reports/demo_report.json --output data/reports/demo_report.html
+python scripts/run_benchmark.py --input data/raw/demo_images --config configs/default.yaml --output data/benchmarks/demo_benchmark.json
+python -m ade.cli --export-local-dashboard --output data/dashboard
+```
+
+Example outputs include `data/reports/demo_report.md`,
+`data/reports/demo_report.json`, `data/reports/demo_report.html`,
+`data/reports/runs/index.json`, `data/benchmarks/demo_benchmark.json`, and
+`data/dashboard/index.html`. Generated artifacts stay local and are ignored by
+Git.
+
+Current limitations: ADE does not process audio, live satellite feeds, sensor
+streams, or production streams; it does not provide cloud hosting, auth,
+database-backed review queues, billing, production personalization, or
+enterprise deployment. All candidate findings require human review.
+
+## Technical Preview Demo and Release Status
+
+Release polish materials for technical preview review:
+
+- [v0.1.0 Technical Preview release notes](docs/releases/v0.1.0-preview.md)
+- [Interview demo script](examples/demo_script.md)
+- [Portfolio case study](docs/portfolio_case_study.md)
+- [CV/project wording](docs/cv_project_description.md)
+- [Modality capability matrix](docs/modality_capability_matrix.md)
+- [Local dashboard export docs](docs/dashboard/dashboard_product_spec.md)
+- [ADE Studio local UI foundation](docs/ade_studio.md)
+
+ADE v0.1.0 Technical Preview is prepared for local demo review and manual release tagging. It is
+not a production SaaS release, and all candidate findings require human review.
+
+ADE Studio is an early local UI foundation under `apps/studio/frontend`. It uses
+mock data to present local run telemetry, evidence, review status, novelty
+score, and confidence score surfaces for candidate findings. It is not wired to
+a backend service yet.
 
 ## What Problem ADE Solves
 
@@ -36,10 +101,9 @@ adding those heavy dependencies to the current prototype.
 
 ## Current Prototype Status
 
-This version is a private-alpha foundation for adapter-based discovery. It
-demonstrates a mature visual/image-folder workflow without using advanced AI,
-proprietary models, or deep learning, and includes lightweight CSV tabular and
-CSV time-series foundations.
+This version is a local technical preview MVP. It demonstrates a visual-first
+end-to-end workflow and lightweight CSV tabular/time-series foundations without
+using advanced AI, proprietary models, or deep learning.
 
 Implemented / working inputs:
 
@@ -90,8 +154,9 @@ The current pipeline performs:
 8. Evidence bundle collection
 9. Concept consistency and confidence scoring
 10. Lightweight visual memory indexing and nearest-neighbor retrieval
-11. Cautious hypothesis generation
-12. Markdown and JSON discovery report generation
+11. Local review-memory summarization from human feedback JSONL
+12. Cautious hypothesis generation
+13. Markdown and JSON discovery report generation
 
 For CSV files, ADE uses a separate lightweight tabular path: CSV validation,
 numeric/categorical profiling, deterministic row-level feature extraction,
@@ -150,14 +215,18 @@ ADE is designed to grow into a cross-industry discovery platform. Example future
 - Generate cautious template-based hypotheses
 - Write a Markdown ADE Discovery Report and a structured JSON sidecar report
 - Record local human-review feedback for candidate anomalies and candidate concepts
+- Summarize prior local feedback as review-informed ranking support in future reports
 
 Current supported image formats are configured in `configs/default.yaml` and include `.jpg`, `.jpeg`, `.png`, `.bmp`, and `.webp`.
 
 ## What This Version Cannot Do Yet
 
-- Process production video workflows, live streams, robot logs, audio, documents, multimodal datasets, or industrial sensor streams
+- Process videos, live streams, robot logs, audio, documents, multimodal datasets, or industrial sensor data
+- Provide production-grade tabular or time-series semantics such as database
+  joins, forecasting, live sensors, or streaming alerts
 - Use deep learning encoders such as CLIP, DINOv2, medical imaging models, or satellite-specific encoders
 - Guarantee that a candidate anomaly is meaningful
+- Learn production personalization or supervised truth labels from feedback
 - Prove scientific, clinical, operational, or financial conclusions
 - Provide medical diagnosis or financial advice
 - Replace human experts or domain review
@@ -183,7 +252,7 @@ pip install -e .
 ## Documentation
 
 Start with `docs/README.md` for architecture, CLI reference, report schema,
-dashboard planning docs, release checklist, versioning policy, and private-alpha
+dashboard planning docs, release checklist, versioning policy, and technical preview
 readiness notes.
 
 The current implementation is adapter-based. Visual discovery is the mature
@@ -210,10 +279,24 @@ For example, this command creates both:
 
 The Markdown report is for human review. The JSON report stores structured
 candidate anomalies, candidate unknown concepts, evidence bundles,
-nearest-neighbor evidence, confidence breakdowns, hypotheses, limitations,
-and the human-review requirement so future dashboards, APIs, databases,
-subscription workflows, or comparison tools can consume the same discovery
-results.
+nearest-neighbor evidence, confidence breakdowns, optional review-memory
+signals, hypotheses, limitations, and the human-review requirement so future
+dashboards, APIs, databases, subscription workflows, or comparison tools can
+consume the same discovery results.
+
+## Review Memory
+
+ADE stores reviewer labels in a local JSONL feedback store. When review memory
+is enabled, future image reports can include a `review_memory_summary` and
+candidate-level `review_memory_signal` objects. These signals are simple,
+deterministic counts from labels such as `important`, `interesting`,
+`false_positive`, `known_pattern`, and `duplicate`.
+
+Review memory is feedback-informed ranking support. It does not replace human
+review, does not prove that a candidate anomaly is meaningful, and does not
+implement supervised learning or production personalization. Future work may add
+a reviewer dashboard and concept memory, with the local JSONL store remaining
+the preview source of feedback state for now.
 
 ## Generate Demo Data
 
@@ -233,21 +316,36 @@ python -m ade.cli --input data/raw/demo_images --output data/reports/demo_report
 
 ## CSV Demo Commands
 
+Generate a deterministic tabular CSV:
+
+```bash
+python scripts/create_tabular_demo_data.py
+```
+
 Run ADE on a CSV file by passing the file path as `--input`:
 
 ```bash
-python -m ade.cli --input data/raw/example.csv --output data/reports/tabular_report.md
+python -m ade.cli --input data/raw/demo_tabular/operations.csv --output data/reports/tabular_demo_report.md --modality tabular
 ```
 
 The current tabular implementation performs row-level discovery only. Findings
 are candidate row anomalies and candidate tabular concepts that require human
 review.
 
+Generate a deterministic timestamped CSV:
+
+```bash
+python scripts/create_timeseries_demo_data.py
+```
+
 Run ADE on a timestamped CSV file by explicitly selecting time-series mode:
 
 ```bash
-python -m ade.cli --input data/raw/series.csv --output data/reports/timeseries_report.md --modality timeseries --timestamp-column timestamp
+python -m ade.cli --input data/raw/demo_timeseries/machine_metrics.csv --output data/reports/timeseries_demo_report.md --modality timeseries --timestamp-column timestamp --entity-column machine
 ```
+
+See `docs/modality_capability_matrix.md` and `examples/modalities/` for the
+current modality status.
 
 The current time-series implementation performs point/window-feature discovery
 only. It does not perform forecasting, streaming ingestion, or production
@@ -416,6 +514,7 @@ Supported feedback labels are `interesting`, `known_pattern`,
 `data/feedback/feedback.jsonl` by default and is ignored by Git. This is a
 foundation for future review queues, concept memory, and false-positive review;
 those systems are not implemented yet.
+
 ## Local Dashboard
 
 ADE can generate a lightweight static dashboard from existing local run history
@@ -429,6 +528,18 @@ The dashboard is written to `data/reports/dashboard/index.html` by default and
 the command prints a local `file://` URL. It shows run history, report paths,
 dataset summaries, top candidate findings, candidate concept groups, evidence
 items, and available preview assets.
+
+ADE can also export a broader local dashboard-style artifact summary without
+running analysis:
+
+```bash
+python -m ade.cli --export-local-dashboard --output data/dashboard
+```
+
+This writes `data/dashboard/index.html` and `data/dashboard/dashboard_data.json`
+from existing local reports, run history, benchmark JSON, static HTML reports,
+and feedback JSONL when those files are present. Missing folders are handled as
+empty states. Generated dashboard output is ignored by Git.
 
 This is a local review tool only. It does not add authentication, uploads,
 multi-user support, a database, or production hosting assumptions.

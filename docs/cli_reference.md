@@ -1,8 +1,8 @@
 # ADE CLI Reference
 
 These examples are written for PowerShell from the repository root. ADE is a
-general autonomous discovery platform; the current CLI implementation is
-visual-data-first and expects an image folder for analysis.
+general autonomous discovery platform; the current CLI supports image-folder
+analysis plus lightweight tabular CSV and explicit time-series CSV workflows.
 
 ## Install
 
@@ -16,10 +16,13 @@ pip install -e .[dev]
 
 ```powershell
 python scripts/create_demo_data.py
+python scripts/create_tabular_demo_data.py
+python scripts/create_timeseries_demo_data.py
 ```
 
-This creates synthetic PNG files in `data/raw/demo_images/`. The images are
-local test data only.
+These create synthetic local demo files under `data/raw/demo_images/`,
+`data/raw/demo_tabular/`, and `data/raw/demo_timeseries/`. They are local test
+data only.
 
 ## Run Analysis
 
@@ -36,6 +39,26 @@ python -m ade.cli --input data/raw/demo_images --output data/reports/demo_report
 The command writes a Markdown report, a JSON sidecar report, preview assets, run
 metadata, and a run-index entry. Candidate anomalies and candidate concepts are
 review targets, not final conclusions.
+
+## Run Tabular Analysis
+
+```powershell
+python -m ade.cli --input data/raw/demo_tabular/operations.csv --output data/reports/tabular_demo_report.md --modality tabular
+```
+
+For `.csv` inputs, ADE defaults to the tabular path unless `--modality
+timeseries` is supplied. The tabular workflow performs row-level candidate
+anomaly ranking and simple candidate pattern grouping.
+
+## Run Time-Series Analysis
+
+```powershell
+python -m ade.cli --input data/raw/demo_timeseries/machine_metrics.csv --output data/reports/timeseries_demo_report.md --modality timeseries --timestamp-column timestamp --entity-column machine
+```
+
+The time-series workflow is explicit. It performs timestamped point/window-style
+candidate anomaly ranking and simple candidate pattern grouping. It does not
+implement forecasting, production streaming, live sensors, or alerting.
 
 ## Validate a Report
 
@@ -55,6 +78,22 @@ python -m ade.cli --export-html-report data/reports/demo_report.json --output da
 The HTML export is a static local review artifact. It does not start a dashboard
 or hosted service.
 
+## Export Local Dashboard
+
+```powershell
+python -m ade.cli --export-local-dashboard --output data/dashboard
+```
+
+This command does not run analysis. It reads existing local artifacts where
+present, including `data/reports/runs/index.json`, report JSON files, static
+HTML reports, benchmark JSON files, and `data/feedback/feedback.jsonl`. It
+writes `index.html` and `dashboard_data.json` under the requested output
+directory and treats missing folders as empty states.
+
+The export is a local static demo viewer for review support. It is not a hosted
+dashboard app, does not add authentication or a database, and does not turn
+candidate findings into automated truth.
+
 ## Add Human Review Feedback
 
 Use a real target ID from the JSON report:
@@ -73,6 +112,17 @@ locally as JSONL and is intended for review workflow experiments.
 python -m ade.cli --list-feedback
 python -m ade.cli --list-feedback --run-id <run_id>
 ```
+
+## Summarize Feedback Memory
+
+```powershell
+python -m ade.cli --summarize-feedback-memory
+python -m ade.cli --summarize-feedback-memory --run-id <run_id>
+```
+
+This reads the configured local JSONL feedback store and prints a concise
+Markdown-style summary. It does not run analysis. The summary is
+feedback-informed ranking support and does not replace human review.
 
 ## List Runs
 
@@ -98,11 +148,11 @@ python scripts/verify_local.py
 ```
 
 The verification script runs linting, tests, demo data generation, analysis,
-report validation, HTML export, benchmarking, and run listing in sequence. It
-fails fast on the first unsuccessful command.
+report validation, HTML export, benchmarking, local dashboard export, and run
+listing in sequence. It fails fast on the first unsuccessful command.
 
 ## Dashboard Status
 
-This branch may include dashboard UX documentation or static report exports, but
-it does not implement a hosted dashboard application, authentication, billing,
-or database-backed review workflow.
+This branch includes local static dashboard exports and dashboard planning docs,
+but it does not implement a hosted dashboard application, dashboard server,
+authentication, billing, or database-backed review workflow.

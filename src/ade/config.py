@@ -65,6 +65,13 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "enabled": True,
         "store_path": "data/feedback/feedback.jsonl",
     },
+    "review_memory": {
+        "enabled": True,
+        "feedback_store_path": "data/feedback/feedback.jsonl",
+        "positive_labels": ["interesting", "important"],
+        "negative_labels": ["false_positive", "not_useful"],
+        "neutral_labels": ["known_pattern", "duplicate", "needs_more_data"],
+    },
     "tabular": {
         "id_column": None,
         "max_categorical_cardinality": 50,

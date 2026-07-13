@@ -17,6 +17,7 @@ def test_default_config_loads_expected_sections() -> None:
         "demo_data",
         "memory",
         "feedback",
+        "review_memory",
         "tabular",
         "timeseries",
     }.issubset(config)
@@ -31,6 +32,9 @@ def test_default_config_loads_expected_sections() -> None:
     assert config["discovery"]["clustering_backend"] == "threshold_candidate_grouping"
     assert config["discovery"]["top_k"] is None
     assert config["feedback"]["store_path"] == "data/feedback/feedback.jsonl"
+    assert config["review_memory"]["enabled"] is True
+    assert config["review_memory"]["feedback_store_path"] == "data/feedback/feedback.jsonl"
+    assert "important" in config["review_memory"]["positive_labels"]
     assert config["tabular"]["max_categorical_cardinality"] == 50
     assert config["timeseries"]["window_size"] == 3
     assert ".png" in config["validation"]["supported_image_extensions"]

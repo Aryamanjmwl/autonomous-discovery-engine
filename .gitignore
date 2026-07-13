@@ -35,6 +35,8 @@ data/processed/*
 data/embeddings/*
 data/reports/*
 data/raw/demo_images/
+data/raw/demo_tabular/
+data/raw/demo_timeseries/
 data/reports/*.md
 data/reports/*.json
 data/reports/*.html
@@ -44,6 +46,8 @@ data/reports/runs/
 data/reports/runs/*
 data/reports/dashboard/
 data/reports/dashboard/*
+data/dashboard/
+data/dashboard/*
 data/benchmarks/
 data/cache/
 data/feedback/
@@ -52,3 +56,14 @@ data/processed/frames/
 !data/processed/.gitkeep
 !data/embeddings/.gitkeep
 !data/reports/.gitkeep
+
+apps/studio/frontend/node_modules/
+apps/studio/frontend/.next/
+apps/studio/frontend/out/
+apps/studio/frontend/dist/
+apps/studio/frontend/.turbo/
+apps/studio/frontend/tsconfig.tsbuildinfo
+
+incoming/
+
+incoming/

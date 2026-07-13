@@ -7,10 +7,14 @@ import numpy as np
 from ade.discovery.confidence_scorer import ConceptConfidence
 from ade.discovery.evidence_collector import ConceptEvidence, EvidenceItem
 from ade.discovery.novelty_scorer import CandidateAnomaly
+from ade.feedback import ReviewFeedback
+from ade.memory.review_memory import build_review_memory_summary
 from ade.models import DatasetProfile
 from ade.preprocessing.patch_extractor import Patch
 from ade.reasoning.hypothesis_generator import Hypothesis
+from ade.reporting.html_report import render_html_report
 from ade.reporting.report_generator import DatasetSummary, ReportGenerator
+from ade.reporting.report_validator import validate_report_file
 from ade.reporting.run_index import build_run_summary, update_run_index
 from ade.representation.embedding_engine import PatchEmbedding
 
@@ -271,6 +275,7 @@ def test_report_generator_writes_structured_json_report(tmp_path: Path) -> None:
         "input_summary",
         "dataset_profile",
         "scoring_metadata",
+        "review_memory_summary",
         "number_of_images",
         "number_of_patches",
         "number_of_candidate_anomalies",
@@ -296,6 +301,7 @@ def test_report_generator_writes_structured_json_report(tmp_path: Path) -> None:
     assert report_data["feedback_supported"] is True
     assert "interesting" in report_data["supported_feedback_labels"]
     assert report_data["feedback_store_path"] == "data/feedback/feedback.jsonl"
+    assert report_data["review_memory_summary"] is None
     assert report_data["candidate_concepts"] == report_data["candidate_unknown_concepts"]
     assert report_data["dataset_profile"]["input_type"] == "image_folder"
     assert report_data["dataset_profile"]["unsupported_file_count"] == 1
@@ -317,6 +323,110 @@ def test_report_generator_writes_structured_json_report(tmp_path: Path) -> None:
     assert concept["evidence_summary"]["representative_examples"][0]["patch_size"] == 4
     assert concept["evidence_summary"]["nearest_neighbors"][0]["item_id"] == "image_0_0_4_4"
     assert report_data["evidence_summary"][0]["confidence_breakdown"]["final_confidence"] == 0.68
+
+
+def test_report_generator_validates_with_no_review_memory_feedback(tmp_path: Path) -> None:
+    output_path = tmp_path / "demo_report.md"
+
+    _write_sample_report(output_path)
+
+    result = validate_report_file(output_path.with_suffix(".json"))
+
+    assert result.is_valid is True
+    assert result.errors == []
+
+
+def test_report_generator_includes_review_memory_when_feedback_exists(
+    tmp_path: Path,
+) -> None:
+    _, candidate = _candidate_patch()
+    evidence = _concept_evidence()
+    summary = build_review_memory_summary(
+        [
+            ReviewFeedback.create(
+                run_id="ade_20260709_120000_abcdef",
+                report_path=tmp_path / "report.json",
+                target_type="anomaly",
+                target_id="anomaly-0001",
+                label="important",
+            ),
+            ReviewFeedback.create(
+                run_id="ade_20260709_120000_abcdef",
+                report_path=tmp_path / "report.json",
+                target_type="concept",
+                target_id="concept-001",
+                label="known_pattern",
+            ),
+        ]
+    )
+    output_path = tmp_path / "demo_report.md"
+
+    ReportGenerator().write(
+        output_path=output_path,
+        dataset_summary=DatasetSummary(input_dir=Path("data/raw"), image_count=1, patch_count=1),
+        candidates=[candidate],
+        evidence_items=[evidence],
+        confidences=[ConceptConfidence(concept_id="concept-001", score=0.7)],
+        hypotheses=[Hypothesis(concept_id="concept-001", text="A cautious hypothesis.")],
+        dataset_profile=_dataset_profile(),
+        review_memory_summary=summary,
+    )
+
+    markdown = output_path.read_text(encoding="utf-8")
+    report_data = json.loads(output_path.with_suffix(".json").read_text(encoding="utf-8"))
+    anomaly_signal = report_data["candidate_anomalies"][0]["review_memory_signal"]
+    concept_signal = report_data["candidate_unknown_concepts"][0]["review_memory_signal"]
+
+    assert "Review Memory" in markdown
+    assert "Review-memory signals summarize local human-review feedback" in markdown
+    assert report_data["review_memory_summary"]["total_feedback_count"] == 2
+    assert anomaly_signal["priority_delta"] == 1.0
+    assert anomaly_signal["positive_feedback_count"] == 1
+    assert concept_signal["known_pattern_count"] == 1
+    assert validate_report_file(output_path.with_suffix(".json")).is_valid is True
+
+
+def test_html_report_renders_review_memory_signals(tmp_path: Path) -> None:
+    summary = build_review_memory_summary(
+        [
+            ReviewFeedback.create(
+                run_id="run",
+                report_path=tmp_path / "report.json",
+                target_type="anomaly",
+                target_id="anomaly-0001",
+                label="important",
+            )
+        ]
+    )
+    report = {
+        "run_id": "run",
+        "review_memory_summary": summary.to_dict(),
+        "candidate_anomalies": [
+            {
+                "anomaly_id": "anomaly-0001",
+                "novelty_score": 0.42,
+                "source_path": "image.png",
+                "review_memory_signal": {
+                    "priority_delta": 1.0,
+                    "matched_feedback_count": 1,
+                    "positive_feedback_count": 1,
+                    "negative_feedback_count": 0,
+                    "known_pattern_count": 0,
+                    "duplicate_count": 0,
+                    "needs_more_data_count": 0,
+                    "notes": ["Prior feedback marked this target as important."],
+                    "explanation": "transparent",
+                },
+            }
+        ],
+        "candidate_unknown_concepts": [],
+    }
+
+    html = render_html_report(report)
+
+    assert "Review Memory" in html
+    assert "feedback-informed ranking support" in html
+    assert "delta +1.00" in html
 
 
 def test_report_generator_tracks_run_metadata(tmp_path: Path) -> None:

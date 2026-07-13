@@ -3,7 +3,8 @@
 ADE is a general autonomous discovery platform. The current implementation is
 visual-data-first and produces local reports for candidate anomalies, candidate
 concepts, evidence, and reviewer feedback. This document defines the intended
-dashboard user experience; it does not describe an implemented dashboard app.
+dashboard user experience and the current local static export MVP; it does not
+describe an implemented dashboard app or hosted service.
 
 All dashboard surfaces must make clear that findings are candidate findings and
 require human review.
@@ -35,8 +36,19 @@ Current source data for a dashboard is file-based:
 - benchmark JSON files
 - static HTML report exports
 
-The current repository does not implement a dashboard app, dashboard server, user
-accounts, database, cloud upload flow, or collaborative review queue.
+The current local static dashboard export is:
+
+```powershell
+python -m ade.cli --export-local-dashboard --output data/dashboard
+```
+
+It writes `data/dashboard/index.html` and
+`data/dashboard/dashboard_data.json`. It reads existing local artifacts where
+present and shows empty states when folders or files are missing. It does not
+run analysis.
+
+The current repository does not implement a dashboard app, dashboard server,
+user accounts, database, cloud upload flow, or collaborative review queue.
 
 ## Non-Goals
 
@@ -188,8 +200,9 @@ This is not yet a production audit trail.
 
 ## Known Limitations
 
-- Current analysis is image-folder based.
-- Current dashboard support is documentation and static report export only.
+- Current mature analysis is visual-first, with lightweight tabular and
+  time-series CSV workflows.
+- Current dashboard support is local static export only.
 - Feedback is local JSONL and has no access controls.
 - Run history is local file metadata.
 - Candidate findings require human review.

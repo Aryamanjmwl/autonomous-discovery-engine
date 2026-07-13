@@ -135,7 +135,7 @@ Stage only source, tests, config, and docs that you intentionally changed.
 
 Use `docs/engineering_quality.md` as the working checklist for code review, test expectations, documentation quality, artifact policy, configuration changes, and release readiness.
 
-## Private-Alpha Verification
+## Technical Preview Verification
 
 For a full local smoke test, run:
 
