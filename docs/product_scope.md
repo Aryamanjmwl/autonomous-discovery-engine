@@ -1,8 +1,14 @@
 # Product Scope
 
-ADE is a general autonomous discovery platform. The long-term vision is to help users investigate hidden patterns, candidate anomalies, recurring behaviors, possible relationships, and predictive signals across many kinds of data.
+ADE is an adapter-based autonomous discovery platform. The long-term vision is
+to help users investigate hidden patterns, candidate anomalies, recurring
+behaviors, possible relationships, and predictive signals across many kinds of
+data.
 
-The current implementation focuses on visual data. Computer vision is the first supported adapter, not the final scope of the product.
+The current private-alpha implementation includes a mature visual/image-folder
+workflow plus lightweight CSV tabular and CSV time-series adapter foundations
+where implemented. Other modalities are planned adapter targets unless the
+repository contains working code, tests, and report contracts for them.
 
 ## Long-Term Vision
 
@@ -22,7 +28,7 @@ Future adapter families may include:
 
 ## Current Implementation Scope
 
-The current implementation supports a visual-data-first pipeline:
+The current implementation supports an adapter-based local pipeline:
 
 - Synthetic demo image generation
 - Image-folder validation and dataset profiling
@@ -38,10 +44,16 @@ The current implementation supports a visual-data-first pipeline:
 - Run metadata and run history index
 - CLI run listing
 - Local human-review feedback records
+- Tabular CSV adapter foundation for row-level candidate findings
+- Time-series CSV adapter foundation for explicit timestamped CSV workflows
+- Video adapter placeholder without decoded frame processing
 - Configuration via `configs/default.yaml`
 
 ## Not Supported Yet
 
-ADE does not yet implement production video processing, non-visual adapters, deep visual embedding models, hosted uploads, dashboards, user accounts, billing, live streams, or production security controls.
+ADE does not yet implement production video processing, sensor streams, live
+satellite feeds, audio input, log/event adapters, scientific instrument
+adapters, deep visual embedding models, hosted uploads, production dashboards,
+user accounts, billing, live streams, or production security controls.
 
 ADE does not guarantee discoveries, replace experts, or make scientific, medical, legal, operational, or financial conclusions. All outputs are candidate findings that require human review.

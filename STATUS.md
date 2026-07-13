@@ -1,6 +1,20 @@
 # ADE Status
 
-ADE is a general autonomous discovery platform. The current implementation focuses on visual data. Computer vision is the first supported adapter, not the final scope of the product.
+ADE is an adapter-based autonomous discovery platform. The current
+private-alpha foundation includes a mature visual/image-folder workflow plus
+lightweight adapter foundations where implemented. Findings are candidate
+anomalies, candidate concepts, or possible patterns that require human review.
+
+## Current Status
+
+- Private-alpha foundation for local, adapter-based discovery workflows
+- Mature visual workflow for local image folders
+- Tabular CSV foundation for row-level candidate anomaly and concept review
+- Time-series CSV foundation for explicit timestamped CSV workflows
+- Video adapter placeholder; no decoded frame workflow yet
+- Local human-review feedback through JSONL records
+- Dashboard UX docs and frontend contracts; no production dashboard app
+- Not production SaaS: no hosted uploads, auth, billing, database, or cloud deployment
 
 ## Done
 
@@ -9,8 +23,9 @@ ADE is a general autonomous discovery platform. The current implementation focus
 - Synthetic image demo data generator
 - Synthetic tabular and time-series CSV demo data generators
 - Image folder adapter
-- Tabular CSV adapter and lightweight row-level CLI workflow
-- Time-series CSV adapter and explicit point/window-level CLI workflow
+- Tabular CSV adapter foundation
+- Time-series CSV adapter foundation
+- Video adapter placeholder
 - Visual input validation and dataset profiling
 - Single-scale and configured multi-scale patch extraction
 - Deterministic statistical embedding backend

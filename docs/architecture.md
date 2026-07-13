@@ -1,11 +1,11 @@
 # ADE Architecture
 
-ADE is a general autonomous discovery platform. The current implementation
-supports a visual-data-first image pipeline and a lightweight CSV/tabular
-foundation plus explicit CSV time-series support. Image folders remain the most
-complete adapter; CSV support adds row-level profiling, deterministic tabular
-or time-series features, novelty ranking, concept grouping, and Markdown/JSON
-reports.
+ADE is an adapter-based autonomous discovery platform. The current
+implementation supports a mature visual/image-folder pipeline, a lightweight
+CSV tabular foundation, and explicit CSV time-series support. Image folders
+remain the most complete adapter; CSV support adds row-level or timestamped
+profiling, deterministic features, novelty ranking, concept grouping, and
+Markdown/JSON reports.
 
 The long-term architecture is layered so discovery logic does not depend on a single dataset type or a single model backend.
 
@@ -17,13 +17,29 @@ ADE should produce candidate findings with traceable evidence and reviewable out
 
 ## Layers
 
-1. Data Adapter Layer
-2. Representation / Embedding Layer
-3. Discovery Layer
-4. Evidence and Explanation Layer
-5. Report and Output Layer
-6. API and Product Layer
-7. Enterprise Operations Layer
+1. Input Adapter Layer
+2. Validation and Profile Layer
+3. Representation / Embedding Layer
+4. Novelty and Scoring Layer
+5. Concept Grouping Layer
+6. Evidence and Reporting Layer
+7. Human Review Feedback Layer
+8. Future Memory / Re-ranking Loop
+9. API and Product Layer
+10. Enterprise Operations Layer
+
+Current flow:
+
+```text
+input adapters
+-> validation/profile
+-> representation
+-> novelty/scoring
+-> concept grouping
+-> evidence/reporting
+-> human review feedback
+-> future memory/re-ranking loop
+```
 
 ## Core Interfaces
 
@@ -117,6 +133,12 @@ from discovery logic. The current image, tabular CSV, and time-series CSV
 adapters follow that boundary: they validate inputs and yield records without
 running anomaly scoring inside the adapter.
 
+Adapters are the planned expansion route for sensor streams, audio, satellite
+imagery, logs/events, scientific instrument data, tabular data, time-series
+data, and future streaming pipelines. A modality should be described as
+implemented only after it has an adapter, validation/profile behavior,
+representation strategy, discovery/report contract, and tests.
+
 Future embedding backends should implement `EmbeddingBackend` behind the same
 boundary used by the current deterministic visual backend. CLIP, DINOv2, custom
 satellite encoders, or medical research encoders can be added later as optional
@@ -141,12 +163,11 @@ is loaded, so unsupported names fail before the pipeline starts processing data.
 ## Current Boundaries
 
 The current implementation includes image-folder inputs, plain CSV tabular
-inputs, and explicit timestamped CSV time-series inputs. Tabular and time-series
-support are lightweight adapter foundations with end-to-end local CLI reports.
-They do not include relational database ingestion, forecasting, live sensors,
-streaming alerts, or production monitoring. Video, audio, document, log,
-multimodal, live-stream, deep-learning backends, and enterprise storage are
-planned extension points, not current capabilities.
+inputs, and explicit timestamped CSV time-series inputs. Video has a placeholder
+adapter only. ADE does not currently include production video processing, audio,
+document, log/event, sensor stream, live satellite feed, database, live-stream,
+forecasting, or production monitoring adapters. Deep learning backends and
+enterprise storage are planned extension points, not current capabilities.
 
 Heavy model dependencies are intentionally delayed until the lightweight
 pipeline, report schema, and backend contracts are stable.
