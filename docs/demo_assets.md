@@ -27,6 +27,27 @@ generated dashboard output, or screenshots that reveal private datasets.
   - Suggested filename: `ade-github-actions-passing.png`
   - Capture the workflow status after the release branch passes checks.
 
+## README Screenshot Plan
+
+- ADE Studio overview:
+  - Suggested filename: `ade-studio-overview.png`
+  - Capture the mock-data local UI foundation status.
+- Findings review:
+  - Suggested filename: `ade-studio-findings-review.png`
+  - Capture candidate findings with human-review language visible.
+- HTML report:
+  - Suggested filename: `ade-html-report-review.png`
+  - Capture candidate anomaly or candidate concept evidence.
+- Local dashboard:
+  - Suggested filename: `ade-local-dashboard-overview.png`
+  - Capture local static export summary cards.
+- Terminal `verify_local.py` pass:
+  - Suggested filename: `ade-terminal-verify-local.png`
+  - Capture the final `Local verification passed.` line.
+- GitHub Actions pass:
+  - Suggested filename: `ade-ci-pass.png`
+  - Capture the CI workflow pass state.
+
 ## Where To Store Screenshots
 
 For local portfolio drafting, use a folder outside generated report data, such

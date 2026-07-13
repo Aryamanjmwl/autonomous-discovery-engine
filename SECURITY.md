@@ -1,25 +1,44 @@
 # Security Policy
 
-ADE is currently a local research and engineering project. It does not provide hosted authentication, authorization, tenant isolation, or compliance guarantees.
+ADE is currently a local Technical Preview. The mature workflow runs on local
+files and writes local artifacts such as reports, run metadata, feedback JSONL,
+benchmarks, and dashboard exports.
+
+## Local-First Posture
+
+- No intentional cloud upload is part of the current local workflow. ADE does
+  not intentionally upload input data, generated reports, feedback records, or
+  dashboard exports to a cloud service.
+- Users should still apply normal local-machine precautions before running ADE
+  on files from untrusted sources.
+- Generated artifacts may include source paths, reviewer notes, candidate
+  anomaly details, and extracted preview images. Treat them as potentially
+  sensitive.
 
 ## Reporting Security Issues
 
-Do not open public issues for suspected vulnerabilities involving private datasets, credentials, or deployment details. Use a private communication channel with the repository owner.
+For now, report security concerns directly to the project owner through the
+repository's preferred private contact channel. Do not publish exploit details
+or private data in public issues.
 
-## Data Handling
+## In Scope
 
-Do not commit:
+- Local CLI workflows.
+- Local report generation and validation.
+- Local feedback JSONL handling.
+- Local dashboard export.
+- ADE Studio local UI foundation and mock-data surfaces.
+- Documentation that could misstate security or privacy behavior.
 
-- Private datasets
-- Secrets or credentials
-- Generated reports from sensitive data
-- Run metadata from sensitive data
-- Proprietary model outputs
+## Out of Scope
 
-## Current Scope
+- Hosted services, because ADE does not currently ship a hosted backend.
+- Authentication, authorization, billing, and database security, because those
+  systems are not implemented.
+- Third-party infrastructure outside the repository.
+- Private datasets or generated artifacts that users create locally.
 
-The current implementation reads local input folders and writes local reports. It does not upload data or call remote model APIs.
+## Security Review Status
 
-## Compliance
-
-ADE does not currently claim SOC 2, HIPAA, GDPR, or other compliance status.
+ADE has not undergone a formal security audit. The current posture is a
+local-first engineering constraint, not a certification.

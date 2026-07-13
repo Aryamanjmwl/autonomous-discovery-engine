@@ -55,7 +55,7 @@ inspect the project without cloud services.
 
 ## Honest Status Wording
 
-ADE is a local technical preview project, not a production SaaS product. It
+ADE is a local technical preview project, not a hosted product deployment. It
 demonstrates an adapter-based discovery workflow with mature visual reports and
 lightweight CSV foundations. It does not implement hosted dashboards,
 auth/users, database services, billing, production streaming, audio analysis,

@@ -94,7 +94,7 @@ python scripts/verify_local.py
 That verification path runs linting, tests, demo data generation, analysis,
 report validation, HTML export, benchmark generation, local dashboard export,
 and run listing. The release documentation keeps technical preview expectations
-explicit and avoids production SaaS claims.
+explicit and avoids hosted deployment claims.
 
 ## Limitations
 
