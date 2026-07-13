@@ -17,6 +17,7 @@ All findings are candidate findings and require human review.
 - [Modality capability matrix](modality_capability_matrix.md): implemented, foundation, and planned modality status.
 - [Portfolio case study](portfolio_case_study.md): project summary, design choices, current capabilities, limitations, and interview talking points.
 - [Sample outputs](sample_outputs.md): generated report, benchmark, dashboard, run-history, and feedback artifacts.
+- [ADE Studio](ade_studio.md): local UI foundation, mock data scope, and future integration path.
 - [CV project description](cv_project_description.md): concise project wording for resumes, portfolios, and interviews.
 - [Engineering quality](engineering_quality.md): coding, testing, artifact, review, and release standards.
 - [Roadmap](ROADMAP.md): staged product and engineering direction.
@@ -44,6 +45,7 @@ All findings are candidate findings and require human review.
 
 ## Dashboard Planning
 
+- [ADE Studio local UI foundation](ade_studio.md)
 - [Dashboard product spec](dashboard/dashboard_product_spec.md)
 - [Dashboard frontend contract](dashboard/dashboard_frontend_contract.md)
 - [Dashboard release plan](dashboard/dashboard_release_plan.md)

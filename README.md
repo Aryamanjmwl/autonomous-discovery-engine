@@ -68,9 +68,15 @@ Release polish materials for technical preview review:
 - [CV/project wording](docs/cv_project_description.md)
 - [Modality capability matrix](docs/modality_capability_matrix.md)
 - [Local dashboard export docs](docs/dashboard/dashboard_product_spec.md)
+- [ADE Studio local UI foundation](docs/ade_studio.md)
 
 ADE v0.1.0 Technical Preview is prepared for local demo review and manual release tagging. It is
 not a production SaaS release, and all candidate findings require human review.
+
+ADE Studio is an early local UI foundation under `apps/studio/frontend`. It uses
+mock data to present local run telemetry, evidence, review status, novelty
+score, and confidence score surfaces for candidate findings. It is not wired to
+a backend service yet.
 
 ## What Problem ADE Solves
 

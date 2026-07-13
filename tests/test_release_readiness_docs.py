@@ -18,6 +18,7 @@ def test_technical_preview_docs_exist() -> None:
         "docs/report_schema.md",
         "docs/portfolio_case_study.md",
         "docs/sample_outputs.md",
+        "docs/ade_studio.md",
         "docs/cv_project_description.md",
         "docs/demo_assets.md",
         "docs/dashboard/dashboard_product_spec.md",
@@ -33,6 +34,7 @@ def test_technical_preview_docs_exist() -> None:
         "examples/demo_workflow.md",
         "examples/modalities/tabular_workflow.md",
         "examples/modalities/timeseries_workflow.md",
+        "apps/studio/README.md",
         "CHANGELOG.md",
     ]
 
@@ -52,6 +54,7 @@ def test_technical_preview_docs_keep_human_review_language() -> None:
         "docs/dashboard/dashboard_release_plan.md",
         "docs/portfolio_case_study.md",
         "docs/sample_outputs.md",
+        "docs/ade_studio.md",
         "docs/cv_project_description.md",
         "docs/demo_assets.md",
         "docs/releases/technical_preview_readiness_audit.md",
@@ -157,6 +160,49 @@ def test_readme_includes_portfolio_demo_status_language() -> None:
     assert "foundation" in readme
     assert "planned" in readme
     assert "requires human review" in readme or "require human review" in readme
+
+
+def test_ade_studio_frontend_package_metadata() -> None:
+    package_path = PROJECT_ROOT / "apps/studio/frontend/package.json"
+    package_data = json.loads(package_path.read_text(encoding="utf-8"))
+
+    assert package_data["name"] == "ade-studio"
+    assert package_data["version"] == "0.1.0"
+    assert package_data["private"] is True
+    for script in ["dev", "build", "start", "lint", "typecheck"]:
+        assert script in package_data["scripts"]
+    assert "@vercel/analytics" not in package_data.get("dependencies", {})
+
+
+def test_ade_studio_docs_and_ui_keep_local_foundation_framing() -> None:
+    checked_paths = [
+        "apps/studio/README.md",
+        "docs/ade_studio.md",
+        "apps/studio/frontend/app/layout.tsx",
+        "apps/studio/frontend/app/page.tsx",
+        "apps/studio/frontend/components/ade/ade-studio.tsx",
+        "apps/studio/frontend/components/ade/sidebar.tsx",
+        "apps/studio/frontend/components/ade/topbar.tsx",
+        "apps/studio/frontend/components/ade/primitives.tsx",
+        "apps/studio/frontend/lib/ade-data.ts",
+    ]
+
+    for path in (PROJECT_ROOT / "apps/studio/frontend/components/ade/screens").glob("*.tsx"):
+        checked_paths.append(str(path.relative_to(PROJECT_ROOT)))
+
+    combined = "\n".join(_read(path) for path in checked_paths)
+    lowered = combined.lower()
+
+    assert "mock data" in lowered
+    assert "local ui foundation" in lowered
+    assert "requires human review" in lowered or "require human review" in lowered
+    assert "v0.app" not in lowered
+    assert "@vercel/analytics" not in lowered
+    assert "private-alpha" not in lowered
+    assert "private alpha" not in lowered
+    assert "production saas" not in lowered
+    assert "start discovery engine" not in lowered
+    assert "live monitoring" not in lowered
 
 
 def test_technical_preview_release_docs_are_release_ready_without_overclaiming() -> None:
