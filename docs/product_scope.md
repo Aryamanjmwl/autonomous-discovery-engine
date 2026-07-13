@@ -45,3 +45,8 @@ The current implementation supports a visual-data-first pipeline:
 ADE does not yet implement production video processing, non-visual adapters, deep visual embedding models, hosted uploads, dashboards, user accounts, billing, live streams, or production security controls.
 
 ADE does not guarantee discoveries, replace experts, or make scientific, medical, legal, operational, or financial conclusions. All outputs are candidate findings that require human review.
+
+## Modality positioning
+
+ADE is not a visual-only system. The current implementation is adapter-based: visual discovery is the most mature local workflow, while CSV tabular and CSV time-series workflows are lightweight foundations. Sensor streams, live satellite feeds, audio input, hosted workflows, production streaming, and deep model backends remain planned unless a specific branch implements them.
+

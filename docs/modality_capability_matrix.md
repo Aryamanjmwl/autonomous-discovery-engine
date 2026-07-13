@@ -21,3 +21,17 @@ All current outputs are candidate findings for human review. ADE does not claim
 automated truth, supervised learning, production personalization, cloud hosting,
 authentication, billing, or production streaming in this local technical preview
 workflow.
+
+## Modality coverage summary
+
+| Modality | Current status |
+| --- | --- |
+| Visual image folders | Most mature local workflow. |
+| Tabular CSV | Lightweight local foundation. |
+| Time-series CSV | Lightweight local foundation. |
+| Sensor streams | Planned adapter path. |
+| Live satellite feeds | Planned adapter path. |
+| Audio input | Planned adapter path. |
+
+Planned modalities are roadmap targets and should not be described as implemented until adapters, validation, representation, reporting, and tests are added.
+
