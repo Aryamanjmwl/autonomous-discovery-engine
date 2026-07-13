@@ -22,6 +22,7 @@ class EvidenceItem:
     normalized_score: float | None = None
     concept_id: str | None = None
     nearest_neighbor_id: str | None = None
+    nearest_neighbor_patch_id: str | None = None
     feature_deviations: list[dict[str, float | str]] | None = None
     reason: str = ""
     preview_path: str | None = None
@@ -55,6 +56,7 @@ class EvidenceItem:
             "normalized_score": self.normalized_score,
             "concept_id": self.concept_id,
             "nearest_neighbor_id": self.nearest_neighbor_id,
+            "nearest_neighbor_patch_id": self.nearest_neighbor_patch_id,
             "feature_deviations": self.feature_deviations or [],
             "reason": self.reason,
             "preview_path": self.preview_path,
@@ -134,15 +136,20 @@ class EvidenceCollector:
                     concept_id=concept.concept_id,
                     nearest_neighbor_id=self._str_metadata(
                         candidate.metadata.get("nearest_neighbor_id")
+                        or candidate.metadata.get("nearest_neighbor_patch_id")
+                    ),
+                    nearest_neighbor_patch_id=self._str_metadata(
+                        candidate.metadata.get("nearest_neighbor_patch_id")
+                        or candidate.metadata.get("nearest_neighbor_id")
                     ),
                     feature_deviations=self._feature_deviations(
                         candidate.metadata.get("feature_deviations")
                     ),
                     reason=str(candidate.metadata.get("reason", "")),
                     preview_path=candidate.preview_path,
-                    patch_stride=candidate.embedding.patch.patch_stride,
-                    scale_id=candidate.embedding.patch.scale_id,
-                    scale_label=candidate.embedding.patch.scale_label,
+                    patch_stride=getattr(candidate.embedding.patch, "patch_stride", None),
+                    scale_id=getattr(candidate.embedding.patch, "scale_id", None),
+                    scale_label=getattr(candidate.embedding.patch, "scale_label", None),
                 )
                 for index, candidate in enumerate(sorted_candidates, start=1)
             ]
@@ -271,7 +278,11 @@ class EvidenceCollector:
                 continue
             feature = item.get("feature")
             deviation = item.get("deviation")
+            deviation_key = "deviation"
+            if not isinstance(deviation, int | float):
+                deviation = item.get("z_deviation")
+                deviation_key = "z_deviation"
             if feature is None or not isinstance(deviation, int | float):
                 continue
-            deviations.append({"feature": str(feature), "deviation": float(deviation)})
+            deviations.append({"feature": str(feature), deviation_key: float(deviation)})
         return deviations

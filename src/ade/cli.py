@@ -1043,7 +1043,35 @@ def main() -> None:
         raise
     except (FileNotFoundError, NotADirectoryError, ValueError) as error:
         parser.error(str(error))
-    print(f"ADE report written to {report_path}")
+    print(_format_completed_run(report_path))
+
+
+def _format_completed_run(report_path: Path) -> str:
+    """Return concise terminal output for a completed analysis."""
+
+    json_path = report_path.with_suffix(".json")
+    if not json_path.exists():
+        return f"ADE report written to {report_path}"
+
+    import json
+
+    report_data = json.loads(json_path.read_text(encoding="utf-8"))
+    run_id = report_data.get("run_id", "unavailable")
+    input_dir = report_data.get("input_summary", {}).get("input_dir", "unavailable")
+    image_count = report_data.get("number_of_images", "unavailable")
+    finding_count = report_data.get("number_of_candidate_anomalies", "unavailable")
+    return "\n".join(
+        [
+            "ADE analysis complete.",
+            f"Run ID: {run_id}",
+            f"Dataset: {input_dir}",
+            f"Images processed: {image_count}",
+            f"Candidate anomalies: {finding_count}",
+            f"ADE report written to {report_path}",
+            f"Markdown report: {report_path}",
+            f"JSON report: {json_path}",
+        ]
+    )
 
 
 if __name__ == "__main__":

@@ -5,7 +5,7 @@ to help users investigate hidden patterns, candidate anomalies, recurring
 behaviors, possible relationships, and predictive signals across many kinds of
 data.
 
-The current private-alpha implementation includes a mature visual/image-folder
+The current Technical Preview implementation includes a mature visual/image-folder
 workflow plus lightweight CSV tabular and CSV time-series adapter foundations
 where implemented. Other modalities are planned adapter targets unless the
 repository contains working code, tests, and report contracts for them.
