@@ -28,7 +28,9 @@ def test_technical_preview_docs_exist() -> None:
         "docs/releases/github_release_body_v0.1.0-preview.md",
         "examples/README.md",
         "examples/demo_workflow.md",
-        "examples/modalities/README.md",
+        "examples/modalities/tabular_workflow.md",
+        "examples/modalities/timeseries_workflow.md",
+        "apps/studio/README.md",
         "CHANGELOG.md",
     ]
 

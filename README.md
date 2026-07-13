@@ -81,6 +81,11 @@ mock data to present local run telemetry, evidence, review status, novelty
 score, and confidence score surfaces for candidate findings. It is not wired to
 a backend service yet.
 
+ADE Studio is an early local UI foundation under `apps/studio/frontend`. It uses
+mock data to present local run telemetry, evidence, review status, novelty
+score, and confidence score surfaces for candidate findings. It is not wired to
+a backend service yet.
+
 ## What Problem ADE Solves
 
 Most AI tools are built around known questions: classify this image, summarize this text, forecast this metric, or answer this prompt. Many real-world datasets contain useful signals that users do not yet know to ask about.
