@@ -49,8 +49,8 @@ def _base_image(index: int, rng: np.random.Generator) -> np.ndarray:
     """Create a mostly plain RGB background with mild deterministic noise."""
 
     base_value = 96 + index * 8
-    image = np.full((IMAGE_SIZE, IMAGE_SIZE, 3), base_value, dtype=np.float32)
-    noise = rng.normal(loc=0.0, scale=4.0, size=image.shape)
+    image = np.full((IMAGE_SIZE, IMAGE_SIZE, 3), base_value, dtype=np.int16)
+    noise = rng.integers(low=-8, high=9, size=image.shape, dtype=np.int16)
     return np.clip(image + noise, 0, 255).astype(np.uint8)
 
 
@@ -132,3 +132,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

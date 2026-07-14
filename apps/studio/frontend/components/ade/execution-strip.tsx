@@ -1,6 +1,7 @@
 'use client'
 
-import { Cpu, Lock, Play, Square } from 'lucide-react'
+import { Cpu, Lock } from 'lucide-react'
+import type { StudioData } from '@/lib/ade-api'
 
 function TelemetryItem({
   label,
@@ -21,7 +22,11 @@ function TelemetryItem({
   )
 }
 
-export function ExecutionStrip() {
+export function ExecutionStrip({ studioData }: { studioData: StudioData }) {
+  const connected = studioData.mode === 'connected'
+  const latestRun = studioData.summary?.latest_run_id || studioData.summary?.latest_run?.run_id
+  const latestReport = studioData.summary?.latest_report_name || studioData.summary?.latest_report?.name
+
   return (
     <footer className="flex h-10 shrink-0 items-center gap-5 border-t border-border bg-panel px-4">
       <div className="flex items-center gap-2">
@@ -31,65 +36,27 @@ export function ExecutionStrip() {
         </span>
       </div>
 
-      {/* live signal bars */}
-      <div className="hidden items-end gap-0.5 sm:flex" aria-hidden>
-        {[3, 6, 4, 8, 5, 7, 4].map((h, i) => (
-          <span
-            key={i}
-            className="w-0.5 rounded-full bg-primary/60"
-            style={{
-              height: `${h + 2}px`,
-              animation: `ade-pulse 1.2s ${i * 0.12}s ease-in-out infinite alternate`,
-            }}
-          />
-        ))}
-      </div>
-
-      <TelemetryItem label="Uptime" className="hidden md:block">
-        47h 12m
+      <TelemetryItem label="Mode" className="hidden md:block">
+        {connected ? 'Engine Connected' : 'Mock Preview'}
       </TelemetryItem>
 
-      <div className="hidden items-center lg:flex">
-        <TelemetryItem label="Run">run_847_q4</TelemetryItem>
-        <span className="ml-3 h-1 w-24 overflow-hidden rounded-full bg-raised">
-          <span className="block h-full w-[64%] rounded-full bg-primary" />
-        </span>
-        <span className="ml-2 font-mono text-[11px] tabular-nums text-primary">64%</span>
-      </div>
+      <TelemetryItem label="Latest run" className="hidden lg:block">
+        {connected ? latestRun || 'Not available from current report' : 'mock fallback'}
+      </TelemetryItem>
+
+      <TelemetryItem label="Latest report" className="hidden xl:block">
+        {connected ? latestReport || 'Not available from current report' : 'mock fallback'}
+      </TelemetryItem>
 
       <div className="ml-auto flex items-center gap-3">
         <span className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.13em] text-pattern">
           <Lock className="size-3" />
           Local-only
         </span>
-        <button
-          type="button"
-          className="inline-flex items-center gap-1.5 rounded-[4px] border border-border bg-card/60 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground transition-colors hover:border-border-strong hover:text-foreground"
-        >
-          <Square className="size-3" />
-          Halt
-        </button>
-        <button
-          type="button"
-          className="inline-flex items-center gap-1.5 rounded-[4px] border border-primary/55 bg-primary/10 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-primary transition-colors hover:bg-primary/[0.18]"
-        >
-          <Play className="size-3" />
-          Resume
-        </button>
+        <span className="font-mono text-[10px] uppercase tracking-[0.13em] text-operational">
+          {connected ? 'Engine Connected' : 'Mock Preview'}
+        </span>
       </div>
-
-      <style jsx>{`
-        @keyframes ade-pulse {
-          from {
-            opacity: 0.35;
-            transform: scaleY(0.6);
-          }
-          to {
-            opacity: 1;
-            transform: scaleY(1.15);
-          }
-        }
-      `}</style>
     </footer>
   )
 }
