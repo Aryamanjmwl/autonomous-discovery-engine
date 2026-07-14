@@ -3,18 +3,20 @@
 import { TrendingUp, TrendingDown } from 'lucide-react'
 import { ScreenHeader } from '@/components/ade/screen-header'
 import { Panel, PanelHeader, KpiCard, SectionLabel } from '@/components/ade/primitives'
+import type { EngineMode } from '@/lib/ade-api'
 import { cn } from '@/lib/utils'
 
 const BENCH_RUNS = [
-  { id: 'run_847_q4', workflow: 'tabular', rows: '847,293', runtime: '4m 12s', precision: 0.847, recall: 0.912 },
-  { id: 'run_846_q4', workflow: 'tabular', rows: '847,102', runtime: '4m 20s', precision: 0.835, recall: 0.908 },
-  { id: 'run_845_vibe', workflow: 'visual', rows: '212,004', runtime: '2m 51s', precision: 0.802, recall: 0.889 },
-  { id: 'run_882_grid', workflow: 'time-series', rows: '1,204,880', runtime: '6m 44s', precision: 0.791, recall: 0.874 },
+  { id: 'mock_visual_04', workflow: 'visual', rows: 'demo set', runtime: 'local', precision: 0.847, recall: 0.912 },
+  { id: 'mock_visual_03', workflow: 'visual', rows: 'demo set', runtime: 'local', precision: 0.835, recall: 0.908 },
+  { id: 'mock_tabular_02', workflow: 'tabular', rows: 'demo csv', runtime: 'local', precision: 0.802, recall: 0.889 },
+  { id: 'mock_series_01', workflow: 'time-series', rows: 'demo csv', runtime: 'local', precision: 0.791, recall: 0.874 },
 ]
 
 const TREND = [0.79, 0.8, 0.802, 0.812, 0.83, 0.835, 0.847]
 
-export function BenchmarksScreen() {
+export function BenchmarksScreen({ engineMode }: { engineMode: EngineMode }) {
+  const connected = engineMode === 'connected'
   const max = Math.max(...TREND)
   const min = Math.min(...TREND)
 
@@ -23,8 +25,22 @@ export function BenchmarksScreen() {
       <ScreenHeader
         eyebrow="Performance"
         title="Benchmarks"
-        description="Local runtime and detection quality across recent discovery runs. All metrics computed on-device."
+        description={
+          connected
+            ? 'Benchmark artifacts are shown only when they are available from local ADE outputs.'
+            : 'Mock Preview benchmark values are demo-only fallback content.'
+        }
       />
+
+      {connected ? (
+        <Panel className="p-5">
+          <PanelHeader title="Benchmark artifacts" />
+          <p className="mt-4 text-sm text-muted-foreground">
+            Not available from current report. Run the local benchmark script to generate benchmark artifacts.
+          </p>
+        </Panel>
+      ) : (
+        <>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <KpiCard label="Precision" value="0.847" hint="+1.2% vs prev" hintTone="operational" />
@@ -61,7 +77,7 @@ export function BenchmarksScreen() {
             <SummaryRow label="Total size" value="8.4 GB" />
             <SummaryRow label="Total rows" value="3.11M" />
             <SummaryRow label="Avg null rate" value="0.3%" />
-            <SummaryRow label="Formats" value="PARQUET" />
+            <SummaryRow label="Formats" value="Mock Preview" />
           </div>
         </Panel>
       </div>
@@ -104,6 +120,8 @@ export function BenchmarksScreen() {
           </tbody>
         </table>
       </Panel>
+        </>
+      )}
     </div>
   )
 }

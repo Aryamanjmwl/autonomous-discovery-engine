@@ -2,6 +2,7 @@
 
 import { Panel, PanelHeader, StatusBadge, SectionLabel } from '@/components/ade/primitives'
 import { findings, timeline, type ScreenId } from '@/lib/ade-data'
+import type { StudioData, StudioReportDetail } from '@/lib/ade-api'
 import { cn } from '@/lib/utils'
 
 const toneText: Record<string, string> = {
@@ -17,8 +18,27 @@ const toneBorder: Record<string, string> = {
   muted: 'border-l-border-strong',
 }
 
-export function OverviewScreen({ onNavigate }: { onNavigate: (id: ScreenId) => void }) {
-  const recent = findings.slice(0, 5)
+export function OverviewScreen({
+  onNavigate,
+  studioData,
+  selectedReport,
+}: {
+  onNavigate: (id: ScreenId) => void
+  studioData: StudioData
+  selectedReport: StudioReportDetail | null
+}) {
+  const connected = studioData.mode === 'connected'
+  const latestReport = studioData.summary?.latest_report
+  const anomalyCount = connected
+    ? (studioData.summary?.candidate_anomaly_count ?? latestReport?.candidate_anomaly_count ?? 0)
+    : findings.filter((f) => f.kind === 'anomaly').length
+  const conceptCount = connected
+    ? (studioData.summary?.candidate_concept_count ?? latestReport?.candidate_concept_count ?? 0)
+    : findings.filter((f) => f.kind === 'concept').length
+  const recent = connected ? recentReportFindings(selectedReport) : findings.slice(0, 5)
+  const evidenceEvents = connected
+    ? connectedEvidenceEvents(studioData)
+    : timeline
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-4">
@@ -29,14 +49,14 @@ export function OverviewScreen({ onNavigate }: { onNavigate: (id: ScreenId) => v
             Mission Control
           </p>
           <h1 className="mt-1 text-xl font-semibold tracking-tight text-foreground">
-            Manufacturing QC Pipeline
+            ADE Studio Local Engine
           </h1>
         </div>
         <div className="flex items-center gap-5">
-          <HeaderStat label="Precision" value="0.847" delta="+1.2%" />
-          <HeaderStat label="Recall" value="0.912" delta="+0.4%" />
-          <StatusBadge tone="operational" dot>
-            Local Engine Ready
+          <HeaderStat label="Runs" value={String(studioData.summary?.run_count ?? 'mock')} delta="" />
+          <HeaderStat label="Reports" value={String(studioData.summary?.report_count ?? 'mock')} delta="" />
+          <StatusBadge tone={connected ? 'operational' : 'pattern'} dot>
+            {connected ? 'Engine Connected' : 'Mock Preview'}
           </StatusBadge>
         </div>
       </div>
@@ -50,38 +70,71 @@ export function OverviewScreen({ onNavigate }: { onNavigate: (id: ScreenId) => v
             <div className="mt-2 flex items-baseline justify-between">
               <span className="font-mono text-2xl leading-none text-foreground">ACTIVE</span>
               <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-primary">
-                Idle
+                {connected ? 'Connected' : 'Fallback'}
               </span>
             </div>
-            <p className="mt-2 font-mono text-[11px] text-faint">Uptime 47h 12m · isolated</p>
+            <p className="mt-2 font-mono text-[11px] text-faint">
+              {connected ? '127.0.0.1 local engine' : 'Backend unavailable · mock preview'}
+            </p>
           </Panel>
 
           <Panel className="p-4">
-            <SectionLabel>Active datasets</SectionLabel>
+            <SectionLabel>Latest report</SectionLabel>
             <div className="mt-2 flex items-baseline justify-between">
-              <span className="font-mono text-2xl leading-none text-foreground">04</span>
-              <span className="font-mono text-[11px] text-faint">8.4 GB</span>
+              <span className="max-w-[150px] truncate font-mono text-sm leading-none text-foreground">
+                {studioData.summary?.latest_report_name || 'Not available'}
+              </span>
+              <span className="font-mono text-[11px] text-faint">
+                {studioData.summary?.latest_run_id || 'No run'}
+              </span>
             </div>
+          </Panel>
+
+          <Panel className="p-4">
+            <SectionLabel>Input summary</SectionLabel>
+            <ul className="mt-3 flex flex-col gap-2.5">
+              <FindingCount
+                tone="concept"
+                label="Input type"
+                value={studioData.summary?.input_type || 'Not available'}
+              />
+              <FindingCount
+                tone="anomaly"
+                label="Images"
+                value={String(studioData.summary?.number_of_images ?? 0)}
+              />
+              <FindingCount
+                tone="pattern"
+                label="Patches"
+                value={String(studioData.summary?.number_of_patches ?? 0)}
+              />
+            </ul>
           </Panel>
 
           <Panel className="flex-1 p-4">
             <SectionLabel>Candidate findings</SectionLabel>
             <ul className="mt-3 flex flex-col gap-2.5">
-              <FindingCount tone="anomaly" label="Candidate Anomalies" value="12" />
-              <FindingCount tone="concept" label="Candidate Concepts" value="05" />
-              <FindingCount tone="pattern" label="Possible Patterns" value="03" />
+              <FindingCount tone="anomaly" label="Candidate Anomalies" value={String(anomalyCount)} />
+              <FindingCount tone="concept" label="Candidate Concepts" value={String(conceptCount)} />
+              <FindingCount
+                tone="pattern"
+                label="Possible Patterns"
+                value={connected ? 'Not available' : '03'}
+              />
             </ul>
           </Panel>
 
           <Panel className="p-4">
             <div className="flex items-center justify-between">
               <SectionLabel>Human review</SectionLabel>
-              <span className="font-mono text-[11px] text-pattern">7 pending</span>
+              <span className="font-mono text-[11px] text-pattern">required</span>
             </div>
             <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-raised">
               <span className="block h-full w-[77%] rounded-full bg-operational" />
             </div>
-            <p className="mt-2 font-mono text-[11px] text-faint">23 verified · 30 total</p>
+            <p className="mt-2 font-mono text-[11px] text-faint">
+              Candidate findings require human review
+            </p>
           </Panel>
         </div>
 
@@ -89,7 +142,7 @@ export function OverviewScreen({ onNavigate }: { onNavigate: (id: ScreenId) => v
         <div className="flex min-h-0 flex-col gap-4">
           <Panel className="flex min-h-0 flex-1 flex-col">
             <PanelHeader
-              title="Discovery Field · Topological Projection"
+              title={connected ? 'Local Run Summary' : 'Discovery Field · Topological Projection'}
               accent="anomaly"
               action={
                 <span className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.13em] text-faint">
@@ -99,12 +152,12 @@ export function OverviewScreen({ onNavigate }: { onNavigate: (id: ScreenId) => v
               }
             />
             <div className="relative min-h-[260px] flex-1 overflow-hidden">
-              <DiscoveryField />
+              <DiscoveryField connected={connected} />
             </div>
             <div className="grid grid-cols-3 divide-x divide-border border-t border-border">
-              <FieldStat label="Nodes" value="20" tone="muted" />
-              <FieldStat label="Clusters" value="03" tone="concept" />
-              <FieldStat label="Drift warn" value="01" tone="pattern" />
+              <FieldStat label="Anomalies" value={String(anomalyCount)} tone="anomaly" />
+              <FieldStat label="Concepts" value={String(conceptCount)} tone="concept" />
+              <FieldStat label="Reports" value={String(studioData.summary?.report_count ?? 0)} tone="muted" />
             </div>
           </Panel>
 
@@ -133,7 +186,7 @@ export function OverviewScreen({ onNavigate }: { onNavigate: (id: ScreenId) => v
                 </tr>
               </thead>
               <tbody>
-                {recent.map((f) => (
+                {recent.length > 0 ? recent.map((f) => (
                   <tr
                     key={f.id}
                     className="cursor-pointer border-b border-border last:border-b-0 hover:bg-card"
@@ -144,16 +197,22 @@ export function OverviewScreen({ onNavigate }: { onNavigate: (id: ScreenId) => v
                       <StatusBadge tone={f.kind}>{formatFindingKind(f.kind)}</StatusBadge>
                     </td>
                     <td className="px-4 py-2.5 text-right font-mono tabular-nums text-foreground">
-                      {f.novelty.toFixed(2)}
+                      {formatScore(f.novelty)}
                     </td>
                     <td className="px-4 py-2.5 text-right font-mono tabular-nums text-muted-foreground">
-                      {f.confidence.toFixed(2)}
+                      {formatScore(f.confidence)}
                     </td>
                     <td className="px-4 py-2.5">
                       <ReviewPill status={f.status} />
                     </td>
                   </tr>
-                ))}
+                )) : (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-5 text-sm text-muted-foreground">
+                      Not available from current report.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </Panel>
@@ -164,7 +223,7 @@ export function OverviewScreen({ onNavigate }: { onNavigate: (id: ScreenId) => v
           <Panel className="flex min-h-0 flex-1 flex-col">
             <PanelHeader title="Evidence Feed" accent="concept" />
             <ul className="flex-1 overflow-y-auto">
-              {timeline.map((event) => (
+              {evidenceEvents.map((event) => (
                 <li
                   key={event.id}
                   className={cn(
@@ -192,11 +251,17 @@ export function OverviewScreen({ onNavigate }: { onNavigate: (id: ScreenId) => v
           </Panel>
 
           <Panel className="shrink-0">
-            <PanelHeader title="Local Run Benchmarks" />
-            <div className="grid grid-cols-2 divide-x divide-border">
-              <BenchCell label="Precision" value="0.847" delta="+1.2%" />
-              <BenchCell label="Recall" value="0.912" delta="+0.4%" />
-            </div>
+            <PanelHeader title={connected ? 'Benchmark Artifacts' : 'Local Run Benchmarks'} />
+            {connected ? (
+              <p className="p-4 text-sm text-muted-foreground">
+                Not available from current report.
+              </p>
+            ) : (
+              <div className="grid grid-cols-2 divide-x divide-border">
+                <BenchCell label="Precision" value="0.847" delta="+1.2%" />
+                <BenchCell label="Recall" value="0.912" delta="+0.4%" />
+              </div>
+            )}
           </Panel>
         </div>
       </div>
@@ -299,7 +364,75 @@ function formatFindingKind(kind: string) {
 /* Discovery Field — topological projection with nodes + scan sweep    */
 /* ------------------------------------------------------------------ */
 
-function DiscoveryField() {
+function recentReportFindings(report: StudioReportDetail | null) {
+  if (!report) return []
+  const anomalies = report.candidate_anomalies || []
+  const concepts = report.candidate_concepts || []
+  return [...anomalies.slice(0, 3), ...concepts.slice(0, 2)]
+    .map((item, index) => {
+      if (!item || typeof item !== 'object') return null
+      const row = item as Record<string, unknown>
+      const isConcept = Boolean(row.concept_id)
+      const id = stringValue(row.anomaly_id || row.concept_id, `candidate-${index + 1}`)
+      return {
+        id,
+        title: isConcept ? `Candidate concept ${id}` : `Candidate anomaly ${id}`,
+        kind: isConcept ? 'concept' : 'anomaly',
+        novelty: numberValue(row.novelty_score || row.average_novelty || row.average_novelty_score),
+        confidence: numberValue(row.confidence_score),
+        status: 'pending',
+      }
+    })
+    .filter(Boolean) as Array<{
+      id: string
+      title: string
+      kind: 'anomaly' | 'concept'
+      novelty: number
+      confidence: number
+      status: string
+    }>
+}
+
+function connectedEvidenceEvents(studioData: StudioData) {
+  const latestReport = studioData.summary?.latest_report
+  return [
+    {
+      id: 'connected-report',
+      time: latestReport?.generated_at || 'local',
+      label: 'Report loaded',
+      detail: latestReport?.name || 'Not available from current report',
+      tone: 'operational',
+    },
+    {
+      id: 'connected-anomalies',
+      time: 'local',
+      label: 'Candidate anomalies',
+      detail: String(studioData.summary?.candidate_anomaly_count ?? latestReport?.candidate_anomaly_count ?? 0),
+      tone: 'anomaly',
+    },
+    {
+      id: 'connected-concepts',
+      time: 'local',
+      label: 'Candidate concepts',
+      detail: String(studioData.summary?.candidate_concept_count ?? latestReport?.candidate_concept_count ?? 0),
+      tone: 'concept',
+    },
+  ]
+}
+
+function stringValue(value: unknown, fallback: string) {
+  return typeof value === 'string' && value.length > 0 ? value : fallback
+}
+
+function numberValue(value: unknown) {
+  return typeof value === 'number' && Number.isFinite(value) ? value : -1
+}
+
+function formatScore(value: number) {
+  return value >= 0 ? value.toFixed(2) : 'Not available'
+}
+
+function DiscoveryField({ connected }: { connected: boolean }) {
   // deterministic scatter of faint background nodes
   const scatter = Array.from({ length: 16 }, (_, i) => {
     const x = ((i * 37) % 92) + 4
@@ -333,13 +466,13 @@ function DiscoveryField() {
         <span className="block size-16 rounded-full border border-concept/40 bg-concept/5" />
         <span className="absolute inset-0 m-auto size-2.5 rounded-full bg-concept" />
         <span className="absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap font-mono text-[10px] tracking-[0.1em] text-concept">
-          CLUSTER_D3
+          {connected ? 'LOCAL_REPORT' : 'CLUSTER_D3'}
         </span>
       </div>
 
-      <FieldMarker left="26%" top="28%" tone="anomaly" label="NODE_A7" />
-      <FieldMarker left="42%" top="82%" tone="pattern" label="DRIFT_WARN_Q2" glow />
-      <FieldMarker left="80%" top="34%" tone="anomaly" label="NODE_B3" small />
+      <FieldMarker left="26%" top="28%" tone="anomaly" label={connected ? 'CANDIDATE_ANOMALIES' : 'NODE_A7'} />
+      <FieldMarker left="42%" top="82%" tone="pattern" label={connected ? 'REVIEW_REQUIRED' : 'DRIFT_WARN_Q2'} glow />
+      <FieldMarker left="80%" top="34%" tone="anomaly" label={connected ? 'LOCAL_ARTIFACTS' : 'NODE_B3'} small />
 
       {/* scan sweep */}
       <div className="pointer-events-none absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-transparent via-primary/[0.06] to-transparent [animation:ade-sweep_6s_linear_infinite]" />

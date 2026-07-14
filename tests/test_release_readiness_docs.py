@@ -187,7 +187,8 @@ def test_readme_includes_portfolio_demo_status_language() -> None:
     assert "planned" in readme
     assert "requires human review" in readme or "require human review" in readme
     assert "ade studio" in readme
-    assert "backend service yet" in readme
+    assert "local ade" in readme
+    assert "mock preview" in readme
     assert "license.md" in readme
 
 
@@ -222,8 +223,8 @@ def test_ade_studio_docs_and_ui_keep_local_foundation_framing() -> None:
     combined = "\n".join(_read(path) for path in checked_paths)
     lowered = combined.lower()
 
-    assert "mock data" in lowered
-    assert "local ui foundation" in lowered
+    assert "local ade engine" in lowered
+    assert "mock preview" in lowered or "mock data" in lowered
     assert "requires human review" in lowered or "require human review" in lowered
     assert "v0.app" not in lowered
     assert "@vercel/analytics" not in lowered
@@ -232,6 +233,39 @@ def test_ade_studio_docs_and_ui_keep_local_foundation_framing() -> None:
     assert "production saas" not in lowered
     assert "start discovery engine" not in lowered
     assert "live monitoring" not in lowered
+
+
+def test_ade_studio_connected_mode_components_do_not_hardcode_mock_dataset_values() -> None:
+    connected_component_paths = [
+        "apps/studio/frontend/components/ade/ade-studio.tsx",
+        "apps/studio/frontend/components/ade/execution-strip.tsx",
+        "apps/studio/frontend/components/ade/topbar.tsx",
+        "apps/studio/frontend/components/ade/screens/overview.tsx",
+        "apps/studio/frontend/components/ade/screens/new-analysis.tsx",
+        "apps/studio/frontend/components/ade/screens/runs.tsx",
+        "apps/studio/frontend/components/ade/screens/reports.tsx",
+        "apps/studio/frontend/components/ade/screens/findings.tsx",
+        "apps/studio/frontend/components/ade/screens/projects.tsx",
+        "apps/studio/frontend/components/ade/screens/benchmarks.tsx",
+        "apps/studio/frontend/components/ade/screens/feedback.tsx",
+    ]
+    forbidden = [
+        "Manufacturing QC Pipeline",
+        "847,293",
+        "PARQUET",
+        "sensor_b1_v",
+        "sensor_b2_v",
+        "sensor_b3_v",
+        "run_847_q4",
+        "qc_sensor_2024",
+        "Quarterly Performance Drift",
+        "47h 12m",
+    ]
+
+    for path in connected_component_paths:
+        text = _read(path)
+        for phrase in forbidden:
+            assert phrase not in text, f"{phrase!r} found in {path}"
 
 
 def test_technical_preview_release_docs_are_release_ready_without_overclaiming() -> None:

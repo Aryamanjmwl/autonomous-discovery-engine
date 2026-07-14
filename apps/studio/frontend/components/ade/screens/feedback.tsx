@@ -5,11 +5,12 @@ import { ThumbsUp, ThumbsDown, Eye, Check } from 'lucide-react'
 import { ScreenHeader } from '@/components/ade/screen-header'
 import { Panel, PanelHeader, KpiCard, StatusBadge, TechButton } from '@/components/ade/primitives'
 import { feedbackEntries, type FeedbackEntry } from '@/lib/ade-data'
-import { cn } from '@/lib/utils'
+import type { StudioData } from '@/lib/ade-api'
 
-export function FeedbackScreen() {
+export function FeedbackScreen({ studioData }: { studioData: StudioData }) {
   const [note, setNote] = useState('')
   const [recorded, setRecorded] = useState(false)
+  const connected = studioData.mode === 'connected'
 
   const usefulCount = feedbackEntries.filter((f) => f.verdict === 'useful').length
   const notUsefulCount = feedbackEntries.filter((f) => f.verdict === 'not-useful').length
@@ -29,6 +30,37 @@ export function FeedbackScreen() {
         description="Review verdicts recorded by human reviewers. Feedback trains local heuristics only — nothing is uploaded."
       />
 
+      {connected ? (
+        <>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <KpiCard
+              label="Feedback records"
+              value={studioData.summary?.feedback_count ?? 0}
+              hint="Local JSONL store"
+              hintTone="operational"
+            />
+            <KpiCard
+              label="Store"
+              value="Local"
+              hint={studioData.summary?.feedback_path || 'Not available from current report'}
+              hintTone="pattern"
+            />
+            <KpiCard
+              label="Review"
+              value="Required"
+              hint="Human review"
+              hintTone="pattern"
+            />
+          </div>
+          <Panel className="p-5">
+            <PanelHeader title="Feedback history" />
+            <p className="mt-4 text-sm text-muted-foreground">
+              Detailed feedback entries are not exposed through the Studio backend yet. Use the ADE CLI feedback commands to inspect the local JSONL store.
+            </p>
+          </Panel>
+        </>
+      ) : (
+      <>
       <div className="grid grid-cols-3 gap-4">
         <KpiCard label="Useful" value={usefulCount} hint="Confirmed findings" hintTone="operational" />
         <KpiCard label="Not useful" value={notUsefulCount} hint="Dismissed" hintTone="critical" />
@@ -103,6 +135,8 @@ export function FeedbackScreen() {
           ) : null}
         </Panel>
       </div>
+      </>
+      )}
     </div>
   )
 }
