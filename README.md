@@ -24,10 +24,10 @@ run history, benchmark support, human-review feedback, review-informed ranking
 signals, and a static local dashboard export. Outputs are review aids, not
 automated truth.
 
-ADE Studio is a local UI foundation under `apps/studio/frontend`. It uses mock
-data to present local run telemetry, evidence, review status, novelty score,
-and confidence score surfaces for candidate findings. It is not wired to a
-backend service yet.
+ADE Studio is a local-first interactive app layer under `apps/studio/frontend`
+with a small local Python API under `ade.studio`. It connects to the local ADE
+engine for the visual/image-folder workflow and falls back to mock preview data
+when the backend is unavailable.
 
 All candidate anomalies, candidate concepts, and possible patterns require
 human review.
@@ -48,6 +48,15 @@ python -m ade.cli --input data/raw/demo_images --output data/reports/demo_report
 python -m ade.cli --validate-report data/reports/demo_report.json
 python -m ade.cli --export-html-report data/reports/demo_report.json --output data/reports/demo_report.html
 python -m ade.cli --export-local-dashboard --output data/dashboard
+```
+
+Run ADE Studio in two terminals:
+
+```bash
+pip install -e ".[studio]"
+python -m ade.studio.api --host 127.0.0.1 --port 8765
+cd apps/studio/frontend
+npm run dev
 ```
 
 ## Demo Outputs

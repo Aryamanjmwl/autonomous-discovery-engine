@@ -1,5 +1,5 @@
-// Mock data for the ADE Studio local technical preview.
-// No backend, database, or network calls — everything here is illustrative sample data.
+// Mock fallback data for ADE Studio when the local backend is unavailable.
+// Connected mode uses the local ADE engine through NEXT_PUBLIC_ADE_API_URL.
 
 export type ScreenId =
   | 'overview'
