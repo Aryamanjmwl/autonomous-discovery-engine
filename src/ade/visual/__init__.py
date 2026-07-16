@@ -20,6 +20,7 @@ from ade.visual.errors import (
     VisualManifestError,
     VisualProvisioningError,
 )
+from ade.visual.exact_search import ExactNumpySearch, ReferenceSimilaritySearch
 from ade.visual.fingerprints import (
     VisualDatasetFingerprint,
     VisualFileFingerprint,
@@ -62,10 +63,12 @@ __all__ = [
     "VISUAL_ENGINE_SCHEMA_VERSION",
     "REFERENCE_MEMORY_SCHEMA_VERSION",
     "LoadedReferenceMemory",
+    "ExactNumpySearch",
     "CoresetSelection",
     "ReferenceMemoryManifest",
     "ReferenceNeighbor",
     "ReferenceSearchResult",
+    "ReferenceSimilaritySearch",
     "ReferenceVectorRecord",
     "VisualArtifactManifest",
     "VisualBackendCapabilities",
