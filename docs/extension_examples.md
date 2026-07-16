@@ -28,6 +28,12 @@ top-k conformance for future FAISS adapters. Extensions must preserve content
 identity, role-leakage checks, canonical relative paths, and immutable completed
 versions. They must not mutate memory directories or enable implicit downloads.
 
+Reference-scoring extensions consume `QueryPatchRecord` and
+`LoadedReferenceMemory` and return `ReferenceScoringResult`. Alternative search
+implementations must match `ExactNumpySearch` ordering and metric semantics.
+Map renderers must preserve authoritative raw float32 and coverage artifacts;
+preview images and per-image display normalization are not comparable scores.
+
 ## Add A New Adapter
 
 Start with `src/ade/adapters/base.py`. A data adapter validates an input source,

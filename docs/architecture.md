@@ -116,8 +116,15 @@ distances and stable ID tie-breaking; it does not allocate a full pairwise
 matrix. Exact NumPy Euclidean and cosine search batches queries and provides the
 correctness oracle for future accelerated implementations.
 
-This storage/search layer does not perform reference anomaly scoring. PatchCore,
-DINOv2, FAISS, calibration, anomaly maps, and Studio integration remain deferred.
+The reference scoring layer consumes this memory through exact search. It
+supports nearest-neighbour and k-neighbour mean patch distance, maximum and
+top-fraction image aggregation, overlap mean/maximum maps, multiscale
+mean/maximum fusion, explicit coverage, and deterministic mask-aware Gaussian
+smoothing. Uncovered pixels remain `NaN`. Raw float32 maps and coverage are the
+authoritative artifacts; normalized PNG previews are presentation evidence.
+
+Scores remain uncalibrated and require human review. DINOv2, FAISS, fitted
+calibration, public benchmark validation, and Studio integration remain deferred.
 
 ## Review Memory
 

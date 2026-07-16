@@ -44,7 +44,9 @@ not a deep-backend or reference-anomaly implementation.
 Immutable content-addressed reference memory, deterministic bounded farthest-
 first coreset selection, and exact batched NumPy similarity search are now
 implemented as standalone Stage 2 foundations. Reference anomaly scoring and
-deep representations are not implemented yet.
+spatial anomaly maps are implemented as separate Stage 3 typed APIs. These raw
+scores remain uncalibrated and require human review. Deep representations are
+not implemented yet.
 
 ## Stage 3: Pluggable Architecture
 
@@ -72,9 +74,9 @@ deep representations are not implemented yet.
 - Optional FAISS indexing
 - Persistent embedding cache
 
-These remain future stages. DINOv2, FAISS, PatchCore-style reference scoring,
-calibration fitting, and anomaly maps must satisfy the visual-engine completion
-specification before they are described as implemented.
+PatchCore-style reference scoring and spatial maps now satisfy their Stage 3
+contract gates. DINOv2, FAISS and calibration fitting remain future work and
+must satisfy the visual-engine completion specification before implementation.
 
 ## Stage 5: API and Docker
 
