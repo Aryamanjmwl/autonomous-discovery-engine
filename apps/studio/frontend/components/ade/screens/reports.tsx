@@ -1,10 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { ShieldCheck, Search } from 'lucide-react'
+import { Copy, ExternalLink, ShieldCheck } from 'lucide-react'
 import { Panel, KpiCard, StatusBadge, TechButton } from '@/components/ade/primitives'
 import { reports, type ReportRecord } from '@/lib/ade-data'
-import type { EngineMode, StudioReport, StudioReportDetail } from '@/lib/ade-api'
+import { reportHtmlUrl, type EngineMode, type StudioReport, type StudioReportDetail } from '@/lib/ade-api'
 import { cn } from '@/lib/utils'
 
 export function ReportsScreen({
@@ -30,19 +30,23 @@ export function ReportsScreen({
   const conceptConfidenceAverage = average(
     reportDetail?.candidate_concepts.map((item) => numberValue(item.confidence_score)) || [],
   )
+  const markdownPath = reportDetail?.markdown_report_path || apiSelected?.markdown_path
+  const jsonPath = reportDetail?.json_report_path || apiSelected?.path
+  const htmlPath = reportDetail?.html_report_path || apiSelected?.html_path
+  const htmlUrl = reportHtmlUrl(reportDetail?.report_name || apiSelected?.name)
 
   return (
     <div className="grid h-full grid-cols-1 gap-6 lg:grid-cols-[minmax(0,300px)_1fr]">
       {/* Report list */}
       <Panel className="flex flex-col">
         <div className="border-b border-border p-3">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <input
-              placeholder="Search reports..."
-              aria-label="Search reports"
-              className="h-9 w-full rounded-md border border-border bg-card pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none"
-            />
+          <div className="rounded-md border border-border bg-card px-3 py-2">
+            <p className="font-mono text-[10px] uppercase tracking-[0.13em] text-faint">
+              {connected ? 'Local report list' : 'Mock preview reports'}
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {connected ? 'Loaded from the connected ADE backend.' : 'Demo-only fallback content.'}
+            </p>
           </div>
         </div>
         {displayReports.length === 0 ? (
@@ -93,10 +97,22 @@ export function ReportsScreen({
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <TechButton variant="secondary">Markdown</TechButton>
-            <TechButton variant="secondary">HTML</TechButton>
-            <TechButton variant="secondary">JSON</TechButton>
-            <TechButton variant="primary">Export</TechButton>
+            <TechButton variant="secondary" onClick={() => copyText(markdownPath)} disabled={!markdownPath}>
+              <Copy className="size-3.5" /> Markdown
+            </TechButton>
+            <TechButton variant="secondary" onClick={() => copyText(jsonPath)} disabled={!jsonPath}>
+              <Copy className="size-3.5" /> JSON
+            </TechButton>
+            <TechButton variant="secondary" onClick={() => copyText(htmlPath)} disabled={!htmlPath}>
+              <Copy className="size-3.5" /> HTML path
+            </TechButton>
+            <TechButton
+              variant="primary"
+              onClick={() => openReportHtml(htmlUrl)}
+              disabled={!htmlPath || !htmlUrl}
+            >
+              <ExternalLink className="size-3.5" /> View HTML
+            </TechButton>
           </div>
         </div>
 
@@ -157,9 +173,9 @@ export function ReportsScreen({
           <Panel className="p-5">
             <h2 className="text-lg font-semibold text-foreground">Local Artifacts</h2>
             <dl className="mt-4 grid gap-2 font-mono text-xs text-muted-foreground">
-              <ArtifactRow label="Markdown" value={reportDetail?.markdown_report_path || apiSelected?.markdown_path} />
-              <ArtifactRow label="JSON" value={reportDetail?.json_report_path || apiSelected?.path} />
-              <ArtifactRow label="HTML" value={reportDetail?.html_report_path || apiSelected?.html_path} />
+              <ArtifactRow label="Markdown" value={markdownPath} />
+              <ArtifactRow label="JSON" value={jsonPath} />
+              <ArtifactRow label="HTML" value={htmlPath} />
             </dl>
           </Panel>
         ) : null}
@@ -227,6 +243,16 @@ function average(values: Array<number | null>) {
 
 function formatAverage(value: number | null) {
   return value === null ? 'Not available' : value.toFixed(2)
+}
+
+function copyText(value?: string | null) {
+  if (!value || typeof navigator === 'undefined' || !navigator.clipboard) return
+  void navigator.clipboard.writeText(value)
+}
+
+function openReportHtml(url?: string | null) {
+  if (!url || typeof window === 'undefined') return
+  window.open(url, '_blank', 'noopener,noreferrer')
 }
 
 function ArtifactRow({ label, value }: { label: string; value?: string | null }) {

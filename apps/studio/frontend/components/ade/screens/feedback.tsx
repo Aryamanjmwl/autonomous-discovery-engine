@@ -27,7 +27,7 @@ export function FeedbackScreen({ studioData }: { studioData: StudioData }) {
       <ScreenHeader
         eyebrow="Human-in-the-loop"
         title="Feedback"
-        description="Review verdicts recorded by human reviewers. Feedback trains local heuristics only — nothing is uploaded."
+        description="Inspect local feedback support. Candidate findings require human review and nothing is uploaded."
       />
 
       {connected ? (
@@ -53,9 +53,11 @@ export function FeedbackScreen({ studioData }: { studioData: StudioData }) {
             />
           </div>
           <Panel className="p-5">
-            <PanelHeader title="Feedback history" />
+            <PanelHeader title="Feedback workflow" />
             <p className="mt-4 text-sm text-muted-foreground">
-              Detailed feedback entries are not exposed through the Studio backend yet. Use the ADE CLI feedback commands to inspect the local JSONL store.
+              Studio feedback editing is not implemented in this Technical Preview. The local JSONL
+              store remains the source for reviewer labels, and detailed entries should be reviewed
+              with the ADE CLI until the Studio backend exposes a dedicated feedback endpoint.
             </p>
           </Panel>
         </>

@@ -184,7 +184,7 @@ def _collect_runs(run_index_path: Path) -> list[dict[str, Any]]:
     run_index = load_run_index(run_index_path)
     if run_index is None:
         return []
-    runs = [run for run in run_index.get("runs", []) if isinstance(run, dict)]
+    runs = [run for run in _list(run_index.get("runs")) if isinstance(run, dict)]
     return [
         {
             "run_id": run.get("run_id"),
@@ -487,8 +487,10 @@ def _list(value: object) -> list[Any]:
 
 
 def _int(value: object) -> int:
+    if not isinstance(value, str | bytes | bytearray | int | float):
+        return 0
     try:
-        return int(value)  # type: ignore[arg-type]
+        return int(value)
     except (TypeError, ValueError):
         return 0
 

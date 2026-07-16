@@ -1,9 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { ThumbsUp, ThumbsDown, Eye, Download, Filter } from 'lucide-react'
+import { Copy, Filter } from 'lucide-react'
 import { Panel, PanelHeader, SectionLabel, StatusBadge, TechButton, MetricRow, ReviewDisclaimer } from '@/components/ade/primitives'
-import { findings, type Finding, type ReviewStatus } from '@/lib/ade-data'
+import { findings, type Finding } from '@/lib/ade-data'
 import { reportAssetUrl, type EngineMode, type StudioReportDetail } from '@/lib/ade-api'
 import { cn } from '@/lib/utils'
 
@@ -24,15 +24,8 @@ export function FindingsScreen({
 }) {
   const connected = engineMode === 'connected'
   const displayFindings = reportFindings(selectedReport, connected)
-  const [reviews, setReviews] = useState<Record<string, ReviewStatus>>(
-    Object.fromEntries(displayFindings.map((f) => [f.id, f.status])),
-  )
   const [selectedId, setSelectedId] = useState(displayFindings[1]?.id ?? displayFindings[0]?.id ?? '')
   const selected = displayFindings.find((f) => f.id === selectedId) ?? displayFindings[0]
-  const selectedStatus = selected ? reviews[selected.id] ?? 'pending' : 'pending'
-
-  const setVerdict = (status: ReviewStatus) =>
-    selected ? setReviews((prev) => ({ ...prev, [selected.id]: status })) : undefined
 
   if (!selected) {
     return (
@@ -55,7 +48,6 @@ export function FindingsScreen({
         />
         <ul className="flex-1 overflow-y-auto">
           {displayFindings.map((f) => {
-            const status = reviews[f.id]
             const isSel = f.id === selectedId
             return (
               <li key={f.id}>
@@ -72,7 +64,7 @@ export function FindingsScreen({
                     <span className="font-mono text-xs text-muted-foreground">N: {formatScore(f.novelty)}</span>
                   </div>
                   <span className="text-sm font-medium text-foreground">{f.title}</span>
-                  <VerdictLabel status={status} />
+                  <VerdictLabel status={f.status} />
                 </button>
               </li>
             )
@@ -133,40 +125,17 @@ export function FindingsScreen({
       {/* Review actions */}
       <Panel className="flex flex-col p-4 xl:h-fit">
         <SectionLabel>Review actions</SectionLabel>
-        <div className="mt-3 flex flex-col gap-2">
-          <TechButton
-            variant="secondary"
-            active={selectedStatus === 'useful'}
-            aria-pressed={selectedStatus === 'useful'}
-            onClick={() => setVerdict('useful')}
-            className={cn('justify-start', selectedStatus === 'useful' && 'border-operational text-operational')}
-          >
-            <ThumbsUp className="size-3.5" /> Useful
-          </TechButton>
-          <TechButton
-            variant="secondary"
-            active={selectedStatus === 'not-useful'}
-            aria-pressed={selectedStatus === 'not-useful'}
-            onClick={() => setVerdict('not-useful')}
-            className={cn('justify-start', selectedStatus === 'not-useful' && 'border-critical text-critical')}
-          >
-            <ThumbsDown className="size-3.5" /> Not useful
-          </TechButton>
-          <TechButton
-            variant="secondary"
-            active={selectedStatus === 'needs-review'}
-            aria-pressed={selectedStatus === 'needs-review'}
-            onClick={() => setVerdict('needs-review')}
-            className={cn('justify-start', selectedStatus === 'needs-review' && 'border-pattern text-pattern')}
-          >
-            <Eye className="size-3.5" /> Needs review
-          </TechButton>
-        </div>
-
-        <div className="my-4 h-px bg-border" />
-
-        <TechButton variant="secondary" className="justify-start">
-          <Download className="size-3.5" /> Export data
+        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+          Studio feedback submission is not implemented in this Technical Preview. Use the ADE CLI
+          feedback commands to record reviewer labels against stable candidate IDs.
+        </p>
+        <TechButton
+          variant="secondary"
+          className="mt-3 justify-start"
+          onClick={() => copyText(selected.source)}
+          disabled={!selected.source || selected.source === 'Not available from current report'}
+        >
+          <Copy className="size-3.5" /> Copy source path
         </TechButton>
 
         <div className="my-4 h-px bg-border" />
@@ -322,8 +291,8 @@ function MetaItem({ label, value }: { label: string; value: string }) {
   )
 }
 
-function VerdictLabel({ status }: { status: ReviewStatus }) {
-  const map: Record<ReviewStatus, { label: string; className: string }> = {
+function VerdictLabel({ status }: { status: Finding['status'] }) {
+  const map: Record<Finding['status'], { label: string; className: string }> = {
     pending: { label: 'Pending', className: 'text-muted-foreground' },
     useful: { label: 'Useful', className: 'text-operational' },
     'not-useful': { label: 'Not useful', className: 'text-critical' },
@@ -334,6 +303,11 @@ function VerdictLabel({ status }: { status: ReviewStatus }) {
   return (
     <span className={cn('font-mono text-[10px] uppercase tracking-[0.12em]', cfg.className)}>{cfg.label}</span>
   )
+}
+
+function copyText(value?: string | null) {
+  if (!value || typeof navigator === 'undefined' || !navigator.clipboard) return
+  void navigator.clipboard.writeText(value)
 }
 
 function EvidencePreview({

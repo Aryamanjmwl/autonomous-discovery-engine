@@ -10,7 +10,7 @@ import zlib
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, TypedDict
 
 from ade import __version__
 from ade.discovery.confidence_scorer import ConceptConfidence
@@ -31,6 +31,31 @@ from ade.models import (
 )
 from ade.reasoning.hypothesis_generator import Hypothesis
 from ade.reporting.run_index import build_run_summary, update_run_index
+
+
+class EvidenceSummaryJson(TypedDict):
+    supporting_examples: list[Any]
+    representative_examples: list[Any]
+    near_matches: list[Any]
+    nearest_neighbors: list[Any]
+    normal_comparisons: list[Any]
+    notes: list[str]
+    warnings: list[str]
+
+
+def _int_value(value: object, default: int = 0) -> int:
+    return int(value) if isinstance(value, int | float | str) else default
+
+
+def _list_value(value: object) -> list[Any]:
+    return value if isinstance(value, list) else []
+
+
+def _string_list(value: object, default: list[str] | None = None) -> list[str]:
+    items = _list_value(value)
+    if not items and default is not None:
+        return default
+    return [str(item) for item in items]
 
 
 @dataclass(frozen=True)
@@ -544,19 +569,19 @@ class ReportGenerator:
                 else None
             ),
             memory_items_indexed=(
-                int(memory_metadata.get("items_indexed", 0))
+                _int_value(memory_metadata.get("items_indexed"))
                 if memory_metadata is not None
                 else None
             ),
             total_patches=(
-                int(analysis_metadata.get("total_patches", dataset_summary.patch_count))
+                _int_value(analysis_metadata.get("total_patches"), dataset_summary.patch_count)
                 if analysis_metadata is not None
                 else None
             ),
             patch_scales_used=(
                 [
                     str(item)
-                    for item in analysis_metadata.get("patch_scales_used", [])
+                    for item in _list_value(analysis_metadata.get("patch_scales_used"))
                 ]
                 if analysis_metadata is not None
                 else []
@@ -580,7 +605,7 @@ class ReportGenerator:
                 else None
             ),
             neighbor_top_k=(
-                int(analysis_metadata.get("neighbor_top_k"))
+                _int_value(analysis_metadata.get("neighbor_top_k"))
                 if analysis_metadata is not None
                 and analysis_metadata.get("neighbor_top_k") is not None
                 else None
@@ -808,11 +833,11 @@ class ReportGenerator:
         for evidence in evidence_items:
             concept_slug = self._slugify(evidence.concept_id)
             for example_index, item in enumerate(evidence.examples, start=1):
-                candidate = candidates_by_patch.get((str(item.source_path), item.coordinates))
-                if candidate is None:
+                matched_candidate = candidates_by_patch.get((str(item.source_path), item.coordinates))
+                if matched_candidate is None:
                     continue
                 asset_path = assets_dir / f"{concept_slug}_example_{example_index:03d}.png"
-                self._save_patch_image(candidate, asset_path)
+                self._save_patch_image(matched_candidate, asset_path)
                 concept_previews[
                     (evidence.concept_id, example_index)
                 ] = self._relative_markdown_path(asset_path, path.parent)
@@ -995,7 +1020,7 @@ class ReportGenerator:
                 else strategy != "global_distance"
             ),
             "neighbor_top_k": (
-                int(analysis_metadata.get("neighbor_top_k"))
+                _int_value(analysis_metadata.get("neighbor_top_k"))
                 if analysis_metadata is not None
                 and analysis_metadata.get("neighbor_top_k") is not None
                 else None
@@ -1040,7 +1065,10 @@ class ReportGenerator:
             if analysis_metadata.get("patch_scales_used") is not None:
                 lines.append(
                     "- Patch scales used: "
-                    + ", ".join(str(item) for item in analysis_metadata["patch_scales_used"])
+                    + ", ".join(
+                        str(item)
+                        for item in _list_value(analysis_metadata["patch_scales_used"])
+                    )
                 )
         return lines
 
@@ -1153,7 +1181,7 @@ class ReportGenerator:
     def _evidence_summary_json(
         evidence: ConceptEvidence,
         assets: ReportAssets,
-    ) -> dict[str, object]:
+    ) -> EvidenceSummaryJson:
         """Return a JSON-safe structured evidence bundle."""
 
         supporting_examples = []
@@ -1167,19 +1195,17 @@ class ReportGenerator:
         return {
             "supporting_examples": supporting_examples,
             "representative_examples": supporting_examples[:1],
-            "near_matches": list(bundle.get("near_matches", [])),
-            "nearest_neighbors": list(bundle.get("nearest_neighbors", [])),
-            "normal_comparisons": list(bundle.get("normal_comparisons", [])),
-            "notes": list(
-                bundle.get(
-                    "notes",
-                    [
-                        "Candidate concept is based on visually similar candidate anomalies.",
-                        "Requires human review.",
-                    ],
-                )
+            "near_matches": _list_value(bundle.get("near_matches")),
+            "nearest_neighbors": _list_value(bundle.get("nearest_neighbors")),
+            "normal_comparisons": _list_value(bundle.get("normal_comparisons")),
+            "notes": _string_list(
+                bundle.get("notes"),
+                [
+                    "Candidate concept is based on visually similar candidate anomalies.",
+                    "Requires human review.",
+                ],
             ),
-            "warnings": list(bundle.get("warnings", [])),
+            "warnings": _string_list(bundle.get("warnings")),
         }
 
     @staticmethod

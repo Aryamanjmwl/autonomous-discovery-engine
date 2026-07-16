@@ -82,7 +82,8 @@ def load_dashboard_runs(
     if run_index is None:
         return []
 
-    runs = [run for run in run_index.get("runs", []) if isinstance(run, dict)]
+    run_values = run_index.get("runs")
+    runs = [run for run in run_values if isinstance(run, dict)] if isinstance(run_values, list) else []
     normalized: list[DashboardRun] = []
     for run in reversed(runs):
         run_id = str(run.get("run_id", "unknown-run"))

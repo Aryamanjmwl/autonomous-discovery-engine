@@ -24,8 +24,12 @@ export function ProjectsScreen({
     <div className="flex flex-col gap-6">
       <ScreenHeader
         eyebrow="Workspace"
-        title="Projects"
-        description="Local discovery projects. Each project scopes datasets, runs, and candidate findings within the local workspace."
+        title={connected ? 'Local Workspace' : 'Projects'}
+        description={
+          connected
+            ? 'Project management is not implemented in this Technical Preview. ADE Studio currently reads the local artifact workspace.'
+            : 'Mock Preview project cards are demo-only fallback content.'
+        }
         actions={<TechButton variant="primary" onClick={() => onNavigate('new-analysis')}>New analysis</TechButton>}
       />
 
@@ -38,7 +42,9 @@ export function ProjectsScreen({
               </div>
               <div>
                 <h3 className="text-sm font-medium text-foreground">ADE Local Engine</h3>
-                <p className="font-mono text-xs text-muted-foreground">Local artifact workspace</p>
+                <p className="font-mono text-xs text-muted-foreground">
+                  Project management not implemented in this Technical Preview
+                </p>
               </div>
             </div>
             <StatusBadge tone="operational" dot>Engine Connected</StatusBadge>

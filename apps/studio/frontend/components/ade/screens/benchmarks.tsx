@@ -74,7 +74,7 @@ export function BenchmarksScreen({ engineMode }: { engineMode: EngineMode }) {
           <SectionLabel>Dataset summary</SectionLabel>
           <div className="mt-3 flex flex-col gap-3">
             <SummaryRow label="Active datasets" value="04" />
-            <SummaryRow label="Total size" value="8.4 GB" />
+            <SummaryRow label="Total size" value="Mock Preview" />
             <SummaryRow label="Total rows" value="3.11M" />
             <SummaryRow label="Avg null rate" value="0.3%" />
             <SummaryRow label="Formats" value="Mock Preview" />

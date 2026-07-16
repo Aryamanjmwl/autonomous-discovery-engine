@@ -16,12 +16,12 @@ from ade.reporting.html_report import write_html_report
 from ade.reporting.report_validator import validate_report_file
 from ade.reporting.run_index import load_run_index
 
-DEFAULT_REPORTS_DIR = Path("data/reports")
-DEFAULT_RUN_INDEX_PATH = Path("data/reports/runs/index.json")
-DEFAULT_DASHBOARD_DIR = Path("data/dashboard")
-DEFAULT_FEEDBACK_PATH = Path("data/feedback/feedback.jsonl")
-DEFAULT_REPORT_ASSETS_DIR = Path("data/reports/assets")
 DEFAULT_PROJECT_ROOT = Path(__file__).resolve().parents[3]
+DEFAULT_REPORTS_DIR = DEFAULT_PROJECT_ROOT / "data/reports"
+DEFAULT_RUN_INDEX_PATH = DEFAULT_REPORTS_DIR / "runs/index.json"
+DEFAULT_DASHBOARD_DIR = DEFAULT_PROJECT_ROOT / "data/dashboard"
+DEFAULT_FEEDBACK_PATH = DEFAULT_PROJECT_ROOT / "data/feedback/feedback.jsonl"
+DEFAULT_REPORT_ASSETS_DIR = DEFAULT_REPORTS_DIR / "assets"
 
 
 @dataclass(frozen=True)
@@ -59,9 +59,14 @@ def build_summary(paths: StudioPaths = StudioPaths()) -> dict[str, object]:
     latest_run = runs[0] if runs else None
     latest_report = reports[0] if reports else None
     feedback_count = _count_feedback_records(paths.feedback_path)
+    latest_report_name = _string_from_mapping(latest_report, "name")
     latest_report_detail = (
-        _normalize_report_detail(latest_report["name"], paths, _load_json_object(paths.reports_dir / latest_report["name"]))
-        if latest_report is not None and isinstance(latest_report.get("name"), str)
+        _normalize_report_detail(
+            latest_report_name,
+            paths,
+            _load_json_object(paths.reports_dir / latest_report_name),
+        )
+        if latest_report_name is not None
         else None
     )
     return {
@@ -100,10 +105,12 @@ def build_summary(paths: StudioPaths = StudioPaths()) -> dict[str, object]:
 def list_runs(paths: StudioPaths = StudioPaths(), limit: int = 25) -> list[dict[str, object]]:
     """Return recent run summaries from the local run index."""
 
+    if limit < 1 or limit > 100:
+        raise ValueError("limit must be between 1 and 100")
     index = load_run_index(paths.run_index_path)
     if index is None:
         return []
-    runs = [run for run in index.get("runs", []) if isinstance(run, dict)]
+    runs = [run for run in _list(index.get("runs")) if isinstance(run, dict)]
     runs.reverse()
     return [_json_safe(run) for run in runs[:limit]]
 
@@ -116,7 +123,11 @@ def list_reports(paths: StudioPaths = StudioPaths()) -> list[dict[str, object]]:
         return []
 
     reports: list[dict[str, object]] = []
-    for report_path in sorted(reports_dir.glob("*.json"), key=_modified_time, reverse=True):
+    report_paths = sorted(
+        reports_dir.glob("*.json"),
+        key=lambda path: (-_modified_time(path), path.name),
+    )
+    for report_path in report_paths:
         report = _load_json_object(report_path)
         if report is None or "candidate_anomalies" not in report:
             continue
@@ -144,9 +155,7 @@ def list_reports(paths: StudioPaths = StudioPaths()) -> list[dict[str, object]]:
 def load_report(report_name: str, paths: StudioPaths = StudioPaths()) -> dict[str, object]:
     """Return normalized report detail plus the raw local report JSON."""
 
-    safe_name = Path(report_name).name
-    if safe_name != report_name or not safe_name.endswith(".json"):
-        raise ValueError("report_name must be the name of a local JSON report file")
+    safe_name = _validate_report_name(report_name)
     report_path = paths.reports_dir / safe_name
     if not report_path.exists() or not report_path.is_file():
         raise FileNotFoundError(f"Report was not found: {safe_name}")
@@ -162,7 +171,7 @@ def resolve_report_asset(asset_name: str, paths: StudioPaths = StudioPaths()) ->
     """Return a safe local report asset path by filename."""
 
     safe_name = Path(asset_name).name
-    if safe_name != asset_name:
+    if not asset_name or safe_name != asset_name or safe_name in {".", ".."}:
         raise ValueError("asset_name must be a local report asset filename")
     asset_path = paths.report_assets_dir / safe_name
     assets_root = paths.report_assets_dir.resolve()
@@ -172,6 +181,20 @@ def resolve_report_asset(asset_name: str, paths: StudioPaths = StudioPaths()) ->
     if not resolved_asset.exists() or not resolved_asset.is_file():
         raise FileNotFoundError(f"Report asset was not found: {safe_name}")
     return resolved_asset
+
+
+def resolve_report_html(report_name: str, paths: StudioPaths = StudioPaths()) -> Path:
+    """Return a safe generated HTML report path for a local JSON report name."""
+
+    safe_name = _validate_report_name(report_name)
+    html_path = paths.reports_dir / Path(safe_name).with_suffix(".html")
+    reports_root = paths.reports_dir.resolve()
+    resolved_html = html_path.resolve()
+    if reports_root != resolved_html.parent:
+        raise ValueError("report HTML must resolve inside the reports directory")
+    if not resolved_html.exists() or not resolved_html.is_file():
+        raise FileNotFoundError(f"HTML report was not found for: {safe_name}")
+    return resolved_html
 
 
 def run_visual_analysis(
@@ -188,7 +211,10 @@ def run_visual_analysis(
         raise ValueError("Only visual/image-folder analysis is supported in ADE Studio.")
 
     report_name = _report_name(output_name)
-    output_path = paths.reports_dir / report_name
+    reports_root = paths.reports_dir.resolve()
+    output_path = (reports_root / report_name).resolve()
+    if output_path.parent != reports_root:
+        raise ValueError("Output report must resolve inside the reports directory.")
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     markdown_path = run_pipeline(input_dir=source, output_path=output_path, modality="image")
@@ -198,9 +224,10 @@ def run_visual_analysis(
         errors = "; ".join(validation.errors)
         raise ValueError(f"Generated report did not validate: {errors}")
 
-    html_path = json_path.with_suffix(".html")
+    generated_html_path = json_path.with_suffix(".html")
+    html_path: Path | None = generated_html_path
     try:
-        write_html_report(json_path, html_path)
+        write_html_report(json_path, generated_html_path)
     except (OSError, ValueError, JSONDecodeError):
         html_path = None
 
@@ -244,8 +271,8 @@ def _normalize_report_detail(
         run_metadata.get("json_report_path"),
         str(paths.reports_dir / report_name),
     )
-    html_path = str(paths.reports_dir / Path(report_name).with_suffix(".html").name)
-    html_path = html_path if Path(html_path).exists() else None
+    html_candidate = paths.reports_dir / Path(report_name).with_suffix(".html").name
+    html_path = str(html_candidate) if html_candidate.exists() else None
     anomalies = [_normalize_candidate_anomaly(item) for item in _list(report.get("candidate_anomalies"))]
     concepts = [_json_safe(item) for item in _list(report.get("candidate_unknown_concepts"))]
     return {
@@ -307,16 +334,21 @@ def _normalize_candidate_anomaly(item: object) -> dict[str, object]:
 def _resolve_input_path(input_path: Path | str, project_root: Path) -> Path:
     """Resolve absolute or repo-relative Studio analysis input paths."""
 
-    source = Path(input_path).expanduser()
+    raw_path = str(input_path).strip()
+    if not raw_path or "\x00" in raw_path:
+        raise ValueError("input_path must be a non-empty local filesystem path")
+    source = Path(raw_path).expanduser()
     if source.is_absolute():
-        return source
-    return project_root / source
+        return source.resolve()
+    return (project_root / source).resolve()
 
 
 def _report_name(output_name: str | None) -> str:
     """Return a safe Markdown report filename."""
 
-    if output_name:
+    if output_name and output_name.strip():
+        if "\x00" in output_name:
+            raise ValueError("output_name contains an invalid null byte")
         safe = Path(output_name).name
         stem = Path(safe).stem
     else:
@@ -325,6 +357,21 @@ def _report_name(output_name: str | None) -> str:
     if not stem:
         stem = "studio_report"
     return f"{stem}.md"
+
+
+def _validate_report_name(report_name: str) -> str:
+    """Validate an API-visible JSON report filename."""
+
+    safe_name = Path(report_name).name
+    if (
+        not report_name
+        or "\x00" in report_name
+        or safe_name != report_name
+        or safe_name in {".", ".."}
+        or Path(safe_name).suffix.lower() != ".json"
+    ):
+        raise ValueError("report_name must be the name of a local JSON report file")
+    return safe_name
 
 
 def _load_json_object(path: Path) -> dict[str, Any] | None:

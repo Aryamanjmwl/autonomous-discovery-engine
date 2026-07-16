@@ -29,10 +29,16 @@ export function AdeStudio() {
     error: null,
   })
   const [analysisResult, setAnalysisResult] = useState<StudioAnalysisResult | null>(null)
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   const refreshStudioData = async (reportName?: string) => {
-    const nextData = await loadStudioData(reportName)
-    setStudioData(nextData)
+    setIsRefreshing(true)
+    try {
+      const nextData = await loadStudioData(reportName)
+      setStudioData(nextData)
+    } finally {
+      setIsRefreshing(false)
+    }
   }
 
   useEffect(() => {
@@ -50,6 +56,8 @@ export function AdeStudio() {
             engineMode={studioData.mode}
             health={studioData.health}
             summary={studioData.summary}
+            isRefreshing={isRefreshing}
+            onRefresh={() => void refreshStudioData(studioData.selectedReport?.report_name)}
           />
           <main className="min-h-0 flex-1 overflow-y-auto p-6">
             {screen === 'overview' && (

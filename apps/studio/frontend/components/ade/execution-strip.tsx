@@ -41,11 +41,11 @@ export function ExecutionStrip({ studioData }: { studioData: StudioData }) {
       </TelemetryItem>
 
       <TelemetryItem label="Latest run" className="hidden lg:block">
-        {connected ? latestRun || 'Not available from current report' : 'mock fallback'}
+        {connected ? latestRun || 'No local run yet' : 'mock fallback'}
       </TelemetryItem>
 
       <TelemetryItem label="Latest report" className="hidden xl:block">
-        {connected ? latestReport || 'Not available from current report' : 'mock fallback'}
+        {connected ? latestReport || 'No local report yet' : 'mock fallback'}
       </TelemetryItem>
 
       <div className="ml-auto flex items-center gap-3">

@@ -34,7 +34,7 @@ def update_run_index(
     run_id = run_summary["run_id"]
     existing_runs = [
         run
-        for run in index["runs"]
+        for run in _list(index.get("runs"))
         if isinstance(run, dict) and run.get("run_id") != run_id
     ]
     existing_runs.append(run_summary)
@@ -49,6 +49,10 @@ def update_run_index(
         encoding="utf-8",
     )
     return index_path
+
+
+def _list(value: object) -> list[object]:
+    return value if isinstance(value, list) else []
 
 
 def load_run_index(index_path: Path) -> dict[str, object] | None:

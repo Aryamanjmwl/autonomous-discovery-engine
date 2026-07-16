@@ -55,14 +55,41 @@ The frontend calls `NEXT_PUBLIC_ADE_API_URL` and defaults to
 The local API accepts JSON at `POST /api/studio/analysis`. Use an absolute local
 path or a repository-relative path for visual/image-folder analysis:
 
-
-Generated report preview assets are served locally through `GET /api/studio/report-assets/{asset_name}` from `data/reports/assets/`. The route accepts asset filenames only, blocks path traversal, and is intended for localhost Technical Preview use. Findings remain candidate findings and require human review.```json
+```json
 {
   "input_path": "data/raw/demo_images",
   "workflow": "visual",
   "output_name": "studio_report.md"
 }
 ```
+
+Generated report preview assets are served locally through
+`GET /api/studio/report-assets/{asset_name}` from `data/reports/assets/`. The
+route accepts asset filenames only, blocks path traversal, and is intended for
+localhost Technical Preview use.
+
+Generated HTML reports are served through
+`GET /api/studio/reports/{report_name}/html`. The route accepts a local JSON
+report filename and serves only the matching sibling HTML report from
+`data/reports`.
+
+## Connected Mode Contract
+
+Connected ADE Studio views should show only real local backend state or an
+explicit Technical Preview empty state. Current connected surfaces include:
+
+- backend health and refresh
+- local visual/image-folder analysis from an absolute or repo-relative path
+- backend run and report lists
+- selected report details, candidate anomalies, candidate concepts, and preview
+  assets when available
+- HTML report opening and copy-path actions for local artifacts
+- explicit empty states for Studio feedback editing, project management, and
+  benchmark browsing when those endpoints are not implemented
+
+The Studio UI must not turn planned adapters, hosted dashboards, production
+streaming, or reviewer workflows into active controls until backend support and
+tests exist. Findings remain candidate findings and require human review.
 
 If frontend dependencies are not available locally, the rest of ADE still works
 through the existing Python CLI, report validation, HTML export, benchmark, and

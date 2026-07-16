@@ -122,9 +122,23 @@ export interface StudioData {
 }
 
 const DEFAULT_API_URL = 'http://127.0.0.1:8765'
+const REQUEST_TIMEOUT_MS = 15_000
 
-export function adeApiBaseUrl() {
-  return process.env.NEXT_PUBLIC_ADE_API_URL || DEFAULT_API_URL
+export function adeApiBaseUrl(): string {
+  const configured = (process.env.NEXT_PUBLIC_ADE_API_URL || DEFAULT_API_URL).trim()
+  let url: URL
+  try {
+    url = new URL(configured)
+  } catch {
+    throw new Error('NEXT_PUBLIC_ADE_API_URL must be a valid absolute URL.')
+  }
+  if (!['127.0.0.1', 'localhost', '::1'].includes(url.hostname)) {
+    throw new Error('ADE Studio only connects to a localhost backend in this Technical Preview.')
+  }
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    throw new Error('NEXT_PUBLIC_ADE_API_URL must use HTTP or HTTPS.')
+  }
+  return url.toString().replace(/\/$/, '')
 }
 
 export async function loadStudioData(reportName?: string): Promise<StudioData> {
@@ -178,9 +192,16 @@ export function reportAssetUrl(assetName?: string | null): string | null {
   return `${adeApiBaseUrl()}/api/studio/report-assets/${encodeURIComponent(assetName)}`
 }
 
+export function reportHtmlUrl(reportName?: string | null): string | null {
+  if (!reportName) return null
+  return `${adeApiBaseUrl()}/api/studio/reports/${encodeURIComponent(reportName)}/html`
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const timeout = AbortSignal.timeout(REQUEST_TIMEOUT_MS)
   const response = await fetch(`${adeApiBaseUrl()}${path}`, {
     cache: 'no-store',
+    signal: timeout,
     ...init,
   })
   if (!response.ok) {
@@ -193,7 +214,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     }
     throw new Error(detail)
   }
-  return (await response.json()) as T
+  try {
+    return (await response.json()) as T
+  } catch {
+    throw new Error(`ADE Studio backend returned invalid JSON for ${path}.`)
+  }
 }
 
 function formatApiErrorDetail(body: unknown, fallback: string): string {
