@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+import os
 import re
+import tempfile
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
@@ -144,12 +146,55 @@ def deserialize_reproducibility_manifest(
     return manifest
 
 
-def write_manifest(path: Path, payload: str) -> Path:
-    """Write already validated canonical manifest JSON."""
+def write_manifest(path: Path, payload: str, *, allow_replace: bool = False) -> Path:
+    """Atomically publish canonical manifest JSON without replacing by default."""
 
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(payload + "\n", encoding="utf-8")
-    return path
+    destination = path.resolve()
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    temporary_path: Path | None = None
+    operation = "write_temporary"
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            newline="\n",
+            dir=destination.parent,
+            prefix=f".{destination.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as stream:
+            temporary_path = Path(stream.name)
+            stream.write(payload.rstrip("\r\n") + "\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+
+        operation = "replace" if allow_replace else "publish"
+        if allow_replace:
+            os.replace(temporary_path, destination)
+        else:
+            os.link(temporary_path, destination)
+            temporary_path.unlink()
+        temporary_path = None
+        return destination
+    except OSError as error:
+        if isinstance(error, FileExistsError) and destination.exists() and not allow_replace:
+            message = "Manifest already exists; pass allow_replace=True to replace it explicitly"
+        else:
+            message = "Manifest could not be published atomically"
+        raise VisualIntegrityError(
+            message,
+            context={
+                "path": str(destination),
+                "operation": operation,
+                "allow_replace": allow_replace,
+            },
+        ) from error
+    finally:
+        if temporary_path is not None:
+            try:
+                temporary_path.unlink(missing_ok=True)
+            except OSError:
+                pass
 
 
 def read_artifact_manifest(path: Path) -> VisualArtifactManifest:
@@ -205,6 +250,15 @@ def _validate_reproducibility(manifest: VisualReproducibilityManifest) -> None:
     for role, fingerprint in manifest.dataset_fingerprints.items():
         if not isinstance(role, VisualDatasetRole) or not _SHA256.fullmatch(fingerprint):
             raise VisualManifestError("dataset fingerprints must use supported roles and SHA-256")
+    roles_by_fingerprint: dict[str, list[str]] = {}
+    for role, fingerprint in manifest.dataset_fingerprints.items():
+        roles_by_fingerprint.setdefault(fingerprint, []).append(role.value)
+    for fingerprint, roles in roles_by_fingerprint.items():
+        if len(roles) > 1:
+            raise VisualManifestError(
+                "Identical dataset content cannot be assigned to multiple roles",
+                context={"fingerprint": fingerprint, "roles": sorted(roles)},
+            )
     if not _SHA256.fullmatch(manifest.configuration_fingerprint):
         raise VisualManifestError("configuration_fingerprint must be SHA-256")
     for name, value in {
