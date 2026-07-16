@@ -14,6 +14,7 @@ from ade.studio.service import (
     list_reports,
     list_runs,
     load_report,
+    resolve_report_html,
     run_visual_analysis,
 )
 
@@ -39,6 +40,54 @@ def test_studio_fastapi_health_endpoint_when_dependency_available() -> None:
 
     assert response.status_code == 200
     assert response.json()["mode"] == "local-only"
+
+
+def test_studio_analysis_request_rejects_unsupported_and_extra_fields() -> None:
+    fastapi = pytest.importorskip("fastapi")
+    del fastapi
+    from fastapi.testclient import TestClient
+
+    from ade.studio.api import create_app
+
+    client = TestClient(create_app())
+
+    unsupported = client.post(
+        "/api/studio/analysis",
+        json={"input_path": "data/raw/demo_images", "workflow": "tabular"},
+    )
+    extra = client.post(
+        "/api/studio/analysis",
+        json={"input_path": "data/raw/demo_images", "unexpected": True},
+    )
+
+    assert unsupported.status_code == 422
+    assert extra.status_code == 422
+
+
+def test_studio_analysis_request_rejects_blank_and_null_byte_paths() -> None:
+    fastapi = pytest.importorskip("fastapi")
+    del fastapi
+    from fastapi.testclient import TestClient
+
+    from ade.studio.api import create_app
+
+    client = TestClient(create_app())
+
+    assert client.post("/api/studio/analysis", json={"input_path": "   "}).status_code == 422
+    null_byte = client.post(
+        "/api/studio/analysis",
+        json={"input_path": "bad\x00path"},
+    )
+    assert null_byte.status_code == 422
+
+
+def test_studio_run_limit_is_bounded(tmp_path: Path) -> None:
+    paths = StudioPaths(run_index_path=tmp_path / "missing.json")
+
+    with pytest.raises(ValueError, match="between 1 and 100"):
+        list_runs(paths=paths, limit=0)
+    with pytest.raises(ValueError, match="between 1 and 100"):
+        list_runs(paths=paths, limit=101)
 
 
 def test_studio_summary_tolerates_missing_artifact_folders(tmp_path: Path) -> None:
@@ -325,6 +374,84 @@ def test_studio_fastapi_report_asset_endpoint_returns_404_for_missing(
     response = client.get("/api/studio/report-assets/missing.png")
 
     assert response.status_code == 404
+
+
+def test_studio_resolve_report_html_serves_sibling_html_report(tmp_path: Path) -> None:
+    reports_dir = tmp_path / "reports"
+    reports_dir.mkdir()
+    html_path = reports_dir / "demo_report.html"
+    html_path.write_text("<h1>Demo</h1>", encoding="utf-8")
+
+    resolved = resolve_report_html(
+        "demo_report.json",
+        paths=StudioPaths(reports_dir=reports_dir),
+    )
+
+    assert resolved == html_path.resolve()
+
+
+def test_studio_resolve_report_html_blocks_path_traversal(tmp_path: Path) -> None:
+    reports_dir = tmp_path / "reports"
+    reports_dir.mkdir()
+
+    with pytest.raises(ValueError, match="report_name"):
+        resolve_report_html("../demo_report.json", paths=StudioPaths(reports_dir=reports_dir))
+
+
+def test_studio_fastapi_report_html_endpoint_serves_local_html(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pytest.importorskip("fastapi")
+    from fastapi.testclient import TestClient
+
+    import ade.studio.api as studio_api
+    import ade.studio.service as studio_service
+
+    reports_dir = tmp_path / "reports"
+    reports_dir.mkdir()
+    (reports_dir / "demo_report.html").write_text("<h1>Demo</h1>", encoding="utf-8")
+
+    def fake_resolve_report_html(report_name: str) -> Path:
+        return studio_service.resolve_report_html(
+            report_name,
+            paths=StudioPaths(reports_dir=reports_dir),
+        )
+
+    monkeypatch.setattr(studio_api, "resolve_report_html", fake_resolve_report_html)
+    client = TestClient(studio_api.create_app())
+
+    response = client.get("/api/studio/reports/demo_report.json/html")
+
+    assert response.status_code == 200
+    assert b"Demo" in response.content
+
+
+def test_studio_fastapi_report_html_endpoint_blocks_path_traversal(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pytest.importorskip("fastapi")
+    from fastapi.testclient import TestClient
+
+    import ade.studio.api as studio_api
+    import ade.studio.service as studio_service
+
+    reports_dir = tmp_path / "reports"
+    reports_dir.mkdir()
+
+    def fake_resolve_report_html(report_name: str) -> Path:
+        return studio_service.resolve_report_html(
+            report_name,
+            paths=StudioPaths(reports_dir=reports_dir),
+        )
+
+    monkeypatch.setattr(studio_api, "resolve_report_html", fake_resolve_report_html)
+    client = TestClient(studio_api.create_app())
+
+    response = client.get("/api/studio/reports/../demo_report.json/html")
+
+    assert response.status_code in {400, 404}
 
 
 def test_studio_analysis_resolves_repo_relative_input_path(tmp_path: Path) -> None:

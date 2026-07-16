@@ -129,9 +129,6 @@ export function OverviewScreen({
               <SectionLabel>Human review</SectionLabel>
               <span className="font-mono text-[11px] text-pattern">required</span>
             </div>
-            <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-raised">
-              <span className="block h-full w-[77%] rounded-full bg-operational" />
-            </div>
             <p className="mt-2 font-mono text-[11px] text-faint">
               Candidate findings require human review
             </p>
@@ -146,14 +143,17 @@ export function OverviewScreen({
               accent="anomaly"
               action={
                 <span className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.13em] text-faint">
-                  <span className="size-1.5 animate-pulse rounded-full bg-operational" />
                   Local run telemetry
                 </span>
               }
             />
-            <div className="relative min-h-[260px] flex-1 overflow-hidden">
-              <DiscoveryField connected={connected} />
-            </div>
+            {connected ? (
+              <ConnectedRunSummary studioData={studioData} selectedReport={selectedReport} />
+            ) : (
+              <div className="relative min-h-[260px] flex-1 overflow-hidden">
+                <DiscoveryField connected={connected} />
+              </div>
+            )}
             <div className="grid grid-cols-3 divide-x divide-border border-t border-border">
               <FieldStat label="Anomalies" value={String(anomalyCount)} tone="anomaly" />
               <FieldStat label="Concepts" value={String(conceptCount)} tone="concept" />
@@ -332,6 +332,49 @@ function BenchCell({ label, value, delta }: { label: string; value: string; delt
       <SectionLabel>{label}</SectionLabel>
       <p className="mt-1.5 font-mono text-2xl tabular-nums text-foreground">{value}</p>
       <p className="font-mono text-[11px] text-operational">{delta}</p>
+    </div>
+  )
+}
+
+function ConnectedRunSummary({
+  studioData,
+  selectedReport,
+}: {
+  studioData: StudioData
+  selectedReport: StudioReportDetail | null
+}) {
+  const summary = studioData.summary
+  return (
+    <div className="grid flex-1 gap-4 p-5 md:grid-cols-2">
+      <SummaryItem label="Latest run" value={summary?.latest_run_id || selectedReport?.run_id || 'No local run yet'} />
+      <SummaryItem label="Latest report" value={summary?.latest_report_name || selectedReport?.report_name || 'No local report yet'} />
+      <SummaryItem
+        label="Input path"
+        value={selectedReport?.input_directory || summary?.input_directory || 'Not available from current report'}
+      />
+      <SummaryItem
+        label="Input type"
+        value={summary?.input_type || selectedReport?.input_type || 'Not available from current report'}
+      />
+      <SummaryItem label="Images" value={String(summary?.number_of_images ?? selectedReport?.number_of_images ?? 0)} />
+      <SummaryItem label="Patches" value={String(summary?.number_of_patches ?? selectedReport?.number_of_patches ?? 0)} />
+      <SummaryItem
+        label="Candidate anomalies"
+        value={String(summary?.candidate_anomaly_count ?? selectedReport?.candidate_anomaly_count ?? 0)}
+      />
+      <SummaryItem
+        label="Candidate concepts"
+        value={String(summary?.candidate_concept_count ?? selectedReport?.candidate_concept_count ?? 0)}
+      />
+    </div>
+  )
+}
+
+function SummaryItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-md border border-border bg-card p-4">
+      <p className="font-mono text-[10px] uppercase tracking-[0.13em] text-faint">{label}</p>
+      <p className="mt-2 break-all font-mono text-sm text-foreground">{value}</p>
     </div>
   )
 }

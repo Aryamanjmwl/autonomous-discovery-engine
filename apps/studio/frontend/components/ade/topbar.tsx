@@ -1,6 +1,6 @@
 'use client'
 
-import { ChevronsRight, ChevronDown } from 'lucide-react'
+import { ChevronDown, RefreshCw } from 'lucide-react'
 import { projects } from '@/lib/ade-data'
 import type { EngineMode, StudioHealth, StudioSummary } from '@/lib/ade-api'
 
@@ -10,28 +10,31 @@ export function Topbar({
   engineMode,
   health,
   summary,
+  isRefreshing,
+  onRefresh,
 }: {
   project: string
   onProjectChange: (name: string) => void
   engineMode: EngineMode
   health: StudioHealth | null
   summary: StudioSummary | null
+  isRefreshing: boolean
+  onRefresh: () => void
 }) {
   const connected = engineMode === 'connected'
   return (
     <header className="flex h-14 shrink-0 items-center gap-4 border-b border-border bg-panel/80 px-4 backdrop-blur">
-      {/* Command / search bar */}
-      <div className="relative flex max-w-lg flex-1 items-center">
-        <ChevronsRight className="pointer-events-none absolute left-3 size-3.5 text-primary" />
-        <input
-          type="text"
-          placeholder="Search runs, reports, or evidence..."
-          className="h-9 w-full rounded-[4px] border border-border bg-card/60 pl-9 pr-14 font-mono text-[13px] text-foreground placeholder:text-faint focus:border-primary/50 focus:bg-card focus:outline-none focus:ring-1 focus:ring-primary/30"
-          aria-label="Command or search"
-        />
-        <kbd className="absolute right-3 rounded-[3px] border border-border bg-raised px-1.5 py-0.5 font-mono text-[10px] text-faint">
-          ⌘K
-        </kbd>
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <div>
+          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-faint">
+            {connected ? 'Local workspace' : 'Mock preview'}
+          </p>
+          <p className="truncate font-mono text-[13px] text-foreground">
+            {connected
+              ? summary?.latest_report_name || 'No local run yet'
+              : 'Backend unavailable · demo data shown'}
+          </p>
+        </div>
       </div>
 
       <div className="ml-auto flex items-center gap-3">
@@ -86,6 +89,17 @@ export function Topbar({
             {connected ? 'Engine Connected' : 'Mock Preview'}
           </span>
         </div>
+
+        <button
+          type="button"
+          onClick={onRefresh}
+          disabled={isRefreshing}
+          aria-label={isRefreshing ? 'Refreshing local ADE data' : 'Refresh local ADE data'}
+          className="inline-flex h-8 items-center gap-2 rounded-[4px] border border-border bg-card/60 px-3 font-mono text-[10px] uppercase tracking-[0.13em] text-muted-foreground hover:border-border-strong hover:text-foreground"
+        >
+          <RefreshCw className={`size-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+          {isRefreshing ? 'Refreshing' : 'Refresh'}
+        </button>
 
         <span className="hidden border-l border-border pl-3 font-mono text-[10px] uppercase tracking-[0.13em] text-faint lg:inline">
           {health?.version ? `v${health.version}` : 'v0.1.0'} · {summary?.label?.toLowerCase() || 'technical preview'}

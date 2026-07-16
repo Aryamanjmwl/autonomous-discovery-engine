@@ -111,7 +111,7 @@ def load_config(config_path: Path | str | None = None) -> dict[str, Any]:
     """Load ADE configuration with defaults for missing optional fields."""
 
     explicit_path = config_path is not None
-    path = Path(config_path) if explicit_path else DEFAULT_CONFIG_PATH
+    path = Path(config_path) if config_path is not None else DEFAULT_CONFIG_PATH
     config = deepcopy(DEFAULT_CONFIG)
     if not path.exists():
         if explicit_path:

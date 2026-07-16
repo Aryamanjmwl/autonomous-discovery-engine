@@ -268,6 +268,34 @@ def test_ade_studio_connected_mode_components_do_not_hardcode_mock_dataset_value
             assert phrase not in text, f"{phrase!r} found in {path}"
 
 
+def test_ade_studio_connected_mode_does_not_expose_inert_controls() -> None:
+    checked_paths = [
+        "apps/studio/frontend/components/ade/topbar.tsx",
+        "apps/studio/frontend/components/ade/screens/new-analysis.tsx",
+        "apps/studio/frontend/components/ade/screens/reports.tsx",
+        "apps/studio/frontend/components/ade/screens/findings.tsx",
+        "apps/studio/frontend/components/ade/screens/runs.tsx",
+    ]
+    combined = "\n".join(_read(path) for path in checked_paths)
+
+    forbidden = [
+        "Search reports...",
+        "Search runs, reports, or evidence",
+        "Review presets",
+        "Export data",
+        "Export</TechButton>",
+        "Stage stepper",
+    ]
+
+    for phrase in forbidden:
+        assert phrase not in combined
+
+    assert "Studio feedback submission is not implemented in this Technical Preview" in combined
+    assert "reportHtmlUrl" in combined
+    assert "Clear form" in combined
+    assert "onRefresh" in combined
+
+
 def test_technical_preview_release_docs_are_release_ready_without_overclaiming() -> None:
     release_note = _read("docs/releases/v0.1.0-preview.md").lower()
     release_body = _read(

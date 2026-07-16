@@ -1,21 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { CheckCircle2, Loader2, Clock, AlertTriangle, FileText } from 'lucide-react'
+import { CheckCircle2, AlertTriangle, FileText } from 'lucide-react'
 import { ScreenHeader } from '@/components/ade/screen-header'
 import { Panel, PanelHeader, StatusBadge } from '@/components/ade/primitives'
 import { runs, runLogLines, type RunRecord } from '@/lib/ade-data'
 import type { EngineMode, StudioAnalysisResult, StudioRun } from '@/lib/ade-api'
 import { cn } from '@/lib/utils'
-
-const STAGES = [
-  'Load & validate',
-  'Feature extraction',
-  'Novelty detection',
-  'Candidate clustering',
-  'Evidence extraction',
-  'Report generation',
-]
 
 export function RunsScreen({
   runsFromApi,
@@ -33,10 +24,6 @@ export function RunsScreen({
   const selectedApiRun = connected
     ? runsFromApi.find((run) => (run.run_id || 'local-run') === selected?.id)
     : null
-  const currentStageIndex = Math.min(
-    Math.floor(((selected?.progress ?? 0) / 100) * STAGES.length),
-    STAGES.length - 1,
-  )
 
   return (
     <div className="flex flex-col gap-6">
@@ -91,6 +78,7 @@ export function RunsScreen({
               <RunStatusBadge status={selected.status} />
             </div>
 
+            {!connected ? (
             <div className="mt-5">
               <div className="flex items-center justify-between font-mono text-xs text-muted-foreground">
                 <span>Stage: {selected.stage}</span>
@@ -106,36 +94,7 @@ export function RunsScreen({
                 />
               </div>
             </div>
-
-            {/* Stage stepper */}
-            <ol className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {STAGES.map((stage, i) => {
-                const done = selected.status === 'complete' || i < currentStageIndex
-                const active = selected.status !== 'complete' && i === currentStageIndex && selected.progress > 0
-                return (
-                  <li
-                    key={stage}
-                    className={cn(
-                      'flex items-center gap-2 rounded-md border px-3 py-2 font-mono text-[11px]',
-                      done
-                        ? 'border-operational/40 text-operational'
-                        : active
-                          ? 'border-primary/50 text-primary'
-                          : 'border-border text-muted-foreground',
-                    )}
-                  >
-                    {done ? (
-                      <CheckCircle2 className="size-3.5" />
-                    ) : active ? (
-                      <Loader2 className="size-3.5 animate-spin" />
-                    ) : (
-                      <Clock className="size-3.5" />
-                    )}
-                    <span className="truncate">{stage}</span>
-                  </li>
-                )
-              })}
-            </ol>
+            ) : null}
 
             {connected ? (
               <dl className="mt-5 grid gap-2 font-mono text-xs text-muted-foreground md:grid-cols-2">

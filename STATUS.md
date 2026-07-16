@@ -9,6 +9,8 @@ anomalies, candidate concepts, or possible patterns that require human review.
 
 - Technical Preview foundation for local, adapter-based discovery workflows
 - Mature visual workflow for local image folders
+- ADE Studio localhost API integration for synchronous visual/image-folder runs,
+  local run/report reads, and constrained report asset/HTML serving
 - Tabular CSV foundation for row-level candidate anomaly and concept review
 - Time-series CSV foundation for explicit timestamped CSV workflows
 - Video adapter placeholder; no decoded frame workflow yet

@@ -16,12 +16,6 @@ const WORKFLOWS: { id: Workflow; label: string; icon: LucideIcon }[] = [
   { id: 'time-series', label: 'Series', icon: AudioWaveform },
 ]
 
-const PRESETS = [
-  'High-sensitivity candidate anomaly review with cluster grouping (Threshold: 0.82σ).',
-  'Balanced discovery with candidate concept extraction (Threshold: 1.10σ).',
-  'Conservative possible pattern scan, low false-positive (Threshold: 1.60σ).',
-]
-
 const ARTIFACTS = [
   { name: 'Markdown report', size: 'Expected artifact' },
   { name: 'JSON report', size: 'Expected artifact' },
@@ -43,7 +37,6 @@ export function NewAnalysisScreen({
   onAnalysisComplete: (result: StudioAnalysisResult) => void
 }) {
   const [workflow, setWorkflow] = useState<Workflow>('visual')
-  const [preset, setPreset] = useState(PRESETS[0])
   const [dataset, setDataset] = useState('data/raw/demo_images')
   const [outputName, setOutputName] = useState('studio_report.md')
   const [result, setResult] = useState<StudioAnalysisResult | null>(null)
@@ -71,6 +64,14 @@ export function NewAnalysisScreen({
     } finally {
       setIsRunning(false)
     }
+  }
+
+  function clearForm() {
+    setWorkflow('visual')
+    setDataset('')
+    setOutputName('studio_report.md')
+    setResult(null)
+    setError(null)
   }
 
   return (
@@ -173,25 +174,6 @@ export function NewAnalysisScreen({
             </div>
           </div>
 
-          <div>
-            <SectionLabel>Review presets</SectionLabel>
-            <div className="relative mt-2">
-              <select
-                value={preset}
-                onChange={(e) => setPreset(e.target.value)}
-                aria-label="Detection preset"
-                className="h-auto w-full appearance-none rounded-md border border-border bg-card px-3 py-3 pr-9 text-sm leading-relaxed text-foreground focus:border-primary/50 focus:outline-none"
-              >
-                {PRESETS.map((p) => (
-                  <option key={p} value={p}>
-                    {p}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-3 top-4 size-4 text-muted-foreground" />
-            </div>
-          </div>
-
           <div className="flex items-start gap-3 rounded-md border border-pattern/40 bg-pattern/10 p-3">
             <Lock className="mt-0.5 size-4 shrink-0 text-pattern" />
             <div>
@@ -221,6 +203,9 @@ export function NewAnalysisScreen({
             disabled={!canRun}
           >
             {isRunning ? 'Running local analysis...' : 'Run local analysis'}
+          </TechButton>
+          <TechButton variant="secondary" className="h-10 w-full" onClick={clearForm} disabled={isRunning}>
+            Clear form
           </TechButton>
           {result ? (
             <div className="rounded-md border border-operational/40 bg-operational/10 p-3 text-xs leading-relaxed text-operational">

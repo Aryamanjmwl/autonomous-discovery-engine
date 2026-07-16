@@ -4,13 +4,9 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
-try:
-    from pydantic import BaseModel, Field
-except ImportError:  # pragma: no cover - optional dependency path.
-    BaseModel = None
-    Field = None
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from ade.studio.service import (
     StudioPaths,
@@ -20,21 +16,26 @@ from ade.studio.service import (
     list_runs,
     load_report,
     resolve_report_asset,
+    resolve_report_html,
     run_visual_analysis,
 )
 
 
-if BaseModel is not None and Field is not None:
+class StudioAnalysisRequest(BaseModel):
+    """JSON body for a local ADE Studio analysis request."""
 
-    class StudioAnalysisRequest(BaseModel):
-        """JSON body for a local ADE Studio analysis request."""
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
-        input_path: str = Field(..., min_length=1)
-        workflow: str = "visual"
-        output_name: str | None = None
+    input_path: str = Field(..., min_length=1, max_length=4096)
+    workflow: Literal["visual"] = "visual"
+    output_name: str | None = Field(default=None, max_length=255)
 
-else:
-    StudioAnalysisRequest = None
+    @field_validator("input_path", "output_name")
+    @classmethod
+    def reject_null_bytes(cls, value: str | None) -> str | None:
+        if value is not None and "\x00" in value:
+            raise ValueError("must not contain null bytes")
+        return value
 
 
 def create_app() -> Any:
@@ -49,11 +50,6 @@ def create_app() -> Any:
             "ADE Studio API requires the optional studio dependencies. "
             "Install with: pip install -e .[studio]"
         ) from error
-
-    if StudioAnalysisRequest is None:
-        raise RuntimeError(
-            "ADE Studio API requires pydantic. Install with: pip install -e .[studio]"
-        )
 
     app = FastAPI(
         title="ADE Studio Local API",
@@ -86,6 +82,16 @@ def create_app() -> Any:
     def reports() -> list[dict[str, object]]:
         return list_reports()
 
+    @app.get("/api/studio/reports/{report_name}/html")
+    def report_html(report_name: str) -> Any:
+        try:
+            html_path = resolve_report_html(report_name)
+        except FileNotFoundError as error:
+            raise HTTPException(status_code=404, detail=str(error)) from error
+        except ValueError as error:
+            raise HTTPException(status_code=400, detail=str(error)) from error
+        return FileResponse(html_path)
+
     @app.get("/api/studio/reports/{report_name}")
     def report(report_name: str) -> dict[str, object]:
         try:
@@ -105,11 +111,6 @@ def create_app() -> Any:
 
     @app.post("/api/studio/analysis")
     def analysis(payload: StudioAnalysisRequest = Body(...)) -> dict[str, object]:
-        if payload.workflow != "visual":
-            raise HTTPException(
-                status_code=400,
-                detail="Only the visual/image-folder workflow is supported in this milestone.",
-            )
         try:
             return run_visual_analysis(
                 input_path=Path(payload.input_path),
@@ -129,6 +130,8 @@ def _load_app() -> Any:
 
     return create_app()
 
+
+_APP_IMPORT_ERROR: RuntimeError | None
 
 try:
     app = _load_app()

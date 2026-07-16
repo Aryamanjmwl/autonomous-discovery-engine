@@ -44,14 +44,40 @@ The frontend posts JSON to `POST /api/studio/analysis`. The `input_path` value
 can be an absolute Windows path such as `D:\ADE\ade\data\raw\demo_images` or a
 repo-relative path such as `data/raw/demo_images`:
 
-
-Generated report preview assets are served locally through `GET /api/studio/report-assets/{asset_name}` from `data/reports/assets/`. The route accepts asset filenames only, blocks path traversal, and is intended for localhost Technical Preview use. Findings remain candidate findings and require human review.```json
+```json
 {
   "input_path": "data/raw/demo_images",
   "workflow": "visual",
   "output_name": "studio_report.md"
 }
 ```
+
+Generated report preview assets are served locally through
+`GET /api/studio/report-assets/{asset_name}` from `data/reports/assets/`. The
+route accepts asset filenames only, blocks path traversal, and is intended for
+localhost Technical Preview use.
+
+Generated HTML reports can be opened through
+`GET /api/studio/reports/{report_name}/html`. The route accepts local JSON
+report filenames such as `demo_report.json` and serves only the sibling HTML
+file from `data/reports`.
+
+## Connected UI Contract
+
+When ADE Studio is connected to the local backend, visible controls should be
+backed by local ADE data or clearly disabled/reframed. The connected Technical
+Preview currently supports:
+
+- refreshing local backend summary, runs, reports, and the selected report
+- running local visual/image-folder analysis from a local path
+- reading backend runs and reports
+- opening generated HTML reports
+- copying local report and source paths
+- showing honest empty states for feedback editing, benchmarks, and project
+  management that are not implemented in Studio yet
+
+Candidate findings remain candidate anomalies or candidate concepts and require
+human review.
 
 The package name is `ade-studio`, version `0.1.0`, and the app is private. The
 scripts are `dev`, `build`, `start`, `lint`, and `typecheck`.

@@ -29,16 +29,10 @@ def render_html_report(report: dict[str, Any]) -> str:
     """Render a concise static HTML report for local human review."""
 
     run_id = _text(report.get("run_id"))
-    anomalies = (
-        report.get("candidate_anomalies")
-        if isinstance(report.get("candidate_anomalies"), list)
-        else []
-    )
-    concepts = (
-        report.get("candidate_unknown_concepts")
-        if isinstance(report.get("candidate_unknown_concepts"), list)
-        else []
-    )
+    anomaly_value = report.get("candidate_anomalies")
+    concept_value = report.get("candidate_unknown_concepts")
+    anomalies = anomaly_value if isinstance(anomaly_value, list) else []
+    concepts = concept_value if isinstance(concept_value, list) else []
     anomaly_items = "\n".join(_anomaly_item(item) for item in anomalies if isinstance(item, dict))
     concept_items = "\n".join(_concept_item(item) for item in concepts if isinstance(item, dict))
     review_memory_section = _review_memory_section(report)

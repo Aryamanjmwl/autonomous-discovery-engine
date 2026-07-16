@@ -235,7 +235,7 @@ class EvidenceCollector:
 
         neighbor_rows.sort(
             key=lambda row: (
-                float(row["distance"]),
+                _numeric_value(row.get("distance")),
                 str(row["item_id"]),
                 str(row.get("query_patch_id", "")),
             )
@@ -286,3 +286,8 @@ class EvidenceCollector:
                 continue
             deviations.append({"feature": str(feature), deviation_key: float(deviation)})
         return deviations
+
+def _numeric_value(value: object) -> float:
+    """Return a sortable numeric value for JSON-like metadata."""
+
+    return float(value) if isinstance(value, int | float) else float("inf")

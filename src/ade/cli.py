@@ -693,7 +693,8 @@ def format_run_history(
     if run_index is None:
         return "No ADE run history found yet. Run an analysis first."
 
-    runs = [run for run in run_index.get("runs", []) if isinstance(run, dict)]
+    run_values = run_index.get("runs")
+    runs = [run for run in run_values if isinstance(run, dict)] if isinstance(run_values, list) else []
     if limit is not None:
         if limit < 1:
             raise ValueError("--limit must be greater than or equal to 1.")
@@ -926,17 +927,17 @@ def main() -> None:
         if args.output is None:
             parser.error("--output is required with --export-local-dashboard.")
         try:
-            result = export_local_dashboard(output_dir=args.output)
+            dashboard_export = export_local_dashboard(output_dir=args.output)
         except OSError as error:
             parser.error(str(error))
-        print(f"ADE local dashboard written to {result.index_path}")
-        print(f"Dashboard data written to {result.data_path}")
+        print(f"ADE local dashboard written to {dashboard_export.index_path}")
+        print(f"Dashboard data written to {dashboard_export.data_path}")
         print(
             "Artifacts included: "
-            f"{result.run_count} runs, "
-            f"{result.report_count} reports, "
-            f"{result.benchmark_count} benchmarks, "
-            f"{result.feedback_count} feedback records"
+            f"{dashboard_export.run_count} runs, "
+            f"{dashboard_export.report_count} reports, "
+            f"{dashboard_export.benchmark_count} benchmarks, "
+            f"{dashboard_export.feedback_count} feedback records"
         )
         return
 
@@ -1001,10 +1002,10 @@ def main() -> None:
         return
 
     if args.command == "dashboard":
-        result = generate_dashboard(output_dir=args.dashboard_output)
-        print(f"ADE dashboard written to {result.index_path}")
-        print(f"Runs included: {result.run_count}")
-        print(f"Open locally: {result.index_path.resolve().as_uri()}")
+        dashboard_build = generate_dashboard(output_dir=args.dashboard_output)
+        print(f"ADE dashboard written to {dashboard_build.index_path}")
+        print(f"Runs included: {dashboard_build.run_count}")
+        print(f"Open locally: {dashboard_build.index_path.resolve().as_uri()}")
         return
 
     if args.list_runs:

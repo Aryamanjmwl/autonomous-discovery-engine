@@ -5,15 +5,15 @@ import { ScreenHeader } from '@/components/ade/screen-header'
 import { Panel, PanelHeader, SectionLabel, StatusBadge } from '@/components/ade/primitives'
 
 const STORAGE_PATHS = [
-  { label: 'Datasets', path: '/var/ade/datasets/' },
-  { label: 'Run artifacts', path: '/var/ade/runs/' },
-  { label: 'Reports', path: '/var/ade/reports/' },
-  { label: 'Feedback store', path: '/var/ade/feedback.jsonl' },
+  { label: 'Demo images', path: 'data/raw/demo_images/' },
+  { label: 'Run index', path: 'data/reports/runs/index.json' },
+  { label: 'Reports', path: 'data/reports/' },
+  { label: 'Feedback store', path: 'data/feedback/feedback.jsonl' },
 ]
 
 const LIMITATIONS = [
   'Candidate findings are unverified and require human review before any local use.',
-  'This Studio foundation uses mock data and does not run analysis by itself.',
+  'Connected mode supports local visual/image-folder analysis only.',
   'ADE v0.1.0 Technical Preview interfaces and output schemas may change.',
   'No cloud sync, telemetry, or remote model inference is performed.',
 ]
@@ -24,7 +24,7 @@ export function SettingsScreen() {
       <ScreenHeader
         eyebrow="System"
         title="Settings & About"
-        description="Local configuration and engine status for the ADE Studio UI foundation."
+        description="Local configuration and Technical Preview scope for ADE Studio."
       />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -51,9 +51,9 @@ export function SettingsScreen() {
         <Panel className="p-5">
           <SectionLabel>Engine status</SectionLabel>
           <div className="mt-4 flex flex-col gap-4">
-            <StatusLine icon={Cpu} label="Local execution" value="Active · Idle" tone="operational" />
-            <StatusLine icon={HardDrive} label="Local storage" value="8.4 GB / 64 GB" tone="anomaly" />
-            <StatusLine icon={ShieldCheck} label="Workspace integrity" value="Local" tone="operational" />
+            <StatusLine icon={Cpu} label="Local execution" value="Technical Preview" tone="operational" />
+            <StatusLine icon={HardDrive} label="Local storage" value="Artifact paths only" tone="anomaly" />
+            <StatusLine icon={ShieldCheck} label="Workspace integrity" value="Not available from current report" tone="pattern" />
             <StatusLine icon={CloudOff} label="Network" value="Offline · Local-only" tone="pattern" />
           </div>
         </Panel>

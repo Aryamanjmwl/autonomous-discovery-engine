@@ -27,7 +27,7 @@ or private data in public issues.
 - Local report generation and validation.
 - Local feedback JSONL handling.
 - Local dashboard export.
-- ADE Studio local UI foundation and mock-data surfaces.
+- ADE Studio local UI, localhost API, connected visual/image workflow, and clearly labeled mock fallback.
 - Documentation that could misstate security or privacy behavior.
 
 ## Out of Scope
