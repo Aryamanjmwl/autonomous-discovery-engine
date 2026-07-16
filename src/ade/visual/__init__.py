@@ -48,6 +48,14 @@ from ade.visual.reference_contracts import (
     ReferenceVectorRecord,
     validate_reference_records,
 )
+from ade.visual.reference_memory import (
+    build_reference_memory,
+    derive_reference_memory_id,
+    deserialize_reference_memory_manifest,
+    load_reference_memory,
+    serialize_reference_memory_manifest,
+    validate_reference_memory,
+)
 
 __all__ = [
     "VISUAL_ENGINE_SCHEMA_VERSION",
@@ -76,17 +84,23 @@ __all__ = [
     "VisualFileFingerprint",
     "deserialize_artifact_manifest",
     "deserialize_reproducibility_manifest",
+    "deserialize_reference_memory_manifest",
+    "build_reference_memory",
+    "derive_reference_memory_id",
     "fingerprint_configuration",
     "fingerprint_visual_dataset",
     "fingerprint_visual_directory",
     "normalize_relative_path",
+    "load_reference_memory",
     "read_artifact_manifest",
     "read_reproducibility_manifest",
     "serialize_artifact_manifest",
     "serialize_reproducibility_manifest",
+    "serialize_reference_memory_manifest",
     "sha256_file",
     "sha256_stream",
     "validate_artifact_integrity",
     "validate_reference_records",
+    "validate_reference_memory",
     "write_manifest",
 ]
