@@ -1,6 +1,6 @@
 # ADR 0005: Persistent Versioned Reference Memory
 
-Status: Accepted
+Status: Implemented
 
 ## Context
 
@@ -17,5 +17,7 @@ Any source or configuration change produces a new memory identity.
 ## Consequences
 
 Memory cannot be updated silently in place. Query and validation fingerprints
-are rejected as memory sources. Stage 1 supplies manifest boundaries only; it
-does not persist vector payloads.
+are rejected as memory sources. The implementation uses content-addressed
+directories, pickle-free float32 NumPy arrays, canonical JSONL records, strict
+artifact hashes, and atomic publication. Reference anomaly scoring remains a
+separate future decision.

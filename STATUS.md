@@ -13,6 +13,9 @@ anomalies, candidate concepts, or possible patterns that require human review.
   local run/report reads, and constrained report asset/HTML serving
 - Schema-versioned visual-engine contracts, strict configuration validation,
   deterministic dataset fingerprints, and integrity-checked manifest codecs
+- Immutable, content-addressed visual reference memory with validated NumPy
+  vector payloads, canonical JSONL provenance, deterministic coreset selection,
+  and exact batched NumPy Euclidean/cosine search
 - Tabular CSV foundation for row-level candidate anomaly and concept review
 - Time-series CSV foundation for explicit timestamped CSV workflows
 - Video adapter placeholder; no decoded frame workflow yet
@@ -61,7 +64,9 @@ anomalies, candidate concepts, or possible patterns that require human review.
 - Internal dataclasses exist, but adapter contracts still need more hardening before broader external plugin use.
 - Dataset profiling is implemented for image folders, tabular CSV, and time-series CSV; other modalities remain planned.
 - Multi-scale extraction is supported, but the default config intentionally uses one conservative scale.
-- Memory is in-process only; persistent memory banks, coreset selection, and vector database backends are not implemented.
+- The exploratory pipeline still uses its existing in-process memory; persistent
+  normal-reference memory is available as a separate typed API but is not yet
+  wired to anomaly scoring.
 - Reference-based anomaly execution is specified and validated at the contract
   boundary only; reference memory payloads, calibration, scoring, and anomaly
   maps are not implemented.
@@ -86,6 +91,7 @@ anomalies, candidate concepts, or possible patterns that require human review.
 - Deep visual embedding backend
 - Persistent vector memory, FAISS integration, or vector database storage
 - PatchCore-style normal memory bank scoring
+- Reference anomaly scoring, calibration, and anomaly-map generation
 - Production dashboard
 - Database-backed review queues or user-specific feedback workflows
 - Supervised learning or production personalization from feedback
