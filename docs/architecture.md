@@ -77,6 +77,24 @@ to protect module boundaries without requiring a large plugin framework.
 9. Generate cautious hypotheses.
 10. Export Markdown, JSON, preview assets, run metadata, and run index entries.
 
+## Visual Engine Contract Boundary
+
+`ade.visual` now defines schema-versioned request, result, backend capability,
+artifact, reproducibility, configuration, dataset-role, error, fingerprint, and
+manifest interfaces. This boundary is additive: the existing CLI and Studio
+continue to use the current visual pipeline while later stages integrate these
+contracts deliberately.
+
+The current contract supports describing exploratory execution. It validates
+the prerequisites for reference-based anomaly intent but does not execute that
+mode. Dataset fingerprints use canonical relative paths, stable ordering, and
+streaming SHA-256 content hashes, with effective configuration and backend
+identity included. Strict manifest codecs reject unknown fields and unsupported
+schema versions.
+
+See `visual_engine_completion_spec.md` and ADRs 0004 through 0008 for the full
+completion gates and deferred scope.
+
 ## Review Memory
 
 The current review-memory loop is local and deterministic. It reads the existing
@@ -169,5 +187,6 @@ document, log/event, sensor stream, live satellite feed, database, live-stream,
 forecasting, or production monitoring adapters. Deep learning backends and
 enterprise storage are planned extension points, not current capabilities.
 
-Heavy model dependencies are intentionally delayed until the lightweight
-pipeline, report schema, and backend contracts are stable.
+Heavy model dependencies remain deferred. DINOv2, FAISS, PatchCore, persistent
+reference-vector payloads, calibration fitting, anomaly maps, and reference-
+mode scoring are not implemented by the Stage 1 contract foundation.

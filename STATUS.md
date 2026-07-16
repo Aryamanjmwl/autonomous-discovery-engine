@@ -11,6 +11,8 @@ anomalies, candidate concepts, or possible patterns that require human review.
 - Mature visual workflow for local image folders
 - ADE Studio localhost API integration for synchronous visual/image-folder runs,
   local run/report reads, and constrained report asset/HTML serving
+- Schema-versioned visual-engine contracts, strict configuration validation,
+  deterministic dataset fingerprints, and integrity-checked manifest codecs
 - Tabular CSV foundation for row-level candidate anomaly and concept review
 - Time-series CSV foundation for explicit timestamped CSV workflows
 - Video adapter placeholder; no decoded frame workflow yet
@@ -60,6 +62,9 @@ anomalies, candidate concepts, or possible patterns that require human review.
 - Dataset profiling is implemented for image folders, tabular CSV, and time-series CSV; other modalities remain planned.
 - Multi-scale extraction is supported, but the default config intentionally uses one conservative scale.
 - Memory is in-process only; persistent memory banks, coreset selection, and vector database backends are not implemented.
+- Reference-based anomaly execution is specified and validated at the contract
+  boundary only; reference memory payloads, calibration, scoring, and anomaly
+  maps are not implemented.
 - Memory-aware scoring uses the current run's local patch memory, not a validated normal-reference memory bank.
 - Reporting is useful for the visual MVP, and local feedback capture can inform
   future ranking annotations, but dashboard review queues and richer
@@ -92,12 +97,14 @@ anomalies, candidate concepts, or possible patterns that require human review.
 
 1. Keep generated artifacts out of version control.
 2. Keep hardening adapter interfaces before adding more non-visual data types.
-3. Add stronger visual feature backends behind the existing representation interface.
-4. Evaluate useful multi-scale presets on controlled demo and private datasets.
-5. Design normal-reference memory banks before adding PatchCore-style anomaly scoring.
-6. Add normal-comparison evidence once baseline/reference selection is designed.
-7. Improve report review workflows with human annotations.
-8. Design reviewer dashboard and concept-memory flows around the local feedback JSONL contract.
-9. Add run comparison tools for candidate anomalies and candidate concepts across experiments.
-10. Continue documenting original decisions and experiments before public disclosure.
-11. Run linting and type checking before a tagged internal release once the development environment includes those optional tools.
+3. Integrate Stage 1 visual requests and reproducibility manifests around the
+   existing statistical pipeline without changing its scoring behavior.
+4. Add explicit, offline-provisioned deep representation backends only after
+   capability and reproducibility conformance tests are defined.
+5. Evaluate useful multi-scale presets on controlled demo and private datasets.
+6. Implement versioned normal-reference memory before PatchCore-style scoring.
+7. Add calibration, anomaly maps, and normal-comparison evidence with leakage tests.
+8. Improve report review workflows with human annotations.
+9. Design reviewer dashboard and concept-memory flows around the local feedback JSONL contract.
+10. Add run comparison tools for candidate anomalies and candidate concepts across experiments.
+11. Continue documenting original decisions and experiments before public disclosure.
