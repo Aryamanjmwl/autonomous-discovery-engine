@@ -65,6 +65,14 @@ class VisualReferenceMemoryConfig:
     manifest_path: str | None = None
     search_backend: str = "numpy_exact"
     metric: str = "euclidean"
+    storage_root: str = "data/reference_memory"
+    coreset_strategy: str = "none"
+    maximum_vectors: int = 10_000
+    selection_ratio: float | None = None
+    seed: int = 42
+    search_batch_size: int = 128
+    memory_map: bool = True
+    exact_search_metric: str = "euclidean"
 
     def validate(self) -> None:
         if self.search_backend != "numpy_exact":
@@ -75,6 +83,34 @@ class VisualReferenceMemoryConfig:
             raise VisualConfigurationError(
                 "visual_engine.reference_memory.metric must be euclidean or cosine"
             )
+        if self.exact_search_metric not in {"euclidean", "cosine"}:
+            raise VisualConfigurationError(
+                "reference_memory.exact_search_metric must be euclidean or cosine"
+            )
+        if self.metric != self.exact_search_metric:
+            raise VisualConfigurationError(
+                "reference_memory.metric and exact_search_metric must match"
+            )
+        if self.coreset_strategy not in {"none", "deterministic_farthest_first"}:
+            raise VisualConfigurationError("Unsupported reference-memory coreset strategy")
+        if not self.storage_root.strip():
+            raise VisualConfigurationError("reference_memory.storage_root must be non-empty")
+        if self.maximum_vectors <= 0 or self.maximum_vectors > 10_000_000:
+            raise VisualConfigurationError(
+                "reference_memory.maximum_vectors must be between 1 and 10000000"
+            )
+        if self.selection_ratio is not None and not 0.0 < self.selection_ratio <= 1.0:
+            raise VisualConfigurationError(
+                "reference_memory.selection_ratio must be greater than 0 and at most 1"
+            )
+        if self.seed < 0 or self.seed > 2**32 - 1:
+            raise VisualConfigurationError("reference_memory.seed is outside the supported range")
+        if self.search_batch_size <= 0 or self.search_batch_size > 65_536:
+            raise VisualConfigurationError(
+                "reference_memory.search_batch_size must be between 1 and 65536"
+            )
+        if not isinstance(self.memory_map, bool):
+            raise VisualConfigurationError("reference_memory.memory_map must be a boolean")
         if not self.enabled and self.manifest_path is not None:
             raise VisualConfigurationError(
                 "reference_memory.manifest_path requires reference_memory.enabled"
