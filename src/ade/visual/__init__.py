@@ -39,9 +39,24 @@ from ade.visual.manifests import (
     validate_artifact_integrity,
     write_manifest,
 )
+from ade.visual.reference_contracts import (
+    REFERENCE_MEMORY_SCHEMA_VERSION,
+    LoadedReferenceMemory,
+    ReferenceMemoryManifest,
+    ReferenceNeighbor,
+    ReferenceSearchResult,
+    ReferenceVectorRecord,
+    validate_reference_records,
+)
 
 __all__ = [
     "VISUAL_ENGINE_SCHEMA_VERSION",
+    "REFERENCE_MEMORY_SCHEMA_VERSION",
+    "LoadedReferenceMemory",
+    "ReferenceMemoryManifest",
+    "ReferenceNeighbor",
+    "ReferenceSearchResult",
+    "ReferenceVectorRecord",
     "VisualArtifactManifest",
     "VisualBackendCapabilities",
     "VisualConfigurationError",
@@ -72,5 +87,6 @@ __all__ = [
     "sha256_file",
     "sha256_stream",
     "validate_artifact_integrity",
+    "validate_reference_records",
     "write_manifest",
 ]

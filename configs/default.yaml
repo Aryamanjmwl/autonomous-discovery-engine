@@ -23,6 +23,14 @@ visual_engine:
     manifest_path: null
     search_backend: "numpy_exact"
     metric: "euclidean"
+    storage_root: "data/reference_memory"
+    coreset_strategy: "none"
+    maximum_vectors: 10000
+    selection_ratio: null
+    seed: 42
+    search_batch_size: 128
+    memory_map: true
+    exact_search_metric: "euclidean"
   calibration:
     enabled: false
     method: "none"
