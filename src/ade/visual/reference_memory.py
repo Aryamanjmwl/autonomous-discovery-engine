@@ -17,6 +17,7 @@ import numpy as np
 
 from ade import __version__
 from ade.visual.contracts import VisualArtifactManifest, VisualDatasetRole
+from ade.visual.coreset import select_reference_coreset
 from ade.visual.errors import (
     VisualContractVersionError,
     VisualDatasetRoleError,
@@ -49,6 +50,8 @@ def build_reference_memory(
     distance_metric: str = "euclidean",
     coreset_strategy: str = "none",
     coreset_parameters: Mapping[str, Any] | None = None,
+    maximum_vectors: int = 10_000,
+    selection_ratio: float | None = None,
     random_seed: int = 42,
     query_dataset_fingerprint: str | None = None,
     validation_dataset_fingerprint: str | None = None,
@@ -66,12 +69,22 @@ def build_reference_memory(
         raise VisualIntegrityError("Reference-memory backend identity must be non-empty")
     if distance_metric not in {"euclidean", "cosine"}:
         raise VisualIntegrityError("Reference-memory metric must be euclidean or cosine")
-    materialized = tuple(records)
+    input_records = tuple(records)
+    selection = select_reference_coreset(
+        input_records,
+        strategy=coreset_strategy,
+        maximum_vectors=maximum_vectors,
+        selection_ratio=selection_ratio,
+        seed=random_seed,
+        distance_metric=distance_metric,
+    )
+    materialized = selection.records
     dimension = validate_reference_records(materialized)
     vectors = np.ascontiguousarray(
         np.stack([record.vector for record in materialized]), dtype=np.float32
     )
-    parameters = dict(coreset_parameters or {})
+    parameters = dict(selection.parameters)
+    parameters.update(coreset_parameters or {})
     _ensure_json_safe(parameters, "coreset_parameters")
     memory_id = derive_reference_memory_id(
         materialized,
