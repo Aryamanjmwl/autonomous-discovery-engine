@@ -36,6 +36,11 @@ Core product principle: discovery with evidence, not only anomaly scores.
 - Evidence ranking
 - Run metadata
 
+The visual-engine program now begins with a contract and reproducibility
+foundation: schema-versioned requests/results, explicit dataset roles, bounded
+configuration, deterministic fingerprints, and strict local manifests. This is
+not a deep-backend or reference-anomaly implementation.
+
 ## Stage 3: Pluggable Architecture
 
 - `DataAdapter` interface
@@ -61,6 +66,10 @@ Core product principle: discovery with evidence, not only anomaly scores.
 - Confidence scoring
 - Optional FAISS indexing
 - Persistent embedding cache
+
+These remain future stages. DINOv2, FAISS, PatchCore-style reference scoring,
+calibration fitting, and anomaly maps must satisfy the visual-engine completion
+specification before they are described as implemented.
 
 ## Stage 5: API and Docker
 

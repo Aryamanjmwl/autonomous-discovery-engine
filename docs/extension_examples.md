@@ -5,6 +5,21 @@ artifacts can be added without turning the local workflow into a hosted system.
 These examples are intentionally lightweight and conceptual; use the current
 modules as the source of truth before implementing an extension.
 
+## Extend the Visual Engine Safely
+
+Visual backends must declare `VisualBackendCapabilities` and use the versioned
+configuration, dataset-role, reproducibility, and artifact contracts in
+`ade.visual`. Optional model files are provisioned locally and explicitly; an
+execution backend must never download them implicitly. Dataset fingerprints
+bind content, effective configuration, and backend identity without recording
+host-specific absolute paths.
+
+Exact NumPy search remains the reference implementation for future memory-bank
+search. An accelerated backend must identify itself, serialize its parameters,
+and demonstrate results within documented tolerance of exact search. The Stage
+1 modules are boundary and serialization code, not an invitation to claim that
+reference scoring or deep inference already works.
+
 ## Add A New Adapter
 
 Start with `src/ade/adapters/base.py`. A data adapter validates an input source,
