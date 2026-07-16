@@ -129,8 +129,9 @@ described as implemented:
 
 ## Explicitly Deferred
 
-Stage 2 still does not implement DINOv2, CLIP, ResNet, PatchCore scoring, FAISS,
-GPU execution, model downloading, anomaly-map generation, calibration fitting,
-reference-mode scoring, benchmark claims, or production dataset/model
-registries. Persistent reference-vector payloads and exact NumPy search are now
-implemented; the remaining capabilities belong to later stages.
+Stage 3 implements deterministic PatchCore-style exact reference scoring,
+image aggregation, spatial anomaly maps, coverage evidence, and immutable map
+artifacts. Scores are raw, uncalibrated review-prioritization signals; uncovered
+pixels remain `NaN`. DINOv2, CLIP, ResNet, FAISS, GPU execution, model
+downloading, fitted calibration, benchmark claims, Studio integration, and
+production dataset/model registries remain deferred.

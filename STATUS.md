@@ -16,6 +16,9 @@ anomalies, candidate concepts, or possible patterns that require human review.
 - Immutable, content-addressed visual reference memory with validated NumPy
   vector payloads, canonical JSONL provenance, deterministic coreset selection,
   and exact batched NumPy Euclidean/cosine search
+- Deterministic PatchCore-style reference scoring, raw image aggregation,
+  spatial maps, coverage evidence, and immutable map artifacts. Scores remain
+  uncalibrated review-prioritization signals that require human review.
 - Tabular CSV foundation for row-level candidate anomaly and concept review
 - Time-series CSV foundation for explicit timestamped CSV workflows
 - Video adapter placeholder; no decoded frame workflow yet
@@ -64,12 +67,9 @@ anomalies, candidate concepts, or possible patterns that require human review.
 - Internal dataclasses exist, but adapter contracts still need more hardening before broader external plugin use.
 - Dataset profiling is implemented for image folders, tabular CSV, and time-series CSV; other modalities remain planned.
 - Multi-scale extraction is supported, but the default config intentionally uses one conservative scale.
-- The exploratory pipeline still uses its existing in-process memory; persistent
-  normal-reference memory is available as a separate typed API but is not yet
-  wired to anomaly scoring.
-- Reference-based anomaly execution is specified and validated at the contract
-  boundary only; reference memory payloads, calibration, scoring, and anomaly
-  maps are not implemented.
+- The exploratory pipeline still uses its existing in-process memory. Persistent
+  reference memory and scoring are separate typed APIs and are not wired into
+  the legacy exploratory execution path.
 - Memory-aware scoring uses the current run's local patch memory, not a validated normal-reference memory bank.
 - Reporting is useful for the visual MVP, and local feedback capture can inform
   future ranking annotations, but dashboard review queues and richer
@@ -90,8 +90,7 @@ anomalies, candidate concepts, or possible patterns that require human review.
 - Production time-series forecasting, live sensors, streaming, or alerting
 - Deep visual embedding backend
 - Persistent vector memory, FAISS integration, or vector database storage
-- PatchCore-style normal memory bank scoring
-- Reference anomaly scoring, calibration, and anomaly-map generation
+- Fitted calibration and validated decision thresholds
 - Production dashboard
 - Database-backed review queues or user-specific feedback workflows
 - Supervised learning or production personalization from feedback
@@ -108,8 +107,10 @@ anomalies, candidate concepts, or possible patterns that require human review.
 4. Add explicit, offline-provisioned deep representation backends only after
    capability and reproducibility conformance tests are defined.
 5. Evaluate useful multi-scale presets on controlled demo and private datasets.
-6. Implement versioned normal-reference memory before PatchCore-style scoring.
-7. Add calibration, anomaly maps, and normal-comparison evidence with leakage tests.
+6. Connect explicitly provisioned representation backends only after
+   reproducibility conformance tests.
+7. Fit calibration from held-out validation data and establish public
+   benchmark/evaluation gates.
 8. Improve report review workflows with human annotations.
 9. Design reviewer dashboard and concept-memory flows around the local feedback JSONL contract.
 10. Add run comparison tools for candidate anomalies and candidate concepts across experiments.
