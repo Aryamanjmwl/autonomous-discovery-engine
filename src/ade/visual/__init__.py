@@ -19,6 +19,26 @@ from ade.visual.errors import (
     VisualManifestError,
     VisualProvisioningError,
 )
+from ade.visual.fingerprints import (
+    VisualDatasetFingerprint,
+    VisualFileFingerprint,
+    fingerprint_configuration,
+    fingerprint_visual_dataset,
+    fingerprint_visual_directory,
+    normalize_relative_path,
+    sha256_file,
+    sha256_stream,
+)
+from ade.visual.manifests import (
+    deserialize_artifact_manifest,
+    deserialize_reproducibility_manifest,
+    read_artifact_manifest,
+    read_reproducibility_manifest,
+    serialize_artifact_manifest,
+    serialize_reproducibility_manifest,
+    validate_artifact_integrity,
+    write_manifest,
+)
 
 __all__ = [
     "VISUAL_ENGINE_SCHEMA_VERSION",
@@ -27,6 +47,7 @@ __all__ = [
     "VisualConfigurationError",
     "VisualContractVersionError",
     "VisualDatasetRole",
+    "VisualDatasetFingerprint",
     "VisualDatasetRoleError",
     "VisualEngineConfig",
     "VisualEngineError",
@@ -37,4 +58,19 @@ __all__ = [
     "VisualManifestError",
     "VisualProvisioningError",
     "VisualReproducibilityManifest",
+    "VisualFileFingerprint",
+    "deserialize_artifact_manifest",
+    "deserialize_reproducibility_manifest",
+    "fingerprint_configuration",
+    "fingerprint_visual_dataset",
+    "fingerprint_visual_directory",
+    "normalize_relative_path",
+    "read_artifact_manifest",
+    "read_reproducibility_manifest",
+    "serialize_artifact_manifest",
+    "serialize_reproducibility_manifest",
+    "sha256_file",
+    "sha256_stream",
+    "validate_artifact_integrity",
+    "write_manifest",
 ]
