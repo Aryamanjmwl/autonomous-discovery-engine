@@ -95,6 +95,30 @@ schema versions.
 See `visual_engine_completion_spec.md` and ADRs 0004 through 0008 for the full
 completion gates and deferred scope.
 
+## Immutable Visual Reference Memory
+
+`ade.visual` now provides a persistent normal-reference memory boundary without
+changing the exploratory pipeline. A memory version is content-addressed from
+the reference dataset/configuration/backend identity, selected record metadata,
+float32 vector bytes, coreset provenance, metric, and seed. Creation timestamps
+are recorded but excluded from the memory ID.
+
+Each completed version contains `manifest.json`, `vectors.npy`, and
+`records.jsonl`. Builds occur in a sibling temporary directory, flush and fsync
+payloads, validate hashes/schema/shape/metadata, and atomically publish the
+directory. NumPy payloads prohibit pickle and support read-only memory mapping.
+Completed versions are immutable and unexpected files or path traversal are
+rejected.
+
+The `none` coreset retains every vector within the configured bound.
+`deterministic_farthest_first` keeps a bounded subset using incremental minimum
+distances and stable ID tie-breaking; it does not allocate a full pairwise
+matrix. Exact NumPy Euclidean and cosine search batches queries and provides the
+correctness oracle for future accelerated implementations.
+
+This storage/search layer does not perform reference anomaly scoring. PatchCore,
+DINOv2, FAISS, calibration, anomaly maps, and Studio integration remain deferred.
+
 ## Review Memory
 
 The current review-memory loop is local and deterministic. It reads the existing

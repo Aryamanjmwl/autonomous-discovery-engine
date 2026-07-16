@@ -52,6 +52,12 @@ fingerprints, representation identity, vector shape and dtype, search backend,
 creation parameters, and integrity hashes. Updating reference data creates a
 new memory version; it never mutates an existing version in place.
 
+Stage 2 implements this storage boundary with content-derived memory IDs,
+pickle-free float32 NumPy payloads, canonical JSONL records, artifact hashes,
+atomic directory publication, deterministic coreset provenance, and strict
+load-time compatibility checks. It does not yet use the memory for anomaly
+scoring.
+
 ## Scoring and Calibration
 
 Exploratory scores are relative ranking signals. Reference-mode scores measure
@@ -123,8 +129,8 @@ described as implemented:
 
 ## Explicitly Deferred
 
-Stage 1 does not implement DINOv2, CLIP, ResNet, PatchCore, FAISS, GPU
-execution, model downloading, persistent vector payloads, anomaly-map
-generation, calibration fitting, reference-mode scoring, benchmark claims, or
-production dataset/model registries. These belong to later stages after the
-contracts in this document are proven stable.
+Stage 2 still does not implement DINOv2, CLIP, ResNet, PatchCore scoring, FAISS,
+GPU execution, model downloading, anomaly-map generation, calibration fitting,
+reference-mode scoring, benchmark claims, or production dataset/model
+registries. Persistent reference-vector payloads and exact NumPy search are now
+implemented; the remaining capabilities belong to later stages.

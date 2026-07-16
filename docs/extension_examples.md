@@ -20,6 +20,14 @@ and demonstrate results within documented tolerance of exact search. The Stage
 1 modules are boundary and serialization code, not an invitation to claim that
 reference scoring or deep inference already works.
 
+Reference-memory extensions should construct `ReferenceVectorRecord` values and
+use `build_reference_memory`, `load_reference_memory`, and
+`validate_reference_memory`. Search consumers should depend on
+`ReferenceSimilaritySearch`; `ExactNumpySearch` defines ordering, distance, and
+top-k conformance for future FAISS adapters. Extensions must preserve content
+identity, role-leakage checks, canonical relative paths, and immutable completed
+versions. They must not mutate memory directories or enable implicit downloads.
+
 ## Add A New Adapter
 
 Start with `src/ade/adapters/base.py`. A data adapter validates an input source,

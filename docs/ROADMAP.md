@@ -41,6 +41,11 @@ foundation: schema-versioned requests/results, explicit dataset roles, bounded
 configuration, deterministic fingerprints, and strict local manifests. This is
 not a deep-backend or reference-anomaly implementation.
 
+Immutable content-addressed reference memory, deterministic bounded farthest-
+first coreset selection, and exact batched NumPy similarity search are now
+implemented as standalone Stage 2 foundations. Reference anomaly scoring and
+deep representations are not implemented yet.
+
 ## Stage 3: Pluggable Architecture
 
 - `DataAdapter` interface
