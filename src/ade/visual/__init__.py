@@ -10,6 +10,7 @@ from ade.visual.contracts import (
     VisualExecutionMode,
     VisualReproducibilityManifest,
 )
+from ade.visual.coreset import CoresetSelection, select_reference_coreset
 from ade.visual.errors import (
     VisualConfigurationError,
     VisualContractVersionError,
@@ -61,6 +62,7 @@ __all__ = [
     "VISUAL_ENGINE_SCHEMA_VERSION",
     "REFERENCE_MEMORY_SCHEMA_VERSION",
     "LoadedReferenceMemory",
+    "CoresetSelection",
     "ReferenceMemoryManifest",
     "ReferenceNeighbor",
     "ReferenceSearchResult",
@@ -96,6 +98,7 @@ __all__ = [
     "read_reproducibility_manifest",
     "serialize_artifact_manifest",
     "serialize_reproducibility_manifest",
+    "select_reference_coreset",
     "serialize_reference_memory_manifest",
     "sha256_file",
     "sha256_stream",
