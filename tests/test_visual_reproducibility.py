@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -23,6 +24,7 @@ from ade.visual import (
     serialize_reproducibility_manifest,
     sha256_file,
     validate_artifact_integrity,
+    write_manifest,
 )
 
 
@@ -158,6 +160,123 @@ def test_reproducibility_manifest_round_trip() -> None:
     )
 
     assert restored == manifest
+
+
+def _reproducibility_manifest(
+    fingerprints: dict[VisualDatasetRole, str],
+) -> VisualReproducibilityManifest:
+    return VisualReproducibilityManifest(
+        schema_version=1,
+        dataset_fingerprints=fingerprints,
+        configuration_fingerprint="d" * 64,
+        backend_id="statistical_visual_v2",
+        backend_version="1",
+        random_seed=42,
+        deterministic=True,
+        python_version="3.11.9",
+        ade_version="0.1.0",
+        device="cpu",
+    )
+
+
+def test_reproducibility_manifest_rejects_query_reference_content_leakage() -> None:
+    manifest = _reproducibility_manifest(
+        {
+            VisualDatasetRole.QUERY: "a" * 64,
+            VisualDatasetRole.REFERENCE: "a" * 64,
+        }
+    )
+
+    with pytest.raises(VisualManifestError, match="multiple roles") as error:
+        serialize_reproducibility_manifest(manifest)
+
+    assert error.value.context["roles"] == ["query", "reference"]
+
+
+def test_reproducibility_manifest_rejects_reference_validation_content_leakage() -> None:
+    manifest = _reproducibility_manifest(
+        {
+            VisualDatasetRole.QUERY: "a" * 64,
+            VisualDatasetRole.REFERENCE: "b" * 64,
+            VisualDatasetRole.VALIDATION: "b" * 64,
+        }
+    )
+
+    with pytest.raises(VisualManifestError, match="multiple roles") as error:
+        serialize_reproducibility_manifest(manifest)
+
+    assert error.value.context["roles"] == ["reference", "validation"]
+
+
+def test_reproducibility_manifest_accepts_three_distinct_role_fingerprints() -> None:
+    manifest = _reproducibility_manifest(
+        {
+            VisualDatasetRole.QUERY: "a" * 64,
+            VisualDatasetRole.REFERENCE: "b" * 64,
+            VisualDatasetRole.VALIDATION: "c" * 64,
+        }
+    )
+
+    restored = deserialize_reproducibility_manifest(
+        serialize_reproducibility_manifest(manifest)
+    )
+
+    assert restored.dataset_fingerprints == manifest.dataset_fingerprints
+
+
+def test_write_manifest_publishes_atomically_with_canonical_newline(tmp_path: Path) -> None:
+    destination = tmp_path / "manifest.json"
+
+    result = write_manifest(destination, '{"schema_version":1}\n\n')
+
+    assert result == destination.resolve()
+    assert destination.read_bytes() == b'{"schema_version":1}\n'
+    assert list(tmp_path.glob(".manifest.json.*.tmp")) == []
+
+
+def test_write_manifest_refuses_overwrite_by_default(tmp_path: Path) -> None:
+    destination = tmp_path / "manifest.json"
+    destination.write_text("original\n", encoding="utf-8")
+
+    with pytest.raises(VisualIntegrityError, match="already exists") as error:
+        write_manifest(destination, "replacement")
+
+    assert destination.read_text(encoding="utf-8") == "original\n"
+    assert error.value.context["allow_replace"] is False
+    assert list(tmp_path.glob(".manifest.json.*.tmp")) == []
+
+
+def test_write_manifest_replaces_only_when_explicitly_allowed(tmp_path: Path) -> None:
+    destination = tmp_path / "manifest.json"
+    destination.write_text("original\n", encoding="utf-8")
+
+    write_manifest(destination, "replacement", allow_replace=True)
+
+    assert destination.read_text(encoding="utf-8") == "replacement\n"
+
+
+def test_write_manifest_cleans_temporary_file_after_publication_failure(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    destination = tmp_path / "manifest.json"
+    destination.write_text("original\n", encoding="utf-8")
+
+    def fail_replace(
+        source: str | bytes | os.PathLike[str],
+        target: str | bytes | os.PathLike[str],
+    ) -> None:
+        del source, target
+        raise OSError("simulated publication failure")
+
+    monkeypatch.setattr(os, "replace", fail_replace)
+
+    with pytest.raises(VisualIntegrityError, match="atomically") as error:
+        write_manifest(destination, "replacement", allow_replace=True)
+
+    assert destination.read_text(encoding="utf-8") == "original\n"
+    assert error.value.context["operation"] == "replace"
+    assert list(tmp_path.glob(".manifest.json.*.tmp")) == []
 
 
 def test_manifest_rejects_unsupported_schema_version() -> None:

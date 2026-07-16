@@ -91,6 +91,11 @@ effective configuration fingerprint, backend identity, random seed,
 deterministic policy, runtime versions, device selection, and artifact hashes.
 Dataset fingerprints use normalized relative paths, stable ordering, and
 streaming SHA-256 content hashes. Host-specific absolute paths are excluded.
+The reproducibility boundary rejects one content/config fingerprint assigned to
+multiple dataset roles, even when the copied datasets have different paths.
+Manifest publication uses a same-directory temporary file, durable flush, and
+atomic publication; existing immutable manifests are not replaced unless the
+caller explicitly opts into replacement.
 
 ## Resource Controls
 
