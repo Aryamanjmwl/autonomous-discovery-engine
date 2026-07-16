@@ -1,131 +1,89 @@
 # ADE Roadmap
 
-ADE is the Autonomous Discovery Engine: a modular unsupervised discovery platform that ingests datasets, builds representations, discovers candidate anomalies and hidden concepts, groups evidence, explains findings, and exports professional reports, APIs, and eventually enterprise workflows.
+**Revised:** 2026-07-16
+**Planning horizon:** Technical Preview to enterprise-ready research platform
 
-Core product principle: discovery with evidence, not only anomaly scores.
+ADE is a modular discovery platform for surfacing candidate anomalies and
+patterns with traceable evidence and explicit human review. Roadmap status is
+defined by merged code, tests, contracts, and reproducible evidence—not by UI
+mockups or research intent.
 
-## Stage 1: Public-Ready Foundation
+## Phase 0 — Technical Preview Baseline (substantially complete)
 
-- Clean package structure
-- Reliable CLI
-- Passing test suite
-- Typed public interfaces
-- Pydantic or YAML configuration with clear validation
-- Deterministic demo data
-- JSON, Markdown, and future HTML reports
-- README quickstart
-- Architecture docs
-- Changelog
-- Security policy
-- Contribution guide
-- Release checklist
-- GitHub Actions CI
-- Formatting and linting
+- Visual image-folder pipeline and evidence-oriented reports.
+- Lightweight tabular and time-series CSV foundations.
+- Adapter/backend extension contracts.
+- Run history, benchmark and verification scripts, local feedback, and static
+  artifacts.
+- ADE Studio frontend connected to a localhost API for visual analysis.
 
-## Stage 2: Strong Image Discovery Engine
+Remaining baseline work: reconcile documentation claims and consolidate pipeline
+composition shared by CLI and Studio.
 
-- Richer image features
-- Color histograms
-- Texture features
-- Edge and shape features
-- Patch-level evidence
-- Similarity search
-- Near-duplicate detection
-- Cluster summaries
-- Better report visuals
-- Evidence ranking
-- Run metadata
+## Phase 1 — Local Beta: Provenance and Review (next)
 
-## Stage 3: Pluggable Architecture
+- Canonical run manifest, dataset fingerprint, config digest, and artifact checksums.
+- Versioned report and local API contracts with stable error envelopes.
+- Complete Studio feedback create/list/history workflow.
+- Run details and reproducible comparison.
+- Tabular and time-series Studio integration.
+- Approved local dataset roots, resource limits, and expanded security tests.
+- Critical-path frontend end-to-end and accessibility checks.
 
-- `DataAdapter` interface
-- `EmbeddingBackend` interface
-- `ScoringBackend` interface
-- `ClusteringBackend` interface
-- `EvidenceRanker` interface
-- `ReportRenderer` interface
+Exit gate: the PRD Local Beta release gates pass with evidence.
 
-## Stage 4: Advanced ML/Discovery Backends
+## Phase 2 — Research Evaluation Platform
 
-- `StatisticalBackend`
-- `ClassicalVisionBackend`
-- Optional `CLIPBackend`
-- Optional `DINOv2Backend`
-- Optional `ResNetBackend`
-- `CustomBackend` interface
-- Distance-based novelty
-- Isolation Forest
-- Local Outlier Factor
-- HDBSCAN outlier scoring
-- Ensemble novelty scoring
-- Confidence scoring
-- Optional FAISS indexing
-- Persistent embedding cache
+- Governed benchmark registry and dataset cards.
+- Repeated experiment runner, scorecards, ablations, and failure analysis.
+- Reviewer-yield protocol and uncertainty reporting.
+- Strong visual and time-series baseline suites.
+- Optional learned encoders behind stable interfaces.
+- Structured runtime, peak-memory, and reproducibility measurements.
 
-## Stage 5: API and Docker
+Exit gate: backend promotion decisions are evidence-based and reproducible.
 
-- FastAPI service
-- Dataset registry
-- Run creation endpoint
-- Run status endpoint
-- Findings endpoint
-- Report download endpoint
-- Feedback endpoint
-- Dockerfile
-- Docker Compose
+## Phase 3 — Temporal and Operational Discovery
 
-## Stage 6: Dashboard
+- Time-series drift and change-point baselines.
+- Stable entity alignment and temporal provenance.
+- Logs/events adapter with session evidence.
+- Bounded video frame workflow.
+- Optional sequence backend contract.
+- xLSTM research evaluation only after statistical, recurrent, convolutional,
+  and transformer/state-space baselines exist.
 
-- Run browser
-- Dataset explorer
-- Finding explorer
-- Evidence viewer
-- Cluster viewer
-- Feedback labels
-- Export controls
+Exit gate: at least two temporal modalities have governed benchmarks and useful
+review evidence without production-alerting claims.
 
-## Stage 7: Multi-Modal Expansion
+## Phase 4 — Team Deployment Foundation
 
-1. Tabular adapter
-2. Time-series adapter
-3. Logs adapter
-4. Video adapter
-5. Audio/spectrogram adapter
-6. Multimodal fusion
+- Artifact-store and job-execution abstractions.
+- PostgreSQL metadata, object storage, and worker queue.
+- Identity integration, projects, roles, API credentials, and immutable audit.
+- Retention, backup/restore, observability, and deployment documentation.
+- Threat-model update and external security review before internet exposure.
 
-## Stage 8: Enterprise Readiness
+Exit gate: single-organization deployment with tested isolation and recovery.
 
-- PostgreSQL
-- Object storage
-- Job queue
-- Users
-- Teams
-- Projects
-- RBAC
-- Audit logs
-- API keys
-- SSO/OIDC
-- Usage limits
-- Billing hooks
-- Monitoring
-- Backup/restore
-- Retention policies
-- Kubernetes/Helm
+## Phase 5 — Enterprise and Domain Packages
 
-## Stage 9: Domain Packages
+- Organization/workspace isolation, SSO/OIDC, policy controls, and usage limits.
+- Deployment automation based on demonstrated operational need.
+- Domain packages beginning with manufacturing/quality, scientific datasets,
+  and logs/security—each with domain-specific evaluation and limitations.
+- Compliance work only for explicitly scoped deployments with auditable evidence.
 
-Initial verticals:
+## Deliberately Deferred
 
-1. Manufacturing / quality control
-2. Research / scientific datasets
-3. Cybersecurity / logs
+- No heavy ML dependency in the default install.
+- No xLSTM or other model promoted from paper claims alone.
+- No Kubernetes-first architecture.
+- No mobile-app priority.
+- No production streaming or alerting before offline evaluation is credible.
+- No medical, scientific, financial, security, or operational truth claims.
+- No SOC 2, HIPAA, ISO, or similar certification claims without formal scope and
+  assessment.
 
-## Delayed or Rejected for Now
-
-- No mobile app priority
-- No blockchain audit trail
-- No premature SOC 2/HIPAA claims
-- No Kubernetes-first design
-- No heavy ML dependencies in the default install
-- No dashboard before the core engine is solid
-- No attempt to support every data modality at once
+Detailed requirements and dependency-ordered tickets are maintained in
+[`docs/project/`](project/README.md).
