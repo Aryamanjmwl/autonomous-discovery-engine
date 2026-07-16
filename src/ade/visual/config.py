@@ -118,6 +118,68 @@ class VisualReferenceMemoryConfig:
 
 
 @dataclass(frozen=True)
+class VisualReferenceScoringConfig:
+    """Strict settings for optional uncalibrated reference scoring."""
+
+    enabled: bool = False
+    metric: str = "euclidean"
+    patch_strategy: str = "nearest_neighbor"
+    neighbor_count: int = 1
+    query_batch_size: int = 128
+    image_aggregation: str = "max_patch"
+    top_fraction: float = 0.1
+    map_projection: str = "overlap_mean"
+    multi_scale_fusion: str = "max"
+    smoothing_sigma: float = 0.0
+    save_raw_maps: bool = True
+    save_coverage: bool = True
+    save_preview: bool = False
+    maximum_image_pixels: int = 100_000_000
+    display_normalization: bool = False
+
+    def validate(self) -> None:
+        if self.metric not in {"euclidean", "cosine"}:
+            raise VisualConfigurationError("reference_scoring.metric must be euclidean or cosine")
+        if self.patch_strategy not in {"nearest_neighbor", "knn_mean"}:
+            raise VisualConfigurationError("Unsupported reference_scoring.patch_strategy")
+        if self.neighbor_count <= 0 or self.neighbor_count > 65_536:
+            raise VisualConfigurationError(
+                "reference_scoring.neighbor_count must be between 1 and 65536"
+            )
+        if self.patch_strategy == "nearest_neighbor" and self.neighbor_count != 1:
+            raise VisualConfigurationError("nearest_neighbor requires neighbor_count=1")
+        if self.query_batch_size <= 0 or self.query_batch_size > 65_536:
+            raise VisualConfigurationError(
+                "reference_scoring.query_batch_size must be between 1 and 65536"
+            )
+        if self.image_aggregation not in {"max_patch", "top_fraction_mean"}:
+            raise VisualConfigurationError("Unsupported reference_scoring.image_aggregation")
+        if not 0.0 < self.top_fraction <= 1.0:
+            raise VisualConfigurationError("reference_scoring.top_fraction must be in (0, 1]")
+        if self.map_projection not in {"overlap_mean", "overlap_max"}:
+            raise VisualConfigurationError("Unsupported reference_scoring.map_projection")
+        if self.multi_scale_fusion not in {"max", "mean"}:
+            raise VisualConfigurationError("Unsupported reference_scoring.multi_scale_fusion")
+        if self.smoothing_sigma < 0 or self.smoothing_sigma > 100:
+            raise VisualConfigurationError(
+                "reference_scoring.smoothing_sigma must be between 0 and 100"
+            )
+        if self.maximum_image_pixels <= 0 or self.maximum_image_pixels > 1_000_000_000:
+            raise VisualConfigurationError(
+                "reference_scoring.maximum_image_pixels is outside supported bounds"
+            )
+        for name in (
+            "enabled",
+            "save_raw_maps",
+            "save_coverage",
+            "save_preview",
+            "display_normalization",
+        ):
+            if not isinstance(getattr(self, name), bool):
+                raise VisualConfigurationError(f"reference_scoring.{name} must be a boolean")
+
+
+@dataclass(frozen=True)
 class VisualCalibrationConfig:
     """Configuration describing future score calibration intent."""
 
@@ -155,6 +217,9 @@ class VisualEngineConfig:
     reference_memory: VisualReferenceMemoryConfig = field(
         default_factory=VisualReferenceMemoryConfig
     )
+    reference_scoring: VisualReferenceScoringConfig = field(
+        default_factory=VisualReferenceScoringConfig
+    )
     calibration: VisualCalibrationConfig = field(default_factory=VisualCalibrationConfig)
 
     @classmethod
@@ -174,6 +239,7 @@ class VisualEngineConfig:
             "cache_policy",
             "resources",
             "reference_memory",
+            "reference_scoring",
             "calibration",
         }
         unknown = sorted(set(data) - allowed)
@@ -184,6 +250,7 @@ class VisualEngineConfig:
         try:
             resource_data = _mapping(data.get("resources"), "resources")
             memory_data = _mapping(data.get("reference_memory"), "reference_memory")
+            scoring_data = _mapping(data.get("reference_scoring"), "reference_scoring")
             calibration_data = _mapping(data.get("calibration"), "calibration")
             roles = data.get("dataset_roles", ("query",))
             if not isinstance(roles, list | tuple) or not all(
@@ -204,6 +271,7 @@ class VisualEngineConfig:
                 cache_policy=VisualCachePolicy(str(data.get("cache_policy", "disabled"))),
                 resources=VisualResourceLimits(**resource_data),
                 reference_memory=VisualReferenceMemoryConfig(**memory_data),
+                reference_scoring=VisualReferenceScoringConfig(**scoring_data),
                 calibration=VisualCalibrationConfig(**calibration_data),
             )
         except (TypeError, ValueError) as error:
@@ -241,7 +309,11 @@ class VisualEngineConfig:
         if self.random_seed < 0 or self.random_seed > 2**32 - 1:
             raise VisualConfigurationError("visual_engine.random_seed must be between 0 and 2^32-1")
         if self.execution_mode == "exploratory":
-            if "reference" in self.dataset_roles or self.reference_memory.enabled:
+            if (
+                "reference" in self.dataset_roles
+                or self.reference_memory.enabled
+                or self.reference_scoring.enabled
+            ):
                 raise VisualConfigurationError(
                     "exploratory execution cannot enable reference data or reference memory"
                 )
@@ -254,6 +326,11 @@ class VisualEngineConfig:
                 raise VisualConfigurationError(
                     "reference_anomaly execution requires reference role and reference memory"
                 )
+            if (
+                self.reference_scoring.enabled
+                and self.reference_scoring.metric != self.reference_memory.metric
+            ):
+                raise VisualConfigurationError("reference scoring and memory metrics must match")
             if self.calibration.enabled and "validation" not in self.dataset_roles:
                 raise VisualConfigurationError(
                     "enabled calibration requires a validation dataset role"
@@ -266,6 +343,7 @@ class VisualEngineConfig:
             )
         self.resources.validate()
         self.reference_memory.validate()
+        self.reference_scoring.validate()
         self.calibration.validate()
 
     def to_dict(self) -> dict[str, Any]:
