@@ -12,6 +12,7 @@ from ade.discovery.registry import (
     available_clustering_backends,
     available_scoring_backends,
 )
+from ade.visual.config import VisualEngineConfig
 
 DEFAULT_CONFIG_PATH = Path("configs/default.yaml")
 
@@ -20,6 +21,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "name": "ADE",
         "pipeline_version": "0.1.0",
     },
+    "visual_engine": VisualEngineConfig().to_dict(),
     "preprocessing": {
         "patch_size": 64,
         "patch_stride": 64,
@@ -180,6 +182,11 @@ def _normalize_preprocessing_config(
 
 def _validate_config(config: dict[str, Any]) -> None:
     """Validate config values with clear errors for user-editable settings."""
+
+    visual_engine = config.get("visual_engine", {})
+    if not isinstance(visual_engine, dict):
+        raise ValueError("Config section 'visual_engine' must be a mapping.")
+    VisualEngineConfig.from_mapping(visual_engine)
 
     discovery = config.get("discovery", {})
     if not isinstance(discovery, dict):
