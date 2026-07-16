@@ -1,6 +1,10 @@
 """Versioned contracts and reproducibility foundations for ADE visual workflows."""
 
-from ade.visual.config import VISUAL_ENGINE_SCHEMA_VERSION, VisualEngineConfig
+from ade.visual.config import (
+    VISUAL_ENGINE_SCHEMA_VERSION,
+    VisualEngineConfig,
+    VisualReferenceScoringConfig,
+)
 from ade.visual.contracts import (
     VisualArtifactManifest,
     VisualBackendCapabilities,
@@ -58,6 +62,19 @@ from ade.visual.reference_memory import (
     serialize_reference_memory_manifest,
     validate_reference_memory,
 )
+from ade.visual.reference_scoring import score_reference_anomalies
+from ade.visual.scoring_artifacts import publish_scoring_artifacts, validate_scoring_artifacts
+from ade.visual.scoring_contracts import (
+    ImageAnomalyScore,
+    PatchAnomalyScore,
+    QueryPatchRecord,
+    ReferenceEvidence,
+    ReferenceScoringProvenance,
+    ReferenceScoringResult,
+    ReferenceScoringSummary,
+    SpatialAnomalyMap,
+)
+from ade.visual.spatial_maps import build_spatial_maps
 
 __all__ = [
     "VISUAL_ENGINE_SCHEMA_VERSION",
@@ -70,6 +87,14 @@ __all__ = [
     "ReferenceSearchResult",
     "ReferenceSimilaritySearch",
     "ReferenceVectorRecord",
+    "QueryPatchRecord",
+    "PatchAnomalyScore",
+    "ImageAnomalyScore",
+    "SpatialAnomalyMap",
+    "ReferenceEvidence",
+    "ReferenceScoringProvenance",
+    "ReferenceScoringResult",
+    "ReferenceScoringSummary",
     "VisualArtifactManifest",
     "VisualBackendCapabilities",
     "VisualConfigurationError",
@@ -78,6 +103,7 @@ __all__ = [
     "VisualDatasetFingerprint",
     "VisualDatasetRoleError",
     "VisualEngineConfig",
+    "VisualReferenceScoringConfig",
     "VisualEngineError",
     "VisualEngineRequest",
     "VisualEngineResult",
@@ -109,4 +135,8 @@ __all__ = [
     "validate_reference_records",
     "validate_reference_memory",
     "write_manifest",
+    "build_spatial_maps",
+    "publish_scoring_artifacts",
+    "score_reference_anomalies",
+    "validate_scoring_artifacts",
 ]

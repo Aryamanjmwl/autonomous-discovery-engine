@@ -49,6 +49,8 @@ data/dashboard/
 data/dashboard/*
 data/benchmarks/
 data/cache/
+data/reference_memory/
+data/reference_scoring/
 data/feedback/
 data/processed/frames/
 !data/raw/.gitkeep
