@@ -106,6 +106,19 @@ class LoadedReferenceMemory:
     vectors: np.ndarray
     records: tuple[ReferenceVectorRecord, ...]
 
+    def close(self) -> None:
+        """Release an active read-only NumPy memory map, if present."""
+
+        memory_map = getattr(self.vectors, "_mmap", None)
+        if memory_map is not None:
+            memory_map.close()
+
+    def __enter__(self) -> LoadedReferenceMemory:
+        return self
+
+    def __exit__(self, *_errors: object) -> None:
+        self.close()
+
 
 @dataclass(frozen=True)
 class ReferenceNeighbor:
