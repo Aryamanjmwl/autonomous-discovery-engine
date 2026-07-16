@@ -1,0 +1,125 @@
+# Visual Engine Completion Specification
+
+## Purpose
+
+This specification defines the stable completion boundary for ADE's visual
+engine. Stage 1 establishes contracts, validation, and reproducibility. It does
+not claim that deep representations, persistent reference memory, calibrated
+reference anomaly detection, or accelerated search are implemented.
+
+## Execution Modes
+
+### Exploratory discovery
+
+Exploratory mode accepts a query dataset and ranks candidate anomalies and
+candidate concepts within that dataset. It may use the current deterministic
+statistical representation and in-run memory. Scores are relative discovery
+signals, not calibrated probabilities or normal/abnormal classifications.
+
+### Reference-based anomaly
+
+Reference mode compares query representations with a separately provisioned
+reference dataset representing expected variation. A validation dataset may be
+used only to fit or assess calibration. Reference mode is complete only when
+the reference memory, calibration record, leakage checks, and evaluation gates
+defined here are implemented. Stage 1 defines this boundary but does not run it.
+
+## Dataset Roles
+
+- `query`: data to analyze and rank; required in every execution.
+- `reference`: trusted comparison data used to build reference memory; required
+  only for reference-based anomaly execution.
+- `validation`: held-out data used for calibration and evaluation; optional,
+  and forbidden from contributing representations to reference memory.
+
+Each physical dataset identity may have only one role in a request. Reference
+and validation data must never be inferred from query data. Fingerprints, not
+machine-specific absolute paths, identify dataset content.
+
+## Representations and Backends
+
+A representation backend declares its identifier, version, determinism,
+supported modes, device support, and whether it produces patch representations
+or anomaly maps. The default remains the lightweight statistical visual
+backend. Deep backends are optional, explicitly provisioned extensions and must
+not add hidden downloads or network access.
+
+## Reference Memory
+
+Reference memory is a persistent, immutable, versioned artifact derived only
+from a reference dataset. Its manifest records dataset and configuration
+fingerprints, representation identity, vector shape and dtype, search backend,
+creation parameters, and integrity hashes. Updating reference data creates a
+new memory version; it never mutates an existing version in place.
+
+## Scoring and Calibration
+
+Exploratory scores are relative ranking signals. Reference-mode scores measure
+distance from reference memory through a declared search backend. Calibration
+must record its method, parameters, validation fingerprint, and fitted state.
+Thresholds must not be presented as calibrated unless fitted exclusively from
+the declared validation role. No Stage 1 interface performs scoring or fitting.
+
+## Anomaly Maps
+
+Backends that support spatial scoring may return an anomaly map aligned to the
+source image through recorded preprocessing and resize metadata. Maps must
+declare shape, dtype, normalization, coordinate convention, and artifact hash.
+Image-level scores must identify the map aggregation method. Backends without
+map capability must report that limitation rather than synthesize a map.
+
+## Evidence
+
+Every finding must retain source identity, region coordinates where relevant,
+representation/backend identity, score breakdown, and links to integrity-
+checked local artifacts. Reference-mode evidence should include nearest
+reference neighbors without leaking validation examples into reference memory.
+All findings remain candidates requiring human review.
+
+## Evaluation
+
+Reference-mode evaluation uses a declared, held-out validation dataset and
+reports dataset fingerprints, metric definitions, thresholds, uncertainty, and
+sample counts. At minimum, later implementation must support image-level and,
+when annotations exist, localization evaluation. Evaluation artifacts must be
+reproducible from manifests and must not silently tune on query data.
+
+## Reproducibility
+
+Every execution result records contract schema version, dataset fingerprints,
+effective configuration fingerprint, backend identity, random seed,
+deterministic policy, runtime versions, device selection, and artifact hashes.
+Dataset fingerprints use normalized relative paths, stable ordering, and
+streaming SHA-256 content hashes. Host-specific absolute paths are excluded.
+
+## Resource Controls
+
+Requests require finite positive bounds for batch size, worker count, memory,
+file count, and file size. Device policy is explicit (`cpu`, `auto`, or a
+provisioned accelerator). Cache reads and writes follow an explicit policy.
+Implementations must fail with structured errors when a bound cannot be met;
+they must not silently use unbounded resources.
+
+## Acceptance Gates
+
+The complete visual engine must pass these gates before reference mode is
+described as implemented:
+
+1. Contract and manifest schemas round-trip and reject unknown versions.
+2. Dataset-role validation prevents query/reference/validation leakage.
+3. Identical inputs and effective configuration produce identical fingerprints.
+4. Reference memory is versioned, integrity checked, and reproducible.
+5. Offline model provisioning succeeds without implicit network access.
+6. Exact NumPy search is a tested correctness baseline for optional acceleration.
+7. Scores, calibration, maps, evidence, and evaluation retain provenance.
+8. Deterministic runs meet documented tolerance on supported devices.
+9. Resource limits fail safely and are covered by tests.
+10. Existing CLI, reports, and Studio behavior remain backward compatible.
+
+## Explicitly Deferred
+
+Stage 1 does not implement DINOv2, CLIP, ResNet, PatchCore, FAISS, GPU
+execution, model downloading, persistent vector payloads, anomaly-map
+generation, calibration fitting, reference-mode scoring, benchmark claims, or
+production dataset/model registries. These belong to later stages after the
+contracts in this document are proven stable.

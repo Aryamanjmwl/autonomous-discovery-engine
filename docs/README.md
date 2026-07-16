@@ -13,6 +13,7 @@ All findings are candidate findings and require human review.
 - [Product scope](product_scope.md): current scope, future adapters, and non-goals.
 - [Modality capability matrix](modality_capability_matrix.md): implemented, foundation, and planned modality status.
 - [Architecture](architecture.md): ADE layers, extension points, visual pipeline, and feedback flow.
+- [Visual engine completion specification](visual_engine_completion_spec.md): stable modes, dataset roles, reproducibility, resource controls, acceptance gates, and deferred scope.
 - [Development workflow](development_workflow.md): install, test, demo, config, benchmark, and local verification commands.
 - [CLI reference](cli_reference.md): PowerShell-friendly command examples.
 - [Report schema](report_schema.md): JSON report fields, stable IDs, feedback metadata, and compatibility notes.
