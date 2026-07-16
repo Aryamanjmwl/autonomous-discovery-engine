@@ -2,6 +2,32 @@ project:
   name: "ADE"
   pipeline_version: "0.1.0"
 
+visual_engine:
+  schema_version: 1
+  execution_mode: "exploratory"
+  dataset_roles: ["query"]
+  backend_id: "statistical_visual_v2"
+  backend_version: "1"
+  device_policy: "cpu"
+  deterministic: true
+  random_seed: 42
+  cache_policy: "disabled"
+  resources:
+    batch_size: 16
+    max_workers: 1
+    max_memory_mb: 4096
+    max_files: 100000
+    max_file_size_mb: 1024
+  reference_memory:
+    enabled: false
+    manifest_path: null
+    search_backend: "numpy_exact"
+    metric: "euclidean"
+  calibration:
+    enabled: false
+    method: "none"
+    manifest_path: null
+
 preprocessing:
   patch_size: 64
   patch_stride: 64
