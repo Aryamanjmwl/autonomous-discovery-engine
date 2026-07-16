@@ -295,6 +295,19 @@ def validate_reference_memory(
         for index, payload in enumerate(payloads)
     )
     validate_reference_records(records)
+    derived_memory_id = derive_reference_memory_id(
+        records,
+        reference_dataset_fingerprint=manifest.reference_dataset_fingerprint,
+        configuration_fingerprint=manifest.configuration_fingerprint,
+        backend_id=manifest.backend_id,
+        backend_version=manifest.backend_version,
+        distance_metric=manifest.distance_metric,
+        coreset_strategy=manifest.coreset_strategy,
+        coreset_parameters=manifest.coreset_parameters,
+        random_seed=manifest.random_seed,
+    )
+    if derived_memory_id != manifest.memory_id:
+        raise VisualIntegrityError("Reference memory ID does not match payload content")
     return manifest
 
 
