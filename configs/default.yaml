@@ -22,7 +22,10 @@ visual_engine:
     provider: "lightweight"
     device: "cpu"
     batch_size: 16
+    model_name: null
     model_path: null
+    normalize: true
+    allow_download: false
     options: {}
   reference_memory:
     enabled: false

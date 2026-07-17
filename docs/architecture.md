@@ -134,9 +134,11 @@ lightweight provider delegates to the existing deterministic `EmbeddingEngine`
 and preserves its vectors exactly. Future DINOv2, CLIP-like, and domain-model
 adapters plug into the same bounded batch boundary and must declare dimension,
 dtype, normalization, device, determinism, version, capabilities, and effective
-configuration fingerprint. Deep providers remain optional, locally
-provisioned, disabled by default, and non-executable in Stage 4A. See
-`visual_representation_providers.md`.
+configuration fingerprint. Stage 4B adds an optional DINOv2 runtime adapter
+with lazy `torch`/`transformers` loading, explicit local model provisioning,
+offline-safe defaults, and an injectable model boundary for framework-free
+tests. It is not wired into reports or Studio and never replaces the lightweight
+default. See `visual_representation_providers.md`.
 
 ## Review Memory
 

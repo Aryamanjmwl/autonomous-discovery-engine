@@ -144,3 +144,10 @@ names are configuration schemas only: they perform no inference and raise a
 clear provisioning error if selected. A future executable provider must declare
 its exact preprocessing, normalization, model artifact, dimension, device, and
 determinism semantics before it can satisfy the acceptance gates.
+
+Stage 4B implements that execution boundary for explicitly provisioned DINOv2
+models without making deep packages mandatory. Optional packages load lazily,
+offline mode requires a local path, downloads require explicit opt-in, and an
+injectable adapter permits dependency-free conformance tests. This establishes
+representation mechanics and provenance only; it does not establish calibration,
+scientific validity, benchmark quality, or automated truth.

@@ -64,6 +64,8 @@ from ade.visual.reference_memory import (
 )
 from ade.visual.reference_scoring import score_reference_anomalies
 from ade.visual.representation import (
+    DINOv2ModelAdapter,
+    DINOv2VisualRepresentationProvider,
     LightweightVisualRepresentationProvider,
     RepresentationBatch,
     RepresentationProviderConfig,
@@ -97,6 +99,8 @@ __all__ = [
     "ReferenceSimilaritySearch",
     "ReferenceVectorRecord",
     "LightweightVisualRepresentationProvider",
+    "DINOv2ModelAdapter",
+    "DINOv2VisualRepresentationProvider",
     "RepresentationBatch",
     "RepresentationProviderConfig",
     "RepresentationProviderMetadata",
