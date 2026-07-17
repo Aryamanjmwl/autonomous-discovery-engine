@@ -92,7 +92,7 @@ def test_invalid_provider_config_fails_clearly(config: RepresentationProviderCon
         config.validate()
 
 
-@pytest.mark.parametrize("provider", ["dinov2", "clip"])
+@pytest.mark.parametrize("provider", ["clip"])
 def test_deep_provider_schema_requires_no_dependency_until_selected(provider: str) -> None:
     config = RepresentationProviderConfig(provider=provider, device="auto")
     config.validate()

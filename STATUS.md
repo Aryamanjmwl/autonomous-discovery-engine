@@ -21,7 +21,12 @@ anomalies, candidate concepts, or possible patterns that require human review.
   uncalibrated review-prioritization signals that require human review.
 - Backend-neutral visual representation provider contracts and an exact-output
   compatibility adapter for the existing lightweight deterministic features.
-  Deep providers remain optional, disabled, and unimplemented.
+  Deep providers remain optional and disabled; CLIP/custom execution is
+  unimplemented.
+- An explicitly selected DINOv2 provider foundation with lazy optional imports,
+  offline local-model provisioning, bounded float32 encoding, optional L2
+  normalization, and stable model provenance. It remains disabled by default
+  and is not integrated into CLI reports or Studio.
 - Tabular CSV foundation for row-level candidate anomaly and concept review
 - Time-series CSV foundation for explicit timestamped CSV workflows
 - Video adapter placeholder; no decoded frame workflow yet

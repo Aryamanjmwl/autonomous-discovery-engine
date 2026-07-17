@@ -83,6 +83,12 @@ contracts and wraps the existing lightweight deterministic features without
 changing default output. Deep provider execution, model provisioning, DINOv2
 preprocessing, and model-quality evaluation remain deferred.
 
+Stage 4B supplies the explicitly selected DINOv2 provider foundation: lazy
+optional runtime imports, local/offline provisioning by default, bounded batch
+encoding, discovered feature dimensions, and stable model provenance. Pipeline,
+report, Studio, calibration, benchmark qualification, and FAISS integration are
+still deferred.
+
 ## Stage 5: API and Docker
 
 - FastAPI service
