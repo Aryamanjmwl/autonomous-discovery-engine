@@ -135,3 +135,12 @@ artifacts. Scores are raw, uncalibrated review-prioritization signals; uncovered
 pixels remain `NaN`. DINOv2, CLIP, ResNet, FAISS, GPU execution, model
 downloading, fitted calibration, benchmark claims, Studio integration, and
 production dataset/model registries remain deferred.
+
+Stage 4A defines provider metadata, bounded batch encoding, representation
+records, capability declarations, and configuration fingerprints. The existing
+lightweight statistical features are available through this boundary with
+identical output, while the legacy pipeline remains unchanged. Deep provider
+names are configuration schemas only: they perform no inference and raise a
+clear provisioning error if selected. A future executable provider must declare
+its exact preprocessing, normalization, model artifact, dimension, device, and
+determinism semantics before it can satisfy the acceptance gates.

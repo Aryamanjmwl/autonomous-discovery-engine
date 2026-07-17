@@ -78,6 +78,11 @@ PatchCore-style reference scoring and spatial maps now satisfy their Stage 3
 contract gates. DINOv2, FAISS and calibration fitting remain future work and
 must satisfy the visual-engine completion specification before implementation.
 
+Stage 4A establishes the backend-neutral visual representation provider
+contracts and wraps the existing lightweight deterministic features without
+changing default output. Deep provider execution, model provisioning, DINOv2
+preprocessing, and model-quality evaluation remain deferred.
+
 ## Stage 5: API and Docker
 
 - FastAPI service

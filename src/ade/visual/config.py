@@ -8,6 +8,7 @@ from enum import StrEnum
 from typing import Any
 
 from ade.visual.errors import VisualConfigurationError, VisualContractVersionError
+from ade.visual.representation import RepresentationProviderConfig
 
 VISUAL_ENGINE_SCHEMA_VERSION = 1
 
@@ -214,6 +215,9 @@ class VisualEngineConfig:
     random_seed: int = 42
     cache_policy: VisualCachePolicy = VisualCachePolicy.DISABLED
     resources: VisualResourceLimits = field(default_factory=VisualResourceLimits)
+    representation: RepresentationProviderConfig = field(
+        default_factory=RepresentationProviderConfig
+    )
     reference_memory: VisualReferenceMemoryConfig = field(
         default_factory=VisualReferenceMemoryConfig
     )
@@ -238,6 +242,7 @@ class VisualEngineConfig:
             "random_seed",
             "cache_policy",
             "resources",
+            "representation",
             "reference_memory",
             "reference_scoring",
             "calibration",
@@ -249,6 +254,7 @@ class VisualEngineConfig:
             )
         try:
             resource_data = _mapping(data.get("resources"), "resources")
+            representation_data = _mapping(data.get("representation"), "representation")
             memory_data = _mapping(data.get("reference_memory"), "reference_memory")
             scoring_data = _mapping(data.get("reference_scoring"), "reference_scoring")
             calibration_data = _mapping(data.get("calibration"), "calibration")
@@ -270,6 +276,7 @@ class VisualEngineConfig:
                 random_seed=_integer(data.get("random_seed", 42), "random_seed"),
                 cache_policy=VisualCachePolicy(str(data.get("cache_policy", "disabled"))),
                 resources=VisualResourceLimits(**resource_data),
+                representation=RepresentationProviderConfig(**representation_data),
                 reference_memory=VisualReferenceMemoryConfig(**memory_data),
                 reference_scoring=VisualReferenceScoringConfig(**scoring_data),
                 calibration=VisualCalibrationConfig(**calibration_data),
@@ -342,6 +349,7 @@ class VisualEngineConfig:
                 "the statistical visual backend is incompatible with accelerator-only policy"
             )
         self.resources.validate()
+        self.representation.validate()
         self.reference_memory.validate()
         self.reference_scoring.validate()
         self.calibration.validate()
@@ -360,7 +368,9 @@ class VisualEngineConfig:
             "random_seed": self.random_seed,
             "cache_policy": self.cache_policy.value,
             "resources": asdict(self.resources),
+            "representation": asdict(self.representation),
             "reference_memory": asdict(self.reference_memory),
+            "reference_scoring": asdict(self.reference_scoring),
             "calibration": asdict(self.calibration),
         }
 
