@@ -19,6 +19,9 @@ anomalies, candidate concepts, or possible patterns that require human review.
 - Deterministic PatchCore-style reference scoring, raw image aggregation,
   spatial maps, coverage evidence, and immutable map artifacts. Scores remain
   uncalibrated review-prioritization signals that require human review.
+- Backend-neutral visual representation provider contracts and an exact-output
+  compatibility adapter for the existing lightweight deterministic features.
+  Deep providers remain optional, disabled, and unimplemented.
 - Tabular CSV foundation for row-level candidate anomaly and concept review
 - Time-series CSV foundation for explicit timestamped CSV workflows
 - Video adapter placeholder; no decoded frame workflow yet

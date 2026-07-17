@@ -126,6 +126,18 @@ authoritative artifacts; normalized PNG previews are presentation evidence.
 Scores remain uncalibrated and require human review. DINOv2, FAISS, fitted
 calibration, public benchmark validation, and Studio integration remain deferred.
 
+## Visual representation provider boundary
+
+Stage 4A adds `VisualRepresentationProvider`, typed batch/record contracts, and
+stable provider metadata without changing the exploratory pipeline. The
+lightweight provider delegates to the existing deterministic `EmbeddingEngine`
+and preserves its vectors exactly. Future DINOv2, CLIP-like, and domain-model
+adapters plug into the same bounded batch boundary and must declare dimension,
+dtype, normalization, device, determinism, version, capabilities, and effective
+configuration fingerprint. Deep providers remain optional, locally
+provisioned, disabled by default, and non-executable in Stage 4A. See
+`visual_representation_providers.md`.
+
 ## Review Memory
 
 The current review-memory loop is local and deterministic. It reads the existing

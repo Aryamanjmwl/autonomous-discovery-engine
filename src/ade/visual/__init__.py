@@ -63,6 +63,15 @@ from ade.visual.reference_memory import (
     validate_reference_memory,
 )
 from ade.visual.reference_scoring import score_reference_anomalies
+from ade.visual.representation import (
+    LightweightVisualRepresentationProvider,
+    RepresentationBatch,
+    RepresentationProviderConfig,
+    RepresentationProviderMetadata,
+    RepresentationRecord,
+    VisualRepresentationProvider,
+    create_visual_representation_provider,
+)
 from ade.visual.scoring_artifacts import publish_scoring_artifacts, validate_scoring_artifacts
 from ade.visual.scoring_contracts import (
     ImageAnomalyScore,
@@ -87,6 +96,12 @@ __all__ = [
     "ReferenceSearchResult",
     "ReferenceSimilaritySearch",
     "ReferenceVectorRecord",
+    "LightweightVisualRepresentationProvider",
+    "RepresentationBatch",
+    "RepresentationProviderConfig",
+    "RepresentationProviderMetadata",
+    "RepresentationRecord",
+    "VisualRepresentationProvider",
     "QueryPatchRecord",
     "PatchAnomalyScore",
     "ImageAnomalyScore",
@@ -139,4 +154,5 @@ __all__ = [
     "publish_scoring_artifacts",
     "score_reference_anomalies",
     "validate_scoring_artifacts",
+    "create_visual_representation_provider",
 ]
