@@ -85,6 +85,16 @@ from ade.visual.scoring_contracts import (
     ReferenceScoringSummary,
     SpatialAnomalyMap,
 )
+from ade.visual.search_backends import (
+    ExactNumpySearchBackend,
+    FaissBackendConfig,
+    FaissIndexAdapter,
+    FaissSearchBackend,
+    SearchBackendConfig,
+    SearchBackendMetadata,
+    VisualSearchBackend,
+    create_search_backend,
+)
 from ade.visual.spatial_maps import build_spatial_maps
 
 __all__ = [
@@ -101,6 +111,13 @@ __all__ = [
     "LightweightVisualRepresentationProvider",
     "DINOv2ModelAdapter",
     "DINOv2VisualRepresentationProvider",
+    "ExactNumpySearchBackend",
+    "FaissBackendConfig",
+    "FaissIndexAdapter",
+    "FaissSearchBackend",
+    "SearchBackendConfig",
+    "SearchBackendMetadata",
+    "VisualSearchBackend",
     "RepresentationBatch",
     "RepresentationProviderConfig",
     "RepresentationProviderMetadata",
@@ -159,4 +176,5 @@ __all__ = [
     "score_reference_anomalies",
     "validate_scoring_artifacts",
     "create_visual_representation_provider",
+    "create_search_backend",
 ]

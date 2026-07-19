@@ -151,3 +151,9 @@ offline mode requires a local path, downloads require explicit opt-in, and an
 injectable adapter permits dependency-free conformance tests. This establishes
 representation mechanics and provenance only; it does not establish calibration,
 scientific validity, benchmark quality, or automated truth.
+
+Stage 4C implements optional CPU FAISS while retaining exact NumPy as the
+default oracle. Conformance covers Euclidean/cosine distance, top-k clamping,
+validation, neighbor identity, and canonical equal-distance ordering. Numeric
+differences are accepted only within documented tolerance; this is not a speed,
+quality, or detection benchmark claim.

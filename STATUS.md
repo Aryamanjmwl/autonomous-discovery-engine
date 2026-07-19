@@ -27,6 +27,9 @@ anomalies, candidate concepts, or possible patterns that require human review.
   offline local-model provisioning, bounded float32 encoding, optional L2
   normalization, and stable model provenance. It remains disabled by default
   and is not integrated into CLI reports or Studio.
+- Optional CPU FAISS reference search with lazy provisioning, exact-NumPy
+  Euclidean/cosine conformance, deterministic tie normalization, and typed
+  provenance. Exact NumPy remains the dependency-free default.
 - Tabular CSV foundation for row-level candidate anomaly and concept review
 - Time-series CSV foundation for explicit timestamped CSV workflows
 - Video adapter placeholder; no decoded frame workflow yet
