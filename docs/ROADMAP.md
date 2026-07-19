@@ -101,6 +101,14 @@ default and are not connected to the pipeline, Studio, or report UI. Candidate
 operating points require human review and are not universal anomaly
 probabilities.
 
+Stage 4E adds a reproducible visual benchmark validation harness for explicitly
+provisioned datasets and prediction records. It validates canonical benchmark
+manifests, computes dependency-free labeled held-out ranking metrics and
+candidate operating points, reports unlabeled review workload, and publishes
+integrity-checked evaluation artifacts. No public dataset is downloaded and no
+public benchmark performance is claimed. DINOv2, FAISS, and calibration remain
+optional and explicit.
+
 ## Stage 5: API and Docker
 
 - FastAPI service

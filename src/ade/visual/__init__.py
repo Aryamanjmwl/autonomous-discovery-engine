@@ -1,5 +1,30 @@
 """Versioned contracts and reproducibility foundations for ADE visual workflows."""
 
+from ade.visual.benchmark_artifacts import (
+    publish_visual_benchmark_artifact,
+    validate_visual_benchmark_artifact,
+)
+from ade.visual.benchmark_contracts import (
+    VisualBenchmarkDatasetManifest,
+    VisualBenchmarkLabel,
+    VisualBenchmarkMetricSummary,
+    VisualBenchmarkOperatingPointResult,
+    VisualBenchmarkPrediction,
+    VisualBenchmarkProvenance,
+    VisualBenchmarkResult,
+    VisualBenchmarkRunConfig,
+    VisualBenchmarkSample,
+    VisualBenchmarkSplit,
+)
+from ade.visual.benchmark_evaluation import evaluate_visual_benchmark
+from ade.visual.benchmark_manifests import (
+    deserialize_visual_benchmark_manifest,
+    load_visual_benchmark_manifest,
+    resolve_visual_benchmark_root,
+    serialize_visual_benchmark_manifest,
+    validate_visual_benchmark_manifest,
+)
+
 from ade.visual.calibration import (
     apply_calibration,
     build_calibration_result,
@@ -122,6 +147,16 @@ from ade.visual.search_backends import (
 from ade.visual.spatial_maps import build_spatial_maps
 
 __all__ = [
+    "VisualBenchmarkDatasetManifest",
+    "VisualBenchmarkLabel",
+    "VisualBenchmarkMetricSummary",
+    "VisualBenchmarkOperatingPointResult",
+    "VisualBenchmarkPrediction",
+    "VisualBenchmarkProvenance",
+    "VisualBenchmarkResult",
+    "VisualBenchmarkRunConfig",
+    "VisualBenchmarkSample",
+    "VisualBenchmarkSplit",
     "CalibrationDatasetSummary",
     "CalibrationMethodConfig",
     "CalibrationProvenance",
@@ -218,4 +253,12 @@ __all__ = [
     "publish_calibration_artifact",
     "summarize_scores",
     "validate_calibration_artifact",
+    "deserialize_visual_benchmark_manifest",
+    "evaluate_visual_benchmark",
+    "load_visual_benchmark_manifest",
+    "publish_visual_benchmark_artifact",
+    "resolve_visual_benchmark_root",
+    "serialize_visual_benchmark_manifest",
+    "validate_visual_benchmark_artifact",
+    "validate_visual_benchmark_manifest",
 ]

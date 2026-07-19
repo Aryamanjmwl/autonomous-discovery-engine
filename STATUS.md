@@ -35,6 +35,11 @@ anomalies, candidate concepts, or possible patterns that require human review.
   percentile, and top-fraction threshold candidates; labeled held-out metrics;
   unlabeled review-workload estimates; and integrity-checked JSON artifacts.
   They remain disabled and outside the default pipeline, Studio, and reports.
+- Reproducible visual benchmark validation harness for externally provisioned
+  manifests and explicit predictions, including dependency-free AUROC, average
+  precision, precision/recall at k, candidate operating points, unlabeled
+  workload evaluation, and immutable integrity-checked evaluation artifacts.
+  No public datasets are downloaded and no benchmark performance is claimed.
 - Tabular CSV foundation for row-level candidate anomaly and concept review
 - Time-series CSV foundation for explicit timestamped CSV workflows
 - Video adapter placeholder; no decoded frame workflow yet
@@ -108,6 +113,7 @@ anomalies, candidate concepts, or possible patterns that require human review.
 - Persistent vector memory, FAISS integration, or vector database storage
 - Pipeline/Studio/report integration for optional fitted calibration and
   threshold candidate evaluation
+- Public benchmark dataset provisioning, qualification, and performance claims
 - Production dashboard
 - Database-backed review queues or user-specific feedback workflows
 - Supervised learning or production personalization from feedback

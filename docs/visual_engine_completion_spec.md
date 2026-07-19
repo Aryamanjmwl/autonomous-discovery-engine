@@ -167,3 +167,12 @@ supports review-workload estimates only. Versioned canonical JSON artifacts
 retain fingerprints, limitations, integrity hashes, and human-review status.
 This layer is not enabled by default and does not establish a universal anomaly
 probability or remove the need for human expert review.
+
+Stage 4E implements benchmark-manifest validation, explicit prediction input,
+dependency-free AUROC and average-precision ranking metrics, precision/recall at
+configured ranks, workload metrics, and explicit/percentile/top-k/top-fraction
+operating points. Datasets are externally provisioned and strict mode validates
+declared local files; ADE never downloads public benchmark data automatically.
+Canonical evaluation artifacts preserve hashes and provenance. These results
+are validation artifacts, not product guarantees or public benchmark claims,
+and every operating point requires human expert review.
