@@ -254,6 +254,13 @@ def _summary_payload(
         "backend_version": summary.backend_version,
         "deterministic": summary.deterministic,
         "device": summary.device,
+        "search_backend": summary.search_backend,
+        "search_backend_version": summary.search_backend_version,
+        "search_dimension": summary.search_dimension,
+        "search_dtype": summary.search_dtype,
+        "search_device": summary.search_device,
+        "search_deterministic": summary.search_deterministic,
+        "search_configuration_fingerprint": summary.search_configuration_fingerprint,
         "images": [
             {
                 "image_id": image.image_id,

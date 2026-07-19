@@ -177,6 +177,13 @@ class ReferenceScoringSummary:
     backend_version: str
     deterministic: bool
     device: str
+    search_backend: str = "exact_numpy"
+    search_backend_version: str = "unknown"
+    search_dimension: int = 0
+    search_dtype: str = "float32"
+    search_device: str = "cpu"
+    search_deterministic: bool = True
+    search_configuration_fingerprint: str = ""
 
 
 @dataclass(frozen=True)

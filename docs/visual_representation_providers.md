@@ -88,3 +88,6 @@ signals. They are not calibrated probabilities, scientific truth, or automated
 normal/abnormal determinations. Provider integration does not establish model
 fitness, benchmark quality, or domain validity; those require separate held-out
 evaluation and human review.
+
+Reference retrieval is separate. See `visual_search_backends.md` for the exact
+NumPy default and optional FAISS conformance semantics.

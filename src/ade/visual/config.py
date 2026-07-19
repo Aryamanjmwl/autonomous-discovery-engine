@@ -123,6 +123,7 @@ class VisualReferenceScoringConfig:
     """Strict settings for optional uncalibrated reference scoring."""
 
     enabled: bool = False
+    search_backend: str = "exact_numpy"
     metric: str = "euclidean"
     patch_strategy: str = "nearest_neighbor"
     neighbor_count: int = 1
@@ -139,6 +140,10 @@ class VisualReferenceScoringConfig:
     display_normalization: bool = False
 
     def validate(self) -> None:
+        if self.search_backend not in {"exact_numpy", "faiss"}:
+            raise VisualConfigurationError(
+                "reference_scoring.search_backend must be exact_numpy or faiss"
+            )
         if self.metric not in {"euclidean", "cosine"}:
             raise VisualConfigurationError("reference_scoring.metric must be euclidean or cosine")
         if self.patch_strategy not in {"nearest_neighbor", "knn_mean"}:

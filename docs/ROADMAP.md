@@ -89,6 +89,10 @@ encoding, discovered feature dimensions, and stable model provenance. Pipeline,
 report, Studio, calibration, benchmark qualification, and FAISS integration are
 still deferred.
 
+Stage 4C adds optional CPU FAISS search behind exact-NumPy conformance tests and
+lazy provisioning. Exact NumPy remains default. GPU indexing, performance
+claims, benchmark qualification, and automatic backend selection are deferred.
+
 ## Stage 5: API and Docker
 
 - FastAPI service

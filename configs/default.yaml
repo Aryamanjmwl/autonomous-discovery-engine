@@ -42,6 +42,7 @@ visual_engine:
     exact_search_metric: "euclidean"
   reference_scoring:
     enabled: false
+    search_backend: "exact_numpy"
     metric: "euclidean"
     patch_strategy: "nearest_neighbor"
     neighbor_count: 1

@@ -11,7 +11,6 @@ import numpy as np
 
 from ade.visual.config import VisualReferenceScoringConfig
 from ade.visual.errors import VisualDatasetRoleError, VisualIntegrityError
-from ade.visual.exact_search import ExactNumpySearch
 from ade.visual.reference_contracts import LoadedReferenceMemory
 from ade.visual.scoring_artifacts import publish_scoring_artifacts
 from ade.visual.scoring_contracts import (
@@ -23,6 +22,7 @@ from ade.visual.scoring_contracts import (
     ReferenceScoringResult,
     ReferenceScoringSummary,
 )
+from ade.visual.search_backends import SearchBackendConfig, create_search_backend
 from ade.visual.spatial_maps import build_spatial_maps
 
 
@@ -40,11 +40,14 @@ def score_reference_anomalies(
     matrix = np.ascontiguousarray(
         np.stack([record.vector for record in query_records]), dtype=np.float32
     )
-    search = ExactNumpySearch(
+    search = create_search_backend(
         loaded_reference_memory.vectors,
         tuple(record.vector_id for record in loaded_reference_memory.records),
-        metric=loaded_reference_memory.manifest.distance_metric,
-        query_batch_size=config.query_batch_size,
+        SearchBackendConfig(
+            backend=config.search_backend,
+            metric=loaded_reference_memory.manifest.distance_metric,
+            query_batch_size=config.query_batch_size,
+        ),
     )
     results = search.search(matrix, top_k=config.neighbor_count)
     patch_scores: list[PatchAnomalyScore] = []
@@ -112,6 +115,13 @@ def score_reference_anomalies(
         provenance.backend_version,
         provenance.deterministic,
         provenance.device,
+        search_backend=search.metadata.backend,
+        search_backend_version=search.metadata.backend_version,
+        search_dimension=search.metadata.dimension,
+        search_dtype=search.metadata.dtype,
+        search_device=search.metadata.device,
+        search_deterministic=search.metadata.deterministic,
+        search_configuration_fingerprint=search.metadata.configuration_fingerprint,
     )
     result = ReferenceScoringResult(summary, patches, images, maps)
     if output_directory is not None:

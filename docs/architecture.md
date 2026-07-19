@@ -140,6 +140,14 @@ offline-safe defaults, and an injectable model boundary for framework-free
 tests. It is not wired into reports or Studio and never replaces the lightweight
 default. See `visual_representation_providers.md`.
 
+## Visual search backend boundary
+
+Stage 4C adds `VisualSearchBackend`, metadata, and `create_search_backend`.
+The default wraps unchanged `ExactNumpySearch`; optional CPU FAISS loads only
+when selected. FAISS L2/cosine output is normalized to ADE semantics and sorted
+by distance, vector ID, and row. Provenance flows into scoring summaries. See
+`visual_search_backends.md`.
+
 ## Review Memory
 
 The current review-memory loop is local and deterministic. It reads the existing
