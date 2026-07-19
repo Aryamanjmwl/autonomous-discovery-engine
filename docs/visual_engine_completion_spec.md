@@ -157,3 +157,13 @@ default oracle. Conformance covers Euclidean/cosine distance, top-k clamping,
 validation, neighbor identity, and canonical equal-distance ordering. Numeric
 differences are accepted only within documented tolerance; this is not a speed,
 quality, or detection benchmark claim.
+
+Stage 4D implements the optional calibration and threshold-evaluation
+foundation. Identity retains raw scores; empirical-percentile and minmax are
+calibrated scores only when their fitted metadata exists. Explicit, percentile,
+and top-fraction thresholds are candidate operating points. Complete labeled
+held-out data enables supervised metrics; unlabeled or partially labeled data
+supports review-workload estimates only. Versioned canonical JSON artifacts
+retain fingerprints, limitations, integrity hashes, and human-review status.
+This layer is not enabled by default and does not establish a universal anomaly
+probability or remove the need for human expert review.

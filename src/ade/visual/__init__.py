@@ -1,5 +1,29 @@
 """Versioned contracts and reproducibility foundations for ADE visual workflows."""
 
+from ade.visual.calibration import (
+    apply_calibration,
+    build_calibration_result,
+    evaluate_thresholds,
+    fit_calibration,
+    generate_threshold_candidates,
+    summarize_scores,
+)
+from ade.visual.calibration_artifacts import (
+    publish_calibration_artifact,
+    validate_calibration_artifact,
+)
+from ade.visual.calibration_contracts import (
+    CalibrationDatasetSummary,
+    CalibrationMethodConfig,
+    CalibrationProvenance,
+    CalibrationResult,
+    FittedCalibrationModel,
+    OperatingPointSummary,
+    ScoreDistributionSummary,
+    ThresholdCandidate,
+    ThresholdEvaluationResult,
+)
+
 from ade.visual.config import (
     VISUAL_ENGINE_SCHEMA_VERSION,
     VisualEngineConfig,
@@ -98,6 +122,15 @@ from ade.visual.search_backends import (
 from ade.visual.spatial_maps import build_spatial_maps
 
 __all__ = [
+    "CalibrationDatasetSummary",
+    "CalibrationMethodConfig",
+    "CalibrationProvenance",
+    "CalibrationResult",
+    "FittedCalibrationModel",
+    "OperatingPointSummary",
+    "ScoreDistributionSummary",
+    "ThresholdCandidate",
+    "ThresholdEvaluationResult",
     "VISUAL_ENGINE_SCHEMA_VERSION",
     "REFERENCE_MEMORY_SCHEMA_VERSION",
     "LoadedReferenceMemory",
@@ -177,4 +210,12 @@ __all__ = [
     "validate_scoring_artifacts",
     "create_visual_representation_provider",
     "create_search_backend",
+    "apply_calibration",
+    "build_calibration_result",
+    "evaluate_thresholds",
+    "fit_calibration",
+    "generate_threshold_candidates",
+    "publish_calibration_artifact",
+    "summarize_scores",
+    "validate_calibration_artifact",
 ]
