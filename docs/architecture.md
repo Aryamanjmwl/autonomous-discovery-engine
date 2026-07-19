@@ -255,3 +255,15 @@ partially labeled inputs produce review-workload metrics only. Canonical JSON
 artifacts carry SHA-256 validation and full calibration/evaluation provenance.
 Every operating point remains a review-prioritization signal that requires
 human review.
+
+## Visual Benchmark Validation Harness
+
+Stage 4E evaluates explicit sample-level predictions against a versioned
+benchmark manifest for an externally provisioned dataset. Canonical manifests
+declare deterministic splits, normal/anomaly/unknown labels, relative image and
+optional mask paths, metadata, and optional checksums. The dependency-free
+metric layer provides labeled held-out AUROC, average precision, precision@k,
+recall@k, and candidate operating-point metrics where valid. Unknown-only data
+produces review-workload metrics instead. Integrity-checked evaluation artifacts
+retain prediction, manifest, configuration, and dataset provenance. No dataset
+download, pipeline execution, or default backend selection occurs here.
