@@ -93,6 +93,14 @@ Stage 4C adds optional CPU FAISS search behind exact-NumPy conformance tests and
 lazy provisioning. Exact NumPy remains default. GPU indexing, performance
 claims, benchmark qualification, and automatic backend selection are deferred.
 
+Stage 4D adds optional fitted empirical-percentile and minmax score transforms,
+identity passthrough, threshold-candidate generation, and held-out evaluation.
+Supervised metrics require complete labeled held-out data; unlabeled evaluation
+estimates review workload only. Calibration and thresholds remain disabled by
+default and are not connected to the pipeline, Studio, or report UI. Candidate
+operating points require human review and are not universal anomaly
+probabilities.
+
 ## Stage 5: API and Docker
 
 - FastAPI service

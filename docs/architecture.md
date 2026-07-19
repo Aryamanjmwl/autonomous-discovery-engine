@@ -243,3 +243,15 @@ enterprise storage are planned extension points, not current capabilities.
 Heavy model dependencies remain deferred. DINOv2, FAISS, PatchCore, persistent
 reference-vector payloads, calibration fitting, anomaly maps, and reference-
 mode scoring are not implemented by the Stage 1 contract foundation.
+
+## Optional Calibration and Threshold Evaluation
+
+Stage 4D adds a library-only boundary after raw/reference scoring. Identity,
+fitted empirical-percentile, and fitted minmax transforms are dependency-free;
+none changes the default pipeline. Threshold candidates support explicit,
+percentile, and top-fraction strategies. Complete labeled held-out data enables
+confusion counts and denominator-safe precision, recall, and F1. Unlabeled or
+partially labeled inputs produce review-workload metrics only. Canonical JSON
+artifacts carry SHA-256 validation and full calibration/evaluation provenance.
+Every operating point remains a review-prioritization signal that requires
+human review.

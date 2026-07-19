@@ -30,6 +30,11 @@ anomalies, candidate concepts, or possible patterns that require human review.
 - Optional CPU FAISS reference search with lazy provisioning, exact-NumPy
   Euclidean/cosine conformance, deterministic tie normalization, and typed
   provenance. Exact NumPy remains the dependency-free default.
+- Optional dependency-free fitted calibration and threshold-evaluation APIs
+  with identity, empirical-percentile, and minmax methods; explicit,
+  percentile, and top-fraction threshold candidates; labeled held-out metrics;
+  unlabeled review-workload estimates; and integrity-checked JSON artifacts.
+  They remain disabled and outside the default pipeline, Studio, and reports.
 - Tabular CSV foundation for row-level candidate anomaly and concept review
 - Time-series CSV foundation for explicit timestamped CSV workflows
 - Video adapter placeholder; no decoded frame workflow yet
@@ -101,7 +106,8 @@ anomalies, candidate concepts, or possible patterns that require human review.
 - Production time-series forecasting, live sensors, streaming, or alerting
 - Deep visual embedding backend
 - Persistent vector memory, FAISS integration, or vector database storage
-- Fitted calibration and validated decision thresholds
+- Pipeline/Studio/report integration for optional fitted calibration and
+  threshold candidate evaluation
 - Production dashboard
 - Database-backed review queues or user-specific feedback workflows
 - Supervised learning or production personalization from feedback
