@@ -206,3 +206,10 @@ validate within configured local workspace roots. List, summary, and detail proj
 then expose real sequence and event fields. Corrupt inputs must remain unavailable. No live
 feed, geospatial registration, temporal playback, or scientific conclusion is part of this
 boundary; candidate temporal changes require human review.
+
+## Stage 5E Documentation Boundary
+
+The temporal demo evidence workflow is documented end to end using only supported scripts,
+CLI switches, report formats, and Studio launch commands. Documentation distinguishes
+generated shapes from real-world findings, requires validated local evidence for Studio,
+and permits only manually captured real outputs. It introduces no engine behavior.

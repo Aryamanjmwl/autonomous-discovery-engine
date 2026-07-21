@@ -71,6 +71,11 @@ python scripts/create_temporal_demo_data.py
 python scripts/verify_temporal_demo.py
 ```
 
+### Temporal visual demo
+
+See the concise [temporal visual demo evidence guide](docs/demo_temporal_visual_evidence.md)
+for the complete generated-observation, artifact, report, HTML, and Studio review workflow.
+
 Run ADE Studio in two terminals:
 
 ```bash

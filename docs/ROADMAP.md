@@ -211,3 +211,10 @@ workflow is implemented through the explicit Stage 5B CLI and report path.
 - Reproducible image bytes, observation IDs, metadata, and ordering
 - Separate end-to-end verifier for manifest, artifact, report, and HTML evidence
 - Generated outputs remain ignored and candidate temporal changes require human review
+
+## Stage 5E: Temporal Demo Evidence Documentation
+
+- Public-facing evidence guide from generated observations through connected Studio review
+- Exact supported PowerShell commands and artifact-validation steps
+- Manual capture guidance limited to real reports and real connected Studio state
+- Technical Preview limitations and human-review wording preserved

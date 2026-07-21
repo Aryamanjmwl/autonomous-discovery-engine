@@ -124,3 +124,6 @@ its local backend and frontend. Use a new report name for another immutable demo
 workflow has no live feed, satellite API, cloud processing, geospatial registration, or
 scientific confirmation. Every candidate change event is a review-prioritization signal and
 requires human review.
+
+For the polished public-facing walkthrough from generated observations through Studio review,
+see [Temporal Visual Demo Evidence](demo_temporal_visual_evidence.md).

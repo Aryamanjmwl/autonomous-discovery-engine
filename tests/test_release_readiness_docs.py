@@ -29,6 +29,7 @@ def test_technical_preview_docs_exist() -> None:
         "docs/releases/technical_preview_readiness_audit.md",
         "docs/releases/v0.1.0-preview.md",
         "docs/releases/github_release_body_v0.1.0-preview.md",
+        "docs/demo_temporal_visual_evidence.md",
         "examples/README.md",
         "examples/demo_workflow.md",
         "examples/modalities/tabular_workflow.md",
@@ -56,6 +57,7 @@ def test_technical_preview_docs_keep_human_review_language() -> None:
         "docs/ade_studio.md",
         "docs/cv_project_description.md",
         "docs/demo_assets.md",
+        "docs/demo_temporal_visual_evidence.md",
         "docs/releases/technical_preview_readiness_audit.md",
         "docs/releases/v0.1.0-preview.md",
         "docs/releases/github_release_body_v0.1.0-preview.md",
@@ -75,6 +77,43 @@ def test_cli_reference_covers_local_verification_and_benchmark() -> None:
     assert "scripts/verify_local.py" in cli_reference
     assert "scripts/run_benchmark.py" in cli_reference
     assert "--export-local-dashboard" in cli_reference
+
+
+def test_temporal_demo_evidence_uses_real_supported_workflow_language() -> None:
+    guide = _read("docs/demo_temporal_visual_evidence.md")
+    lowered = guide.lower()
+    readme = _read("README.md")
+
+    assert "docs/demo_temporal_visual_evidence.md" in readme
+    assert "technical preview" in lowered
+    assert "requires human review" in lowered
+    assert "generated local observations" in lowered
+    assert "immutable temporal artifact" in lowered
+    assert "ade studio review" in lowered
+    assert "do not use mock screenshots" in lowered
+    for command in (
+        "python scripts/create_temporal_demo_data.py",
+        "--validate-temporal-manifest",
+        "--temporal-manifest",
+        "--validate-temporal-artifact",
+        "--validate-temporal-report",
+        "--export-temporal-html-report",
+        "python scripts/verify_temporal_demo.py",
+        "python -m ade.studio.api --host 127.0.0.1 --port 8765",
+        "npm run dev",
+    ):
+        assert command in guide
+    for forbidden in (
+        "confirmed geological activity",
+        "confirmed biological growth",
+        "guaranteed movement detection",
+        "scientific confirmation",
+        "production monitoring",
+        "live feed",
+        "autonomous conclusion",
+        "fake screenshot",
+    ):
+        assert forbidden not in lowered
 
 
 def test_report_schema_documents_stable_feedback_targets() -> None:
