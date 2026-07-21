@@ -141,3 +141,7 @@ reports directory. It validates both the report and its referenced immutable tem
 artifact before exposing sequence metadata or candidate change events. Malformed reports
 are ignored with local summary warnings. This Technical Preview provides report review,
 not continuous observation, geospatial registration, or scientific confirmation.
+
+The [Temporal Visual Demo Evidence](demo_temporal_visual_evidence.md) guide provides the
+exact local commands needed to create a real temporal report before opening Studio. Studio
+does not populate temporal panels from examples or mock report values.

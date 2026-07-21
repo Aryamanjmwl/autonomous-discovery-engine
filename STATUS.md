@@ -179,3 +179,10 @@ ADE includes a generated local demo with three synthetic observation sequences a
 manifests. A separate verifier exercises one complete temporal evidence package without
 expanding the normal verifier. Generated images, reports, HTML, and immutable artifacts stay
 ignored; no external data, live feed, registration, or scientific claim is introduced.
+
+## Stage 5E Temporal Demo Evidence Documentation
+
+The public temporal evidence guide now connects deterministic local sequence generation,
+manifest validation, analysis, immutable artifact validation, JSON/Markdown/HTML reporting,
+and connected Studio review. It uses supported commands only, requires real local outputs,
+and retains Technical Preview and human-review limitations.
