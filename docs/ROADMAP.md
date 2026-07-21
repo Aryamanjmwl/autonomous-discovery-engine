@@ -204,3 +204,10 @@ workflow is implemented through the explicit Stage 5B CLI and report path.
 - Show real sequence summaries, candidate change events, patch metadata, and provenance
 - Keep malformed reports out of connected views while exposing local warnings
 - No live feeds, geospatial UI, synthetic charts, or monitoring claims
+
+## Stage 5D: Deterministic Temporal Demo
+
+- Three small generated local demo sequences with canonical manifests
+- Reproducible image bytes, observation IDs, metadata, and ordering
+- Separate end-to-end verifier for manifest, artifact, report, and HTML evidence
+- Generated outputs remain ignored and candidate temporal changes require human review

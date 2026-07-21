@@ -172,3 +172,10 @@ immutable artifacts, and exposes sequence summaries and candidate change events 
 existing report APIs and UI. Invalid temporal files are omitted with warnings. No temporal
 run controls, live monitoring, geospatial maps, or fake charts were added; findings remain
 review-prioritization signals that require human review.
+
+## Stage 5D Deterministic Temporal Demo
+
+ADE includes a generated local demo with three synthetic observation sequences and canonical
+manifests. A separate verifier exercises one complete temporal evidence package without
+expanding the normal verifier. Generated images, reports, HTML, and immutable artifacts stay
+ignored; no external data, live feed, registration, or scientific claim is introduced.

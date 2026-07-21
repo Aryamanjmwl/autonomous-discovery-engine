@@ -91,3 +91,36 @@ directory. A report is shown only when its temporal schema validates and its ref
 content-addressed artifact passes integrity validation. Studio displays the observation
 sequence, candidate change events, optional real patch evidence, warnings, and provenance.
 It does not add live monitoring, geospatial registration, or scientific confirmation.
+
+## Deterministic Generated Demo Workflow
+
+The Stage 5D generator creates three tiny synthetic local sequences without downloads:
+`scene_revisit_shift`, `plant_growth_like`, and `inspection_damage_like`. Their names
+describe generated shapes only; they do not establish real movement, growth, or damage.
+
+Run the complete workflow from the repository root in PowerShell:
+
+```powershell
+python scripts/create_temporal_demo_data.py
+
+$manifest = "data/raw/temporal_demo/scene_revisit_shift/manifest.json"
+$report = "data/reports/temporal_demo_scene.md"
+$reportJson = "data/reports/temporal_demo_scene.json"
+$reportHtml = "data/reports/temporal_demo_scene.html"
+
+python -m ade.cli --validate-temporal-manifest $manifest
+python -m ade.cli --temporal-manifest $manifest --temporal-output $report `
+  --temporal-strategy adjacent_difference --temporal-patch-size 16
+
+$artifactPath = (Get-Content $reportJson -Raw | ConvertFrom-Json).artifact_provenance.artifact_path
+python -m ade.cli --validate-temporal-artifact $artifactPath
+python -m ade.cli --validate-temporal-report $reportJson
+python -m ade.cli --export-temporal-html-report $reportJson --temporal-output $reportHtml
+python scripts/verify_temporal_demo.py
+```
+
+The report and immutable artifact can then be viewed in connected ADE Studio after starting
+its local backend and frontend. Use a new report name for another immutable demo run. The
+workflow has no live feed, satellite API, cloud processing, geospatial registration, or
+scientific confirmation. Every candidate change event is a review-prioritization signal and
+requires human review.

@@ -64,6 +64,13 @@ It produces candidate temporal changes for human review and does not alter defau
 image-folder analysis. See `docs/visual_temporal_change_detection.md` for manifest,
 artifact-validation, optional patch-evidence, and HTML-export details.
 
+Generate and verify the small synthetic temporal demo package with:
+
+```powershell
+python scripts/create_temporal_demo_data.py
+python scripts/verify_temporal_demo.py
+```
+
 Run ADE Studio in two terminals:
 
 ```bash
