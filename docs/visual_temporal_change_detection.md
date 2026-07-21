@@ -83,3 +83,11 @@ and industrial inspection sequences. This stage has no live satellite feeds,
 streaming ingestion, cloud processing, geospatial registration, scientific
 confirmation, or automatic live monitoring. Lighting, viewpoint, scale, alignment,
 and seasonal differences can all produce high scores.
+
+## ADE Studio Discovery
+
+Stage 5C lets connected ADE Studio discover these reports from the configured local report
+directory. A report is shown only when its temporal schema validates and its referenced
+content-addressed artifact passes integrity validation. Studio displays the observation
+sequence, candidate change events, optional real patch evidence, warnings, and provenance.
+It does not add live monitoring, geospatial registration, or scientific confirmation.

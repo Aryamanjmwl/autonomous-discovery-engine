@@ -15,6 +15,11 @@ from ade.cli import run_pipeline
 from ade.reporting.html_report import write_html_report
 from ade.reporting.report_validator import validate_report_dict, validate_report_file
 from ade.reporting.run_index import load_run_index
+from ade.reporting.temporal_report import (
+    TEMPORAL_REPORT_TYPE,
+    validate_temporal_report_dict,
+)
+from ade.visual.temporal_artifacts import validate_temporal_change_artifact
 
 DEFAULT_PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_REPORTS_DIR = DEFAULT_PROJECT_ROOT / "data/reports"
@@ -65,6 +70,8 @@ def build_summary(paths: StudioPaths = StudioPaths()) -> dict[str, object]:
     reports = list_reports(paths=paths)
     latest_run = runs[0] if runs else None
     latest_report = reports[0] if reports else None
+    temporal_reports = [report for report in reports if report.get("type") == "temporal"]
+    latest_temporal_report = temporal_reports[0] if temporal_reports else None
     feedback_count = _count_feedback_records(paths.feedback_path)
     latest_report_name = _string_from_mapping(latest_report, "name")
     latest_report_detail = (
@@ -86,6 +93,9 @@ def build_summary(paths: StudioPaths = StudioPaths()) -> dict[str, object]:
         "feedback_path": paths.feedback_path.as_posix(),
         "run_count": len(runs),
         "report_count": len(reports),
+        "temporal_report_count": len(temporal_reports),
+        "latest_temporal_report": latest_temporal_report,
+        "temporal_report_warnings": _temporal_report_warnings(paths),
         "feedback_count": feedback_count,
         "latest_run": latest_run,
         "latest_report": latest_report,
@@ -138,10 +148,18 @@ def list_reports(paths: StudioPaths = StudioPaths()) -> list[dict[str, object]]:
     )
     for report_path in report_paths:
         report = _load_json_object(report_path)
-        if report is None or "candidate_anomalies" not in report:
+        if report is None:
+            continue
+        temporal = report.get("report_type") == TEMPORAL_REPORT_TYPE
+        if temporal:
+            if _temporal_report_error(report, report_path, paths) is not None:
+                continue
+        elif "candidate_anomalies" not in report:
             continue
         markdown_path = report_path.with_suffix(".md")
         html_path = report_path.with_suffix(".html")
+        sequence = _dict(report.get("sequence_summary"))
+        temporal_events = _list(report.get("candidate_change_events")) if temporal else []
         reports.append(
             {
                 "name": report_path.name,
@@ -151,11 +169,14 @@ def list_reports(paths: StudioPaths = StudioPaths()) -> list[dict[str, object]]:
                 "run_id": report.get("run_id"),
                 "generated_at": _generated_at(report),
                 "candidate_anomaly_count": len(_list(report.get("candidate_anomalies"))),
-                "candidate_concept_count": len(
-                    _list(report.get("candidate_unknown_concepts"))
-                ),
+                "candidate_concept_count": len(_list(report.get("candidate_unknown_concepts"))),
                 "human_review_required": report.get("human_review_required") is True,
-                "modality": report.get("modality", "image"),
+                "modality": "temporal" if temporal else report.get("modality", "image"),
+                "type": "temporal" if temporal else "standard",
+                "sequence_id": sequence.get("sequence_id") if temporal else None,
+                "dataset_name": sequence.get("dataset_name") if temporal else None,
+                "observation_count": sequence.get("observation_count") if temporal else None,
+                "candidate_event_count": len(temporal_events),
             }
         )
     return reports
@@ -171,6 +192,10 @@ def load_report(report_name: str, paths: StudioPaths = StudioPaths()) -> dict[st
     report = _load_json_object(report_path)
     if report is None:
         raise ValueError(f"Report is not valid JSON: {safe_name}")
+    if report.get("report_type") == TEMPORAL_REPORT_TYPE:
+        temporal_error = _temporal_report_error(report, report_path, paths)
+        if temporal_error is not None:
+            raise ValueError(f"Temporal report is invalid: {temporal_error}")
     detail = _normalize_report_detail(safe_name, paths, report)
     detail["raw_report"] = report
     return _json_safe(detail)
@@ -268,6 +293,8 @@ def _normalize_report_detail(
     """Return screenshot-friendly report fields derived from ADE report JSON."""
 
     report = report or {}
+    if report.get("report_type") == TEMPORAL_REPORT_TYPE:
+        return _normalize_temporal_report_detail(report_name, paths, report)
     run_metadata = _dict(report.get("run_metadata"))
     scoring_metadata = _dict(report.get("scoring_metadata"))
     input_summary = _dict(report.get("input_summary"))
@@ -282,7 +309,9 @@ def _normalize_report_detail(
     )
     html_candidate = paths.reports_dir / Path(report_name).with_suffix(".html").name
     html_path = str(html_candidate) if html_candidate.exists() else None
-    anomalies = [_normalize_candidate_anomaly(item) for item in _list(report.get("candidate_anomalies"))]
+    anomalies = [
+        _normalize_candidate_anomaly(item) for item in _list(report.get("candidate_anomalies"))
+    ]
     concepts = [_json_safe(item) for item in _list(report.get("candidate_unknown_concepts"))]
     advanced_evidence = _valid_advanced_evidence(report)
     return {
@@ -294,7 +323,9 @@ def _normalize_report_detail(
             input_summary.get("input_dir"),
             input_summary.get("input_path"),
         ),
-        "input_type": _first_string(profile.get("input_type"), report.get("modality"), "image folder"),
+        "input_type": _first_string(
+            profile.get("input_type"), report.get("modality"), "image folder"
+        ),
         "number_of_images": _first_int(
             report.get("number_of_images"),
             run_metadata.get("number_of_images"),
@@ -323,6 +354,90 @@ def _normalize_report_detail(
         "json_report_path": json_path,
         "html_report_path": html_path,
     }
+
+
+def _normalize_temporal_report_detail(
+    report_name: str,
+    paths: StudioPaths,
+    report: dict[str, Any],
+) -> dict[str, object]:
+    """Return validated temporal report fields for connected Studio views."""
+
+    summary = _dict(report.get("sequence_summary"))
+    provenance = _dict(report.get("artifact_provenance"))
+    events = [_json_safe(item) for item in _list(report.get("candidate_change_events"))]
+    markdown_candidate = paths.reports_dir / Path(report_name).with_suffix(".md").name
+    html_candidate = paths.reports_dir / Path(report_name).with_suffix(".html").name
+    return {
+        "report_name": report_name,
+        "report_type": "temporal",
+        "run_id": None,
+        "generated_at": None,
+        "input_directory": None,
+        "input_type": "temporal observation sequence",
+        "number_of_images": _first_int(summary.get("observation_count")),
+        "number_of_patches": 0,
+        "candidate_anomaly_count": 0,
+        "candidate_concept_count": 0,
+        "candidate_event_count": len(events),
+        "novelty_strategy": None,
+        "human_review_required": report.get("human_review_required") is True,
+        "candidate_anomalies": [],
+        "candidate_concepts": [],
+        "candidate_temporal_change_events": events,
+        "temporal_sequence_summary": _json_safe(summary),
+        "temporal_artifact_provenance": _json_safe(provenance),
+        "temporal_warnings": _json_safe(report.get("warnings")),
+        "temporal_limitations": _json_safe(report.get("limitations")),
+        "advanced_evidence": {},
+        "advanced_evidence_available": {key: False for key in ADVANCED_EVIDENCE_FIELDS},
+        "markdown_report_path": (
+            markdown_candidate.as_posix() if markdown_candidate.is_file() else None
+        ),
+        "json_report_path": (paths.reports_dir / report_name).as_posix(),
+        "html_report_path": html_candidate.as_posix() if html_candidate.is_file() else None,
+    }
+
+
+def _temporal_report_error(
+    report: dict[str, Any], report_path: Path, paths: StudioPaths
+) -> str | None:
+    errors = validate_temporal_report_dict(report)
+    if errors:
+        return "; ".join(errors)
+    provenance = _dict(report.get("artifact_provenance"))
+    artifact_value = provenance.get("artifact_path")
+    if not isinstance(artifact_value, str) or not artifact_value:
+        return "artifact path is missing"
+    artifact_path = Path(artifact_value)
+    if not artifact_path.is_absolute():
+        artifact_path = report_path.parent / artifact_path
+    resolved = artifact_path.resolve()
+    allowed_roots = (paths.reports_dir.resolve(), paths.project_root.resolve())
+    if not any(resolved == root or resolved.is_relative_to(root) for root in allowed_roots):
+        return "artifact path resolves outside the local workspace"
+    fingerprint = provenance.get("artifact_fingerprint")
+    if resolved.name != fingerprint:
+        return "artifact path does not match its fingerprint"
+    try:
+        validate_temporal_change_artifact(resolved)
+    except (OSError, ValueError) as error:
+        return f"artifact validation failed: {error}"
+    return None
+
+
+def _temporal_report_warnings(paths: StudioPaths) -> list[str]:
+    if not paths.reports_dir.is_dir():
+        return []
+    warnings: list[str] = []
+    for report_path in sorted(paths.reports_dir.glob("*.json")):
+        report = _load_json_object(report_path)
+        if report is None or report.get("report_type") != TEMPORAL_REPORT_TYPE:
+            continue
+        error = _temporal_report_error(report, report_path, paths)
+        if error is not None:
+            warnings.append(f"Ignored {report_path.name}: {error}")
+    return warnings
 
 
 def _valid_advanced_evidence(report: dict[str, Any]) -> dict[str, object]:
@@ -528,6 +643,3 @@ def _json_safe(value: object) -> Any:
     if isinstance(value, tuple):
         return [_json_safe(item) for item in value]
     return value
-
-
-

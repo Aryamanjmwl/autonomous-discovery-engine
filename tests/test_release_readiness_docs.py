@@ -296,6 +296,27 @@ def test_ade_studio_connected_mode_does_not_expose_inert_controls() -> None:
     assert "onRefresh" in combined
 
 
+def test_ade_studio_temporal_ui_is_report_backed_without_fake_controls() -> None:
+    reports = _read("apps/studio/frontend/components/ade/screens/reports.tsx")
+    findings = _read("apps/studio/frontend/components/ade/screens/findings.tsx")
+    overview = _read("apps/studio/frontend/components/ade/screens/overview.tsx")
+    combined = "\n".join((reports, findings, overview))
+
+    assert "report.report_type === 'temporal'" in findings
+    assert "candidate_temporal_change_events" in findings
+    assert "temporal_sequence_summary" in reports
+    assert "No temporal change reports are available in the local workspace." in overview
+    for forbidden in (
+        "Live monitor",
+        "Timeline playback",
+        "Satellite feed",
+        "Geospatial map",
+        "Movement probability",
+        "Growth percentage",
+    ):
+        assert forbidden not in combined
+
+
 def test_technical_preview_release_docs_are_release_ready_without_overclaiming() -> None:
     release_note = _read("docs/releases/v0.1.0-preview.md").lower()
     release_body = _read(

@@ -5,8 +5,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import numpy as np
 import pytest
 
+from ade.cli import run_temporal_pipeline
 from ade.studio.service import (
     StudioPaths,
     build_summary,
@@ -16,6 +18,12 @@ from ade.studio.service import (
     load_report,
     resolve_report_html,
     run_visual_analysis,
+)
+from ade.visual import (
+    VISUAL_ENGINE_SCHEMA_VERSION,
+    TemporalObservation,
+    TemporalObservationSequence,
+    serialize_temporal_manifest,
 )
 
 
@@ -104,6 +112,66 @@ def test_studio_summary_tolerates_missing_artifact_folders(tmp_path: Path) -> No
     assert summary["report_count"] == 0
     assert summary["feedback_count"] == 0
     assert summary["no_cloud_upload"] is True
+    assert summary["temporal_report_count"] == 0
+    assert summary["latest_temporal_report"] is None
+
+
+def test_studio_discovers_only_valid_artifact_backed_temporal_reports(tmp_path: Path) -> None:
+    image_module = pytest.importorskip("PIL.Image")
+    images = tmp_path / "images"
+    reports_dir = tmp_path / "reports"
+    images.mkdir()
+    for index, value in enumerate((0, 20, 200)):
+        image_module.fromarray(np.full((8, 8, 3), value, dtype=np.uint8)).save(
+            images / f"{index}.png"
+        )
+    sequence = TemporalObservationSequence(
+        VISUAL_ENGINE_SCHEMA_VERSION,
+        "studio-temporal",
+        "1",
+        str(tmp_path),
+        "sequence-studio",
+        tuple(
+            TemporalObservation(f"o{index}", f"images/{index}.png", sequence_index=index)
+            for index in range(3)
+        ),
+        scene_id="scene-studio",
+    )
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(serialize_temporal_manifest(sequence), encoding="utf-8")
+    output = reports_dir / "temporal.json"
+    markdown, json_path, artifact_path = run_temporal_pipeline(
+        manifest, output.with_suffix(".md"), patch_size=4
+    )
+    assert markdown.is_file() and json_path == output and artifact_path.is_dir()
+    malformed = json.loads(json_path.read_text(encoding="utf-8"))
+    malformed["human_review_required"] = False
+    (reports_dir / "broken_temporal.json").write_text(json.dumps(malformed), encoding="utf-8")
+    paths = StudioPaths(
+        reports_dir=reports_dir,
+        run_index_path=reports_dir / "runs" / "index.json",
+        dashboard_dir=tmp_path / "dashboard",
+        feedback_path=tmp_path / "feedback.jsonl",
+        project_root=tmp_path,
+    )
+
+    reports = list_reports(paths)
+    detail = load_report("temporal.json", paths)
+    summary = build_summary(paths)
+
+    assert [report["name"] for report in reports] == ["temporal.json"]
+    assert reports[0]["type"] == "temporal"
+    assert reports[0]["candidate_event_count"] == 2
+    assert detail["report_type"] == "temporal"
+    assert detail["temporal_sequence_summary"]["sequence_id"] == "sequence-studio"
+    assert detail["candidate_event_count"] == 2
+    assert detail["candidate_temporal_change_events"][0]["requires_human_review"] is True
+    assert detail["temporal_artifact_provenance"]["artifact_path"] == artifact_path.as_posix()
+    assert summary["temporal_report_count"] == 1
+    assert summary["latest_temporal_report"]["name"] == "temporal.json"
+    assert summary["temporal_report_warnings"]
+    with pytest.raises(ValueError, match="Temporal report is invalid"):
+        load_report("broken_temporal.json", paths)
 
 
 def test_studio_run_and_report_listing(tmp_path: Path) -> None:
@@ -465,5 +533,3 @@ def test_studio_analysis_resolves_repo_relative_input_path(tmp_path: Path) -> No
 
     with pytest.raises(FileNotFoundError, match="data.raw.demo_images"):
         run_visual_analysis("data/raw/demo_images", paths=paths)
-
-

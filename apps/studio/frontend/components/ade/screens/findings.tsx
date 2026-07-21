@@ -13,6 +13,7 @@ interface StudioFinding extends Finding {
   scoreBreakdown?: Record<string, unknown> | null
   largestFeatureDeviations?: Array<Record<string, unknown>> | null
   previewUrl?: string | null
+  metricLabel?: string
 }
 
 export function FindingsScreen({
@@ -61,7 +62,9 @@ export function FindingsScreen({
                 >
                   <div className="flex items-center justify-between">
                     <StatusBadge tone={f.kind}>{formatFindingKind(f.kind)}</StatusBadge>
-                    <span className="font-mono text-xs text-muted-foreground">N: {formatScore(f.novelty)}</span>
+                    <span className="font-mono text-xs text-muted-foreground">
+                      {f.metricLabel || 'Novelty'}: {formatScore(f.novelty)}
+                    </span>
                   </div>
                   <span className="text-sm font-medium text-foreground">{f.title}</span>
                   <VerdictLabel status={f.status} />
@@ -77,7 +80,9 @@ export function FindingsScreen({
         <div>
           <div className="flex items-center gap-3">
             <StatusBadge tone={selected.kind}>{formatFindingKind(selected.kind)}</StatusBadge>
-            <span className="font-mono text-xs text-muted-foreground">Novelty {formatScore(selected.novelty)}</span>
+            <span className="font-mono text-xs text-muted-foreground">
+              {selected.metricLabel || 'Novelty'} {formatScore(selected.novelty)}
+            </span>
           </div>
           <h1 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">{selected.title}</h1>
           <p className="mt-1 font-mono text-xs text-muted-foreground">
@@ -105,7 +110,7 @@ export function FindingsScreen({
               <MetricRow label="Confidence score" value={formatScore(selected.confidence)} valueClassName="text-anomaly" />
               <MetricRow label="Coordinates" value={formatCoordinates(selected.coordinates)} />
               <MetricRow label="Patch scale" value={formatValue(selected.patchScale)} />
-              <MetricRow label="Novelty score" value={formatScore(selected.novelty)} />
+              <MetricRow label={`${selected.metricLabel || 'Novelty'} score`} value={formatScore(selected.novelty)} />
             </div>
           </Panel>
           <Panel className="p-4">
@@ -153,6 +158,45 @@ export function FindingsScreen({
 
 function reportFindings(report: StudioReportDetail | null, connected: boolean): StudioFinding[] {
   if (!report) return connected ? [] : findings
+  if (report.report_type === 'temporal') {
+    return (report.candidate_temporal_change_events || []).map((event, index) => {
+      const patches = event.patch_evidence || []
+      const firstPatch = patches[0]
+      const patchNotes = patches.map((patch) =>
+        `patch (${patch.x}, ${patch.y}, ${patch.width}, ${patch.height}) ${patch.source_observation_id} → ${patch.target_observation_id}`,
+      )
+      return {
+        id: event.event_id || `candidate-change-${index + 1}`,
+        title: `Candidate temporal change ${event.event_id || index + 1}`,
+        kind: 'pattern',
+        novelty: numberValue(event.change_score, -1),
+        confidence: -1,
+        deviation: firstPatch ? formatCoordinates([firstPatch.x, firstPatch.y, firstPatch.width, firstPatch.height]) : 'Not available from current report',
+        clusterDensity: -1,
+        status: 'pending',
+        runId: report.temporal_sequence_summary?.sequence_id || 'Not available from current report',
+        detector: report.report_name,
+        source: `${event.source_observation_id || '?'} → ${event.target_observation_id || '?'}`,
+        firstDetected: `${report.temporal_sequence_summary?.range_start || '?'} → ${report.temporal_sequence_summary?.range_end || '?'}`,
+        impact: [
+          event.possible_interpretation || 'Possible movement/growth/damage/change',
+          ...patches.map((patch) => patch.evidence_note).filter(Boolean),
+          ...patchNotes,
+          'Requires human review.',
+        ].join(' · '),
+        coordinates: firstPatch ? [firstPatch.x, firstPatch.y, firstPatch.width, firstPatch.height].filter(isNumber) : null,
+        patchScale: firstPatch?.patch_scale || null,
+        scoreBreakdown: {
+          rank: event.rank,
+          source_observation_id: event.source_observation_id,
+          target_observation_id: event.target_observation_id,
+        },
+        largestFeatureDeviations: null,
+        previewUrl: null,
+        metricLabel: 'Change',
+      }
+    })
+  }
   const anomalies = report.candidate_anomalies || []
   const concepts = report.candidate_concepts || []
   const anomalyFindings = anomalies.slice(0, 12).map((item, index) =>

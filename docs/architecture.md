@@ -290,3 +290,11 @@ fitted calibration, candidate operating points, and benchmark validation. These 
 and optional, so the default pipeline and existing reports remain unchanged. The validator checks
 present summaries before ADE Studio exposes them. Benchmark summaries describe local validation
 artifacts rather than guarantees, and calibrated scores are not universal probabilities.
+
+## Temporal Studio Integration
+
+Stage 5C reuses the existing report list and detail endpoints. Discovery classifies a JSON
+document as temporal only by its Stage 5B report type, validates the report, resolves its
+artifact within configured local workspace roots, and revalidates artifact integrity.
+Invalid reports are omitted with diagnostics. Connected UI projections are derived from
+those validated fields and do not create monitoring, timeline, chart, or map state.

@@ -24,6 +24,7 @@ export function ReportsScreen({
   const selected = displayReports.find((r) => r.id === selectedId) ?? displayReports[0]
   const apiSelected = reportsFromApi.find((report) => report.name === selectedId)
   const reportDetail = connected ? selectedReport : null
+  const temporal = reportDetail?.report_type === 'temporal'
   const noveltyAverage = average(
     reportDetail?.candidate_anomalies.map((item) => item.novelty_score ?? null) || [],
   )
@@ -88,7 +89,9 @@ export function ReportsScreen({
       <div className="flex flex-col gap-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <StatusBadge tone="anomaly">Report_draft</StatusBadge>
+            <StatusBadge tone={temporal ? 'pattern' : 'anomaly'}>
+              {temporal ? 'Temporal visual' : 'Standard visual'}
+            </StatusBadge>
             <h1 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
               {reportDetail?.report_name || selected.title}
             </h1>
@@ -118,18 +121,18 @@ export function ReportsScreen({
 
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <KpiCard
-            label="Findings"
-            value={reportDetail?.candidate_anomaly_count ?? selected.findings}
-            hint={connected ? `${reportDetail?.candidate_concept_count ?? 0} concepts` : `${selected.critical} critical`}
+            label={temporal ? 'Change events' : 'Findings'}
+            value={temporal ? reportDetail?.candidate_event_count ?? 0 : reportDetail?.candidate_anomaly_count ?? selected.findings}
+            hint={temporal ? 'Candidate events' : connected ? `${reportDetail?.candidate_concept_count ?? 0} concepts` : `${selected.critical} critical`}
             hintTone={connected ? 'concept' : 'critical'}
           />
           <KpiCard
-            label="Novelty avg"
-            value={connected ? formatAverage(noveltyAverage) : selected.noveltyAvg.toFixed(2)}
+            label={temporal ? 'Max change' : 'Novelty avg'}
+            value={temporal ? formatOptionalNumber(reportDetail?.temporal_sequence_summary?.max_change_score) : connected ? formatAverage(noveltyAverage) : selected.noveltyAvg.toFixed(2)}
           />
           <KpiCard
-            label="Concept confidence"
-            value={connected ? formatAverage(conceptConfidenceAverage) : selected.confidence.toFixed(2)}
+            label={temporal ? 'Observations' : 'Concept confidence'}
+            value={temporal ? String(reportDetail?.temporal_sequence_summary?.observation_count ?? 0) : connected ? formatAverage(conceptConfidenceAverage) : selected.confidence.toFixed(2)}
           />
           <KpiCard
             label="Status"
@@ -149,6 +152,8 @@ export function ReportsScreen({
             ))}
           </div>
         </Panel>
+
+        {temporal && reportDetail ? <TemporalReportDetail report={reportDetail} /> : null}
 
         {reportDetail?.advanced_evidence && Object.keys(reportDetail.advanced_evidence).length > 0 ? (
           <AdvancedEvidence evidence={reportDetail.advanced_evidence} />
@@ -216,7 +221,7 @@ function toReportRecord(report: StudioReport): ReportRecord {
     project: 'ADE Local Engine',
     date: report.generated_at || 'local report',
     runId: report.run_id || 'unknown-run',
-    findings: report.candidate_anomaly_count,
+    findings: report.type === 'temporal' ? report.candidate_event_count ?? 0 : report.candidate_anomaly_count,
     critical: 0,
     noveltyAvg: 0,
     confidence: 0,
@@ -228,11 +233,68 @@ function toReportRecord(report: StudioReport): ReportRecord {
 
 function reportSummary(selected: ReportRecord, report: StudioReportDetail | null) {
   if (!report) return selected.summary
+  if (report.report_type === 'temporal') {
+    const summary = report.temporal_sequence_summary
+    return [
+      `This local temporal visual report contains ${report.candidate_event_count ?? 0} candidate change events from observation sequence ${summary?.sequence_id || 'not recorded'}.`,
+      `Dataset: ${summary?.dataset_name || 'not recorded'} version ${summary?.dataset_version || 'not recorded'} · ${summary?.observation_count ?? 0} observations · ${summary?.ordering_mode || 'ordering not recorded'}.`,
+      'Candidate temporal changes are review-prioritization signals and require human review.',
+    ].join('\n\n')
+  }
   return [
     `This local ADE report contains ${report.candidate_anomaly_count} candidate anomalies and ${report.candidate_concept_count} candidate concepts.`,
     `Input: ${report.input_directory || 'Not available from current report'} · Images: ${report.number_of_images} · Patches: ${report.number_of_patches}.`,
     'Findings are review aids for local execution and require human review before any operational interpretation.',
   ].join('\n\n')
+}
+
+function TemporalReportDetail({ report }: { report: StudioReportDetail }) {
+  const summary = report.temporal_sequence_summary
+  const provenance = report.temporal_artifact_provenance
+  const events = report.candidate_temporal_change_events || []
+  return (
+    <Panel className="p-5">
+      <h2 className="text-lg font-semibold text-foreground">Temporal Evidence</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Candidate temporal changes are review-prioritization signals and require human review.
+      </p>
+      <dl className="mt-4 grid gap-2 font-mono text-xs text-muted-foreground md:grid-cols-2">
+        <ArtifactRow label="Sequence" value={summary?.sequence_id} />
+        <ArtifactRow label="Dataset" value={summary ? `${summary.dataset_name || 'Not available'} / ${summary.dataset_version || 'Not available'}` : null} />
+        <ArtifactRow label="Ordering" value={summary ? `${summary.ordering_mode || 'Not available'} · ${summary.range_start || '?'} → ${summary.range_end || '?'}` : null} />
+        <ArtifactRow label="Strategy" value={summary?.strategy} />
+        <ArtifactRow label="Strongest" value={summary?.strongest_observation_pair?.join(' → ')} />
+        <ArtifactRow label="Artifact" value={provenance?.artifact_path} />
+        <ArtifactRow label="Fingerprint" value={provenance?.artifact_fingerprint} />
+      </dl>
+      <div className="mt-4 grid gap-3">
+        {events.map((event) => (
+          <section key={event.event_id} className="rounded-md border border-border bg-card p-4">
+            <p className="font-mono text-xs text-foreground">
+              Rank {event.rank} · {event.source_observation_id} → {event.target_observation_id} · change score {formatOptionalNumber(event.change_score)}
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {event.possible_interpretation || 'Possible movement/growth/damage/change'}; requires human review.
+            </p>
+            {event.patch_evidence?.length ? (
+              <ul className="mt-2 space-y-1 font-mono text-xs text-muted-foreground">
+                {event.patch_evidence.map((patch, index) => (
+                  <li key={`${event.event_id}-patch-${index}`}>
+                    Patch ({patch.x}, {patch.y}, {patch.width}, {patch.height}) · {patch.source_observation_id} → {patch.target_observation_id} · score {formatOptionalNumber(patch.change_score)} · {patch.evidence_note}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </section>
+        ))}
+      </div>
+      {[...(report.temporal_warnings || []), ...(report.temporal_limitations || [])].length ? (
+        <ul className="mt-4 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+          {[...(report.temporal_warnings || []), ...(report.temporal_limitations || [])].map((note, index) => <li key={index}>{note}</li>)}
+        </ul>
+      ) : null}
+    </Panel>
+  )
 }
 
 function numberValue(value: unknown) {
@@ -247,6 +309,10 @@ function average(values: Array<number | null>) {
 
 function formatAverage(value: number | null) {
   return value === null ? 'Not available' : value.toFixed(2)
+}
+
+function formatOptionalNumber(value?: number | null) {
+  return typeof value === 'number' && Number.isFinite(value) ? value.toFixed(4) : 'Not available'
 }
 
 function copyText(value?: string | null) {
