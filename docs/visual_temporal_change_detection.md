@@ -79,9 +79,9 @@ exact files, containment, size, SHA-256, schema, and content identity. Pickle is
 used.
 
 Suitable offline datasets include satellite scene revisits, plant growth sequences,
-and industrial inspection sequences. This stage has no live satellite feeds,
-streaming ingestion, cloud processing, geospatial registration, scientific
-confirmation, or automatic live monitoring. Lighting, viewpoint, scale, alignment,
+and industrial inspection sequences. This stage has no remote-imagery service,
+streaming ingestion, cloud processing, geographic registration, domain
+verification, or automatic continuous monitoring. Lighting, viewpoint, scale, alignment,
 and seasonal differences can all produce high scores.
 
 ## ADE Studio Discovery
@@ -90,7 +90,7 @@ Stage 5C lets connected ADE Studio discover these reports from the configured lo
 directory. A report is shown only when its temporal schema validates and its referenced
 content-addressed artifact passes integrity validation. Studio displays the observation
 sequence, candidate change events, optional real patch evidence, warnings, and provenance.
-It does not add live monitoring, geospatial registration, or scientific confirmation.
+It does not add continuous monitoring, geographic registration, or domain verification.
 
 ## Deterministic Generated Demo Workflow
 
@@ -121,8 +121,8 @@ python scripts/verify_temporal_demo.py
 
 The report and immutable artifact can then be viewed in connected ADE Studio after starting
 its local backend and frontend. Use a new report name for another immutable demo run. The
-workflow has no live feed, satellite API, cloud processing, geospatial registration, or
-scientific confirmation. Every candidate change event is a review-prioritization signal and
+workflow has no continuous feed, remote-imagery API, cloud processing, geographic registration, or
+domain verification. Every candidate change event is a review-prioritization signal and
 requires human review.
 
 For the polished public-facing walkthrough from generated observations through Studio review,

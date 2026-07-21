@@ -15,7 +15,7 @@ worth deeper investigation.
 
 Core principle: discovery with evidence, not only anomaly scores.
 
-## What ADE Does Today
+## Current Technical Preview Scope
 
 The current local Technical Preview is strongest on the visual/image-folder
 workflow. It also includes lightweight CSV tabular and CSV time-series
@@ -25,12 +25,27 @@ signals, and a static local dashboard export. Outputs are review aids, not
 automated truth.
 
 ADE Studio is a local-first interactive app layer under `apps/studio/frontend`
-with a small local Python API under `ade.studio`. It connects to the local ADE
-engine for the visual/image-folder workflow and falls back to mock preview data
-when the backend is unavailable.
+with a small local Python API under `ade.studio`. Connected mode displays real
+validated local reports. Its disconnected demonstration state is explicitly
+labelled and is not presented as analysis output.
 
 All candidate anomalies, candidate concepts, and possible patterns require
 human review.
+
+### What ADE does today
+
+- Analyzes local image folders and ranks candidate anomalies and candidate concepts.
+- Supports explicit manifest-driven temporal analysis for candidate temporal changes.
+- Produces deterministic local artifacts and JSON, Markdown, and HTML review reports.
+- Displays real validated local reports in connected ADE Studio.
+- Keeps DINOv2 and FAISS behind optional provider boundaries.
+
+### What ADE does not claim yet
+
+ADE is not an operational service or an automated decision system. It does not
+provide hosted accounts, continuous ingestion, geographic alignment, or domain
+verification of candidate findings. Outputs are review-prioritization signals
+and require human review.
 
 ## Try It Locally
 
@@ -110,10 +125,10 @@ Helpful docs:
 | --- | --- |
 | Implemented | Visual/image-folder local workflow; Markdown, JSON, and HTML reports; report validation; run history; benchmark script; local dashboard export; human-review feedback; review-informed memory signals; local verification and CI |
 | Foundation | CSV tabular workflow; CSV time-series workflow; adapter interfaces; dashboard contracts |
-| Planned | Audio; live satellite feeds; sensor streams; production streaming; hosted dashboard; auth/users; database/backend service; enterprise deployment |
+| Planned | Audio; sensor streams; continuous ingestion; hosted dashboard; auth/users; database/backend service; managed deployment |
 
-Current limitations: ADE does not process audio, live satellite feeds, sensor
-streams, or production streams; it does not provide cloud hosting, auth,
+Current limitations: ADE does not process audio, remote-imagery services, sensor
+streams, or continuous streams; it does not provide cloud hosting, auth,
 database-backed review queues, billing, production personalization, or
 enterprise deployment. All candidate findings require human review.
 
@@ -644,17 +659,11 @@ ADE is original, self-made scaffold code. It uses common open-source Python libr
 
 Development notes, experiment records, and technical decisions should be documented in `docs/` so future work has a clear invention trail. Proprietary future methods should be added carefully, documented privately, and reviewed before disclosure.
 
-## Subscription Platform Vision
-
-In the long term, ADE is intended to become a secure subscription-based discovery platform where users can upload different kinds of data, run autonomous discovery pipelines, review candidate discoveries, and receive evidence-backed reports.
-
-The platform vision includes private workspaces, dataset management, configurable discovery pipelines, future visual and non-visual adapters, evidence review tools, exportable reports, and human-in-the-loop workflows for teams and organizations.
-
 ## Future Roadmap
 
 - Add robust dataset manifests and richer run comparison
-- Add video frame sampling and temporal patch extraction
-- Add CSV and time-series adapters
+- Extend explicit temporal workflows to additional local sequence formats
+- Harden CSV and time-series adapters
 - Add support for industrial sensor data and robot logs
 - Add stronger embedding backends behind the existing representation interface
 - Add persistent memory backends and normal-reference memory banks

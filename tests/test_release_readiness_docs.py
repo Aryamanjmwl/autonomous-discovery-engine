@@ -90,7 +90,8 @@ def test_temporal_demo_evidence_uses_real_supported_workflow_language() -> None:
     assert "generated local observations" in lowered
     assert "immutable temporal artifact" in lowered
     assert "ade studio review" in lowered
-    assert "do not use mock screenshots" in lowered
+    assert "capture only real local outputs" in lowered
+    assert "do not fabricate" in lowered
     for command in (
         "python scripts/create_temporal_demo_data.py",
         "--validate-temporal-manifest",
@@ -226,8 +227,8 @@ def test_readme_includes_portfolio_demo_status_language() -> None:
     assert "planned" in readme
     assert "requires human review" in readme or "require human review" in readme
     assert "ade studio" in readme
-    assert "local ade" in readme
-    assert "mock preview" in readme
+    assert "local-first" in readme
+    assert "disconnected demonstration state" in readme
     assert "license.md" in readme
 
 
@@ -369,8 +370,8 @@ def test_technical_preview_release_docs_are_release_ready_without_overclaiming()
     assert "not a hosted product" in release_note
     assert "not a hosted product" in release_body
     assert "verify_local.py" in checklist
-    assert "--export-local-dashboard" in checklist
-    assert "git tag -a v0.1.0-preview" in checklist
+    assert "verify_temporal_demo.py" in checklist
+    assert "npm --cache" in checklist
     assert "do not commit generated private data" in demo_assets
 
 
@@ -447,6 +448,50 @@ def test_public_docs_do_not_use_hosted_product_overclaims() -> None:
     ]
 
     for path in checked_paths:
+        text = _read(path).lower()
+        for phrase in forbidden:
+            assert phrase not in text, f"{phrase!r} found in {path}"
+
+
+def test_visual_technical_preview_docs_define_release_boundaries() -> None:
+    readme = _read("README.md").lower()
+    checklist = _read("docs/release_checklist.md").lower()
+    public_paths = [
+        "README.md",
+        "STATUS.md",
+        "docs/ROADMAP.md",
+        "docs/architecture.md",
+        "docs/visual_engine_completion_spec.md",
+        "docs/visual_temporal_change_detection.md",
+        "docs/demo_temporal_visual_evidence.md",
+        "docs/ade_studio.md",
+        "apps/studio/README.md",
+        "docs/release_checklist.md",
+    ]
+
+    assert "current technical preview scope" in readme
+    assert "what ade does today" in readme
+    assert "what ade does not claim yet" in readme
+    assert "local-first" in readme
+    assert "not included in v0.1.0 technical preview" in checklist
+    assert "generated artifact hygiene" in checklist
+    assert "optional provider boundaries" in checklist
+
+    forbidden = (
+        "guaranteed detection",
+        "scientific confirmation",
+        "production monitoring",
+        "live feed",
+        "autonomous truth",
+        "confirmed geological activity",
+        "confirmed biological growth",
+        "state-of-the-art",
+        "enterprise-ready saas",
+        "subscription-ready product",
+        "fake screenshot",
+        "mock screenshot",
+    )
+    for path in public_paths:
         text = _read(path).lower()
         for phrase in forbidden:
             assert phrase not in text, f"{phrase!r} found in {path}"

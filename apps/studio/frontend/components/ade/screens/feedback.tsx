@@ -64,7 +64,7 @@ export function FeedbackScreen({ studioData }: { studioData: StudioData }) {
       ) : (
       <>
       <div className="grid grid-cols-3 gap-4">
-        <KpiCard label="Useful" value={usefulCount} hint="Confirmed findings" hintTone="operational" />
+        <KpiCard label="Useful" value={usefulCount} hint="Reviewer-marked useful" hintTone="operational" />
         <KpiCard label="Not useful" value={notUsefulCount} hint="Dismissed" hintTone="critical" />
         <KpiCard label="Needs review" value={needsReviewCount} hint="Escalated" hintTone="pattern" />
       </div>

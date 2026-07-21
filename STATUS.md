@@ -117,7 +117,7 @@ anomalies, candidate concepts, or possible patterns that require human review.
 - Production dashboard
 - Database-backed review queues or user-specific feedback workflows
 - Supervised learning or production personalization from feedback
-- Subscription platform
+- Hosted commercial platform
 - User authentication, hosted storage, billing, or workspace isolation
 - Validated scientific, medical, legal, financial, or operational conclusions
 
@@ -178,7 +178,7 @@ review-prioritization signals that require human review.
 ADE includes a generated local demo with three synthetic observation sequences and canonical
 manifests. A separate verifier exercises one complete temporal evidence package without
 expanding the normal verifier. Generated images, reports, HTML, and immutable artifacts stay
-ignored; no external data, live feed, registration, or scientific claim is introduced.
+ignored; no external data, continuous ingestion, registration, or domain-verification claim is introduced.
 
 ## Stage 5E Temporal Demo Evidence Documentation
 
@@ -186,3 +186,11 @@ The public temporal evidence guide now connects deterministic local sequence gen
 manifest validation, analysis, immutable artifact validation, JSON/Markdown/HTML reporting,
 and connected Studio review. It uses supported commands only, requires real local outputs,
 and retains Technical Preview and human-review limitations.
+
+## Stage 6A Visual Technical Preview Release Hardening
+
+Public documentation, CLI help, and Studio copy have been audited against the local-first
+Technical Preview boundary. The practical release checklist now covers backend and frontend
+verification, the deterministic temporal demo, generated artifact hygiene, public claims,
+known limitations, and explicitly excluded v0.1.0 capabilities. Analysis behavior and optional
+provider defaults remain unchanged.
