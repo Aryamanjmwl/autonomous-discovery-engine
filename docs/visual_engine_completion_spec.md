@@ -198,3 +198,11 @@ and content fingerprint. Reference-score evidence and spatial anomaly maps are r
 signals. Fitted calibration does not create a universal anomaly probability; candidate operating
 points are not automated decisions; and benchmark validation artifacts are not guarantees. None of
 these optional paths changes default visual analysis behavior or removes human review requirements.
+
+## Stage 5C Studio Boundary
+
+Studio exposure is complete when both the temporal report and its referenced result artifact
+validate within configured local workspace roots. List, summary, and detail projections may
+then expose real sequence and event fields. Corrupt inputs must remain unavailable. No live
+feed, geospatial registration, temporal playback, or scientific conclusion is part of this
+boundary; candidate temporal changes require human review.

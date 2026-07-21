@@ -125,3 +125,11 @@ In connected mode, the Reports screen shows advanced-evidence panels only for va
 real ADE JSON report. The default and mock views do not fabricate reference scoring, calibration,
 threshold, map, or benchmark values. This Technical Preview treats every such value as optional
 review support; candidate findings require human review.
+
+## Connected Temporal Reports
+
+The Reports and Findings screens can display validated temporal reports already generated
+by the ADE CLI. Sequence ranges, candidate temporal changes, real patch coordinates, and
+artifact fingerprints come directly from local report data. No temporal run form, live
+feed, playback, map, or synthetic chart is provided. Candidate change events require
+human review.

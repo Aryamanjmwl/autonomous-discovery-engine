@@ -164,3 +164,11 @@ Studio connected report details. Default runs still omit advanced sections. Refe
 spatial maps, fitted calibration, candidate operating points, and benchmark validation remain
 opt-in Technical Preview capabilities, and candidate findings require human review. Temporal change
 workflow integration uses the separate explicit Stage 5B CLI and report path.
+
+## Stage 5C Temporal Studio Integration
+
+Connected ADE Studio now discovers valid local temporal reports, verifies their referenced
+immutable artifacts, and exposes sequence summaries and candidate change events through the
+existing report APIs and UI. Invalid temporal files are omitted with warnings. No temporal
+run controls, live monitoring, geospatial maps, or fake charts were added; findings remain
+review-prioritization signals that require human review.

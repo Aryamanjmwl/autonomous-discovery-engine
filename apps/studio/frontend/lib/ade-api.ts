@@ -19,6 +19,9 @@ export interface StudioSummary {
   feedback_path: string
   run_count: number
   report_count: number
+  temporal_report_count?: number
+  latest_temporal_report?: StudioReport | null
+  temporal_report_warnings?: string[]
   feedback_count: number
   latest_run: StudioRun | null
   latest_report: StudioReport | null
@@ -58,6 +61,11 @@ export interface StudioReport {
   generated_at?: string
   candidate_anomaly_count: number
   candidate_concept_count: number
+  candidate_event_count?: number
+  type?: 'standard' | 'temporal'
+  sequence_id?: string | null
+  dataset_name?: string | null
+  observation_count?: number | null
   human_review_required: boolean
   modality?: string
 }
@@ -94,6 +102,7 @@ export interface StudioCandidateAnomaly {
 
 export interface StudioReportDetail {
   report_name: string
+  report_type?: 'standard' | 'temporal'
   run_id?: string | null
   generated_at?: string | null
   input_directory?: string | null
@@ -106,12 +115,65 @@ export interface StudioReportDetail {
   human_review_required: boolean
   candidate_anomalies: StudioCandidateAnomaly[]
   candidate_concepts: Array<Record<string, unknown>>
+  candidate_event_count?: number
+  candidate_temporal_change_events?: StudioTemporalChangeEvent[]
+  temporal_sequence_summary?: StudioTemporalSequenceSummary
+  temporal_artifact_provenance?: StudioTemporalArtifactProvenance
+  temporal_warnings?: string[]
+  temporal_limitations?: string[]
   advanced_evidence?: Record<string, Record<string, unknown>>
   advanced_evidence_available?: Record<string, boolean>
   markdown_report_path?: string | null
   json_report_path?: string | null
   html_report_path?: string | null
   raw_report?: Record<string, unknown>
+}
+
+export interface StudioTemporalSequenceSummary {
+  sequence_id?: string
+  dataset_name?: string
+  dataset_version?: string
+  scene_id?: string | null
+  entity_id?: string | null
+  observation_count?: number
+  ordering_mode?: string
+  range_start?: string
+  range_end?: string
+  strategy?: string
+  max_change_score?: number
+  mean_adjacent_change_score?: number
+  strongest_observation_pair?: string[]
+}
+
+export interface StudioTemporalArtifactProvenance {
+  artifact_path?: string
+  artifact_fingerprint?: string
+  manifest_fingerprint?: string
+  feature_backend?: string
+}
+
+export interface StudioTemporalPatchEvidence {
+  source_observation_id?: string
+  target_observation_id?: string
+  x?: number
+  y?: number
+  width?: number
+  height?: number
+  patch_scale?: string
+  change_score?: number
+  evidence_note?: string
+}
+
+export interface StudioTemporalChangeEvent {
+  event_id?: string
+  rank?: number
+  candidate_label?: string
+  possible_interpretation?: string
+  source_observation_id?: string
+  target_observation_id?: string
+  change_score?: number
+  requires_human_review?: boolean
+  patch_evidence?: StudioTemporalPatchEvidence[]
 }
 
 export interface StudioData {

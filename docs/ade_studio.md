@@ -133,3 +133,11 @@ by the default analysis workflow. Malformed summaries are omitted without breaki
 These values are review-prioritization signals in a Technical Preview. Calibrated scores are not
 universal probabilities, benchmark validation artifacts are not guarantees, and candidate findings
 require human review.
+
+## Temporal Reports in Connected Mode
+
+ADE Studio discovers Stage 5B temporal JSON reports only after they exist in the local
+reports directory. It validates both the report and its referenced immutable temporal
+artifact before exposing sequence metadata or candidate change events. Malformed reports
+are ignored with local summary warnings. This Technical Preview provides report review,
+not continuous observation, geospatial registration, or scientific confirmation.

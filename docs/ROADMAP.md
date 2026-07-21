@@ -196,4 +196,11 @@ Stage 4F connects real advanced visual artifacts to JSON, Markdown, HTML, and co
 views without enabling the underlying workflows by default. Reference scoring, fitted calibration,
 candidate operating points, spatial maps, and benchmark validation remain optional. All candidate
 findings require human review under Technical Preview limitations. Full temporal report and CLI
-workflow remains Stage 5B.
+workflow is implemented through the explicit Stage 5B CLI and report path.
+
+## Stage 5C: Temporal Studio Integration
+
+- Discover validated local temporal reports and integrity-checked result artifacts
+- Show real sequence summaries, candidate change events, patch metadata, and provenance
+- Keep malformed reports out of connected views while exposing local warnings
+- No live feeds, geospatial UI, synthetic charts, or monitoring claims

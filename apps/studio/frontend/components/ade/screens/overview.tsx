@@ -90,6 +90,26 @@ export function OverviewScreen({
             </div>
           </Panel>
 
+          {connected ? (
+            <Panel className="p-4">
+              <SectionLabel>Temporal evidence</SectionLabel>
+              {studioData.summary?.temporal_report_count ? (
+                <div className="mt-2">
+                  <p className="font-mono text-sm text-foreground">
+                    {studioData.summary.temporal_report_count} validated temporal report(s)
+                  </p>
+                  <p className="mt-1 font-mono text-[11px] text-faint">
+                    {studioData.summary.latest_temporal_report?.name}
+                  </p>
+                </div>
+              ) : (
+                <p className="mt-2 text-sm text-muted-foreground">
+                  No temporal change reports are available in the local workspace.
+                </p>
+              )}
+            </Panel>
+          ) : null}
+
           <Panel className="p-4">
             <SectionLabel>Input summary</SectionLabel>
             <ul className="mt-3 flex flex-col gap-2.5">
