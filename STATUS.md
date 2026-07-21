@@ -149,3 +149,10 @@ anomalies, candidate concepts, or possible patterns that require human review.
   and ranks candidate change events that require human review.
 - Immutable canonical JSON results have SHA-256 corruption detection.
 - Default image-folder analysis, Studio, reports, and dependencies remain unchanged.
+## Stage 4F Status
+
+Optional artifact-backed visual evidence is integrated into report JSON, Markdown, HTML, and ADE
+Studio connected report details. Default runs still omit advanced sections. Reference scoring,
+spatial maps, fitted calibration, candidate operating points, and benchmark validation remain
+opt-in Technical Preview capabilities, and candidate findings require human review. Temporal change
+workflow integration remains deferred to Stage 5B.

@@ -185,3 +185,10 @@ adjacent/baseline feature distance, optional computed patch evidence, review-ori
 summaries, and canonical SHA-256-validated artifacts. It does not establish
 geospatial registration, scientific confirmation, live ingestion, or production
 monitoring.
+## Stage 4F Report Integration
+
+Advanced visual evidence is reportable only when a generated artifact summary supplies a real path
+and content fingerprint. Reference-score evidence and spatial anomaly maps are review-prioritization
+signals. Fitted calibration does not create a universal anomaly probability; candidate operating
+points are not automated decisions; and benchmark validation artifacts are not guarantees. None of
+these optional paths changes default visual analysis behavior or removes human review requirements.

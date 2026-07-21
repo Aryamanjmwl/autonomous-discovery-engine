@@ -276,3 +276,10 @@ deterministic statistical features, with optional computed patch evidence. Canon
 result artifacts are content-addressed and SHA-256 validated. This local, offline path
 is separate from default image-folder execution; candidate change events require
 human review. It provides no registration, live feed, cloud, or monitoring subsystem.
+## Optional Report Evidence Integration
+
+The report layer may carry artifact-backed summaries for reference scoring, spatial anomaly maps,
+fitted calibration, candidate operating points, and benchmark validation. These keys are additive
+and optional, so the default pipeline and existing reports remain unchanged. The validator checks
+present summaries before ADE Studio exposes them. Benchmark summaries describe local validation
+artifacts rather than guarantees, and calibrated scores are not universal probabilities.

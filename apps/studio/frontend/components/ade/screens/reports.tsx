@@ -150,6 +150,10 @@ export function ReportsScreen({
           </div>
         </Panel>
 
+        {reportDetail?.advanced_evidence && Object.keys(reportDetail.advanced_evidence).length > 0 ? (
+          <AdvancedEvidence evidence={reportDetail.advanced_evidence} />
+        ) : null}
+
         {reportDetail ? (
           <Panel className="p-5">
             <h2 className="text-lg font-semibold text-foreground">Report Metadata</h2>
@@ -262,4 +266,52 @@ function ArtifactRow({ label, value }: { label: string; value?: string | null })
       <dd className="overflow-wrap-anywhere text-foreground">{value || 'Not available'}</dd>
     </div>
   )
+}
+
+const advancedEvidenceLabels: Record<string, string> = {
+  reference_scoring_summary: 'Optional Reference Scoring Evidence',
+  spatial_anomaly_map_summary: 'Optional Spatial Anomaly Maps',
+  calibration_summary: 'Optional Fitted Calibration',
+  threshold_operating_point_summary: 'Optional Candidate Operating Points',
+  benchmark_validation_summary: 'Optional Benchmark Validation Artifact',
+}
+
+function AdvancedEvidence({ evidence }: { evidence: Record<string, Record<string, unknown>> }) {
+  return (
+    <Panel className="p-5">
+      <h2 className="text-lg font-semibold text-foreground">Advanced Evidence</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Optional review-prioritization signals from artifacts attached to this report. Requires human review.
+      </p>
+      <div className="mt-4 grid gap-3">
+        {Object.entries(evidence).map(([key, summary]) => (
+          <section key={key} className="rounded-md border border-border bg-card p-4">
+            <h3 className="text-sm font-medium text-foreground">
+              {advancedEvidenceLabels[key] || key}
+            </h3>
+            <dl className="mt-3 grid gap-2 font-mono text-xs text-muted-foreground">
+              <ArtifactRow label="Artifact" value={stringValue(summary.artifact_path)} />
+              <ArtifactRow label="Fingerprint" value={stringValue(summary.artifact_fingerprint)} />
+              {'calibrated' in summary ? (
+                <ArtifactRow label="Calibrated" value={summary.calibrated === true ? 'true' : 'false'} />
+              ) : null}
+              {'map_count' in summary ? (
+                <ArtifactRow label="Maps" value={String(summary.map_count)} />
+              ) : null}
+              {'operating_point_count' in summary ? (
+                <ArtifactRow label="Points" value={String(summary.operating_point_count)} />
+              ) : null}
+              {'dataset_name' in summary ? (
+                <ArtifactRow label="Dataset" value={stringValue(summary.dataset_name)} />
+              ) : null}
+            </dl>
+          </section>
+        ))}
+      </div>
+    </Panel>
+  )
+}
+
+function stringValue(value: unknown) {
+  return typeof value === 'string' && value ? value : undefined
 }

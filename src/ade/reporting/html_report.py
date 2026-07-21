@@ -36,6 +36,7 @@ def render_html_report(report: dict[str, Any]) -> str:
     anomaly_items = "\n".join(_anomaly_item(item) for item in anomalies if isinstance(item, dict))
     concept_items = "\n".join(_concept_item(item) for item in concepts if isinstance(item, dict))
     review_memory_section = _review_memory_section(report)
+    advanced_evidence_section = _advanced_evidence_section(report)
     feedback_section = _feedback_section(report)
 
     return f"""<!doctype html>
@@ -55,6 +56,7 @@ def render_html_report(report: dict[str, Any]) -> str:
   <p class="muted">Run ID: <code>{run_id}</code></p>
   <p>All findings are candidate findings and require human review.</p>
   {review_memory_section}
+  {advanced_evidence_section}
   <h2>Candidate Anomalies</h2>
   {anomaly_items or "<p>No candidate anomalies reported.</p>"}
   <h2>Candidate Concepts</h2>
@@ -63,6 +65,85 @@ def render_html_report(report: dict[str, Any]) -> str:
 </body>
 </html>
 """
+
+
+def _advanced_evidence_section(report: dict[str, Any]) -> str:
+    sections: list[str] = []
+    reference = report.get("reference_scoring_summary")
+    if isinstance(reference, dict):
+        sections.append(
+            _artifact_section(
+                "Optional Reference Scoring Evidence",
+                reference,
+                "Reference-score evidence is an optional review-prioritization signal.",
+                (("Calibrated", "calibrated"), ("Candidate count", "candidate_count")),
+            )
+        )
+    spatial = report.get("spatial_anomaly_map_summary")
+    if isinstance(spatial, dict):
+        sections.append(
+            _artifact_section(
+                "Optional Spatial Anomaly Maps",
+                spatial,
+                "Spatial anomaly maps localize candidate anomaly evidence.",
+                (("Map count", "map_count"),),
+            )
+        )
+    calibration = report.get("calibration_summary")
+    threshold = report.get("threshold_operating_point_summary")
+    if isinstance(calibration, dict):
+        sections.append(
+            _artifact_section(
+                "Optional Calibration and Threshold Evaluation",
+                calibration,
+                "Fitted calibration is not a universal anomaly probability.",
+                (("Calibrated", "calibrated"), ("Labels available", "labels_available")),
+            )
+        )
+    if isinstance(threshold, dict):
+        sections.append(
+            _artifact_section(
+                "Optional Candidate Operating Points",
+                threshold,
+                "Candidate operating points prioritize review workload; they are not automated decisions.",
+                (("Operating point count", "operating_point_count"),),
+            )
+        )
+    benchmark = report.get("benchmark_validation_summary")
+    if isinstance(benchmark, dict):
+        sections.append(
+            _artifact_section(
+                "Optional Benchmark Validation Artifact",
+                benchmark,
+                "This local validation artifact is not a guarantee.",
+                (("Dataset", "dataset_name"), ("Labels available", "labels_available")),
+            )
+        )
+    return "\n".join(sections)
+
+
+def _artifact_section(
+    title: str,
+    summary: dict[str, Any],
+    caution: str,
+    fields: tuple[tuple[str, str], ...],
+) -> str:
+    path = summary.get("artifact_path")
+    fingerprint = summary.get("artifact_fingerprint")
+    if not isinstance(path, str) or not path or not isinstance(fingerprint, str):
+        return ""
+    rows = "".join(
+        f"<p>{_text(label)}: {_text(summary[key])}</p>"
+        for label, key in fields
+        if key in summary
+    )
+    return (
+        f"<section class=\"card\"><h2>{_text(title)}</h2>"
+        f"<p>{_text(caution)} Requires human review.</p>"
+        f"<p>Artifact path: <code>{_text(path)}</code></p>"
+        f"<p>Artifact fingerprint: <code>{_text(fingerprint)}</code></p>"
+        f"{rows}</section>"
+    )
 
 
 def _anomaly_item(item: dict[str, Any]) -> str:

@@ -119,3 +119,9 @@ and deeper report browsing while preserving local execution.
 
 
 
+## Optional Advanced Evidence
+
+In connected mode, the Reports screen shows advanced-evidence panels only for valid summaries in a
+real ADE JSON report. The default and mock views do not fabricate reference scoring, calibration,
+threshold, map, or benchmark values. This Technical Preview treats every such value as optional
+review support; candidate findings require human review.
