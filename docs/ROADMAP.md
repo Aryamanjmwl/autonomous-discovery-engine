@@ -111,6 +111,12 @@ optional and explicit.
 
 ## Stage 5: API and Docker
 
+Stage 5A now provides an additive temporal visual change-detection foundation for
+explicit ordered observation manifests. Adjacent/baseline comparison, optional patch
+evidence, deterministic summaries, and integrity-checked JSON artifacts are local
+library APIs. Normal image-folder analysis remains unchanged; live feeds and
+monitoring are out of scope.
+
 - FastAPI service
 - Dataset registry
 - Run creation endpoint

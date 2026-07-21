@@ -145,6 +145,28 @@ from ade.visual.search_backends import (
     create_search_backend,
 )
 from ade.visual.spatial_maps import build_spatial_maps
+from ade.visual.temporal_artifacts import (
+    publish_temporal_change_artifact,
+    validate_temporal_change_artifact,
+)
+from ade.visual.temporal_change import analyze_temporal_change
+from ade.visual.temporal_contracts import (
+    TemporalAlignmentSummary,
+    TemporalChangeEvent,
+    TemporalChangeProvenance,
+    TemporalChangeResult,
+    TemporalChangeScore,
+    TemporalChangeSummary,
+    TemporalObservation,
+    TemporalObservationSequence,
+    TemporalPatchEvidence,
+)
+from ade.visual.temporal_manifests import (
+    deserialize_temporal_manifest,
+    load_temporal_manifest,
+    serialize_temporal_manifest,
+    validate_temporal_manifest,
+)
 
 __all__ = [
     "VisualBenchmarkDatasetManifest",
@@ -261,4 +283,20 @@ __all__ = [
     "serialize_visual_benchmark_manifest",
     "validate_visual_benchmark_artifact",
     "validate_visual_benchmark_manifest",
+    "TemporalObservation",
+    "TemporalObservationSequence",
+    "TemporalAlignmentSummary",
+    "TemporalChangeScore",
+    "TemporalPatchEvidence",
+    "TemporalChangeEvent",
+    "TemporalChangeSummary",
+    "TemporalChangeProvenance",
+    "TemporalChangeResult",
+    "serialize_temporal_manifest",
+    "deserialize_temporal_manifest",
+    "load_temporal_manifest",
+    "validate_temporal_manifest",
+    "analyze_temporal_change",
+    "publish_temporal_change_artifact",
+    "validate_temporal_change_artifact",
 ]

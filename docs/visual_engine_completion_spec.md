@@ -176,3 +176,12 @@ declared local files; ADE never downloads public benchmark data automatically.
 Canonical evaluation artifacts preserve hashes and provenance. These results
 are validation artifacts, not product guarantees or public benchmark claims,
 and every operating point requires human expert review.
+
+## Stage 5A temporal completion note
+
+Temporal analysis is an explicit manifest-driven library path, not a default visual
+engine mode. Completion covers strict ordering and root containment, deterministic
+adjacent/baseline feature distance, optional computed patch evidence, review-oriented
+summaries, and canonical SHA-256-validated artifacts. It does not establish
+geospatial registration, scientific confirmation, live ingestion, or production
+monitoring.

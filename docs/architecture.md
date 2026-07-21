@@ -267,3 +267,12 @@ recall@k, and candidate operating-point metrics where valid. Unknown-only data
 produces review-workload metrics instead. Integrity-checked evaluation artifacts
 retain prediction, manifest, configuration, and dataset provenance. No dataset
 download, pipeline execution, or default backend selection occurs here.
+
+## Temporal Visual Change Foundation
+
+Stage 5A adds an optional library boundary for manifest-driven observation sequences.
+It compares adjacent observations or each observation with the first using existing
+deterministic statistical features, with optional computed patch evidence. Canonical
+result artifacts are content-addressed and SHA-256 validated. This local, offline path
+is separate from default image-folder execution; candidate change events require
+human review. It provides no registration, live feed, cloud, or monitoring subsystem.

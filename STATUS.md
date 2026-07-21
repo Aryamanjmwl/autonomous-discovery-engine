@@ -138,3 +138,14 @@ anomalies, candidate concepts, or possible patterns that require human review.
 9. Design reviewer dashboard and concept-memory flows around the local feedback JSONL contract.
 10. Add run comparison tools for candidate anomalies and candidate concepts across experiments.
 11. Continue documenting original decisions and experiments before public disclosure.
+
+## Stage 5A temporal visual foundation
+
+- Typed observation-sequence, alignment, score, event, summary, provenance,
+  patch-evidence, and result contracts are implemented.
+- Strict canonical manifests provide deterministic timestamp/index ordering, root
+  containment, traversal rejection, and optional strict file checks.
+- Local adjacent and baseline feature comparison can include computed patch evidence
+  and ranks candidate change events that require human review.
+- Immutable canonical JSON results have SHA-256 corruption detection.
+- Default image-folder analysis, Studio, reports, and dependencies remain unchanged.
