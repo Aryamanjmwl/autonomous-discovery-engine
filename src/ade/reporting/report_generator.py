@@ -32,6 +32,8 @@ from ade.models import (
 from ade.reasoning.hypothesis_generator import Hypothesis
 from ade.reporting.run_index import build_run_summary, update_run_index
 
+_SHA256 = re.compile(r"^[0-9a-f]{64}$")
+
 
 class EvidenceSummaryJson(TypedDict):
     supporting_examples: list[Any]
@@ -121,6 +123,7 @@ class ReportGenerator:
             dataset_profile=run_result.get("dataset_profile"),
             analysis_metadata=run_result.get("analysis_metadata")
             or run_result.get("backend_metadata"),
+            advanced_evidence=run_result.get("advanced_evidence"),
         )
         return [
             ReportArtifact(artifact_type="markdown", path=markdown_path),
@@ -139,6 +142,7 @@ class ReportGenerator:
         dataset_profile: DatasetProfile | None = None,
         analysis_metadata: dict[str, object] | None = None,
         review_memory_summary: ReviewMemorySummary | None = None,
+        advanced_evidence: dict[str, object] | None = None,
     ) -> str:
         """Return an ADE Discovery Report in Markdown format."""
 
@@ -288,6 +292,8 @@ class ReportGenerator:
         else:
             lines.append("No candidate unknown concepts were grouped by the placeholder clusterer.")
 
+        lines.extend(self._advanced_evidence_markdown(advanced_evidence))
+
         lines.extend(
             [
                 "",
@@ -336,6 +342,7 @@ class ReportGenerator:
         memory_metadata: dict[str, object] | None = None,
         analysis_metadata: dict[str, object] | None = None,
         review_memory_summary: ReviewMemorySummary | None = None,
+        advanced_evidence: dict[str, object] | None = None,
     ) -> Path:
         """Write a Markdown report and return the output path."""
 
@@ -372,6 +379,7 @@ class ReportGenerator:
             dataset_profile=dataset_profile,
             analysis_metadata=analysis_metadata,
             review_memory_summary=review_memory_summary,
+            advanced_evidence=advanced_evidence,
         )
         path.write_text(report, encoding="utf-8")
         json_report = self.generate_json(
@@ -386,6 +394,7 @@ class ReportGenerator:
             dataset_profile=dataset_profile,
             analysis_metadata=analysis_metadata,
             review_memory_summary=review_memory_summary,
+            advanced_evidence=advanced_evidence,
         )
         json_path.write_text(
             json.dumps(json_report, indent=2, sort_keys=True),
@@ -414,6 +423,7 @@ class ReportGenerator:
         dataset_profile: DatasetProfile | None = None,
         analysis_metadata: dict[str, object] | None = None,
         review_memory_summary: ReviewMemorySummary | None = None,
+        advanced_evidence: dict[str, object] | None = None,
     ) -> dict[str, object]:
         """Return a machine-readable ADE discovery report."""
 
@@ -436,7 +446,7 @@ class ReportGenerator:
             for evidence in evidence_items
         ]
 
-        return {
+        report: dict[str, object] = {
             "project_name": self.project_name,
             "report_version": self.report_version,
             "run_id": run_id,
@@ -525,6 +535,119 @@ class ReportGenerator:
                 "or operational significance.",
             ],
         }
+        if advanced_evidence:
+            for key in (
+                "reference_scoring_summary",
+                "spatial_anomaly_map_summary",
+                "calibration_summary",
+                "threshold_operating_point_summary",
+                "benchmark_validation_summary",
+            ):
+                value = self._advanced_summary(advanced_evidence.get(key))
+                if value is not None:
+                    report[key] = value
+        return report
+
+    @staticmethod
+    def _advanced_evidence_markdown(
+        advanced_evidence: dict[str, object] | None,
+    ) -> list[str]:
+        """Render optional visual evidence only when backed by supplied artifacts."""
+
+        if not advanced_evidence:
+            return []
+        lines: list[str] = []
+        reference = ReportGenerator._advanced_summary(
+            advanced_evidence.get("reference_scoring_summary")
+        )
+        if reference is not None:
+            lines.extend([
+                "", "## Optional Reference Scoring Evidence", "",
+                "Reference-score evidence is an optional review-prioritization signal "
+                "and requires human review.",
+                f"- Artifact path: `{reference['artifact_path']}`",
+                f"- Artifact fingerprint: `{reference.get('artifact_fingerprint', 'not recorded')}`",
+                f"- Calibrated: {str(reference.get('calibrated', False)).lower()}",
+            ])
+            if isinstance(reference.get("candidate_count"), int):
+                lines.append(f"- Candidate count: {reference['candidate_count']}")
+        spatial = ReportGenerator._advanced_summary(
+            advanced_evidence.get("spatial_anomaly_map_summary")
+        )
+        if spatial is not None:
+            lines.extend([
+                "", "## Optional Spatial Anomaly Maps", "",
+                "Spatial anomaly maps localize candidate anomaly evidence and require human review.",
+                f"- Artifact path: `{spatial['artifact_path']}`",
+                f"- Artifact fingerprint: `{spatial.get('artifact_fingerprint', 'not recorded')}`",
+                f"- Map count: {spatial.get('map_count', 0)}",
+            ])
+            previews = spatial.get("preview_paths")
+            if isinstance(previews, list):
+                lines.extend(
+                    f"- Map preview: ![spatial anomaly map]({path})"
+                    for path in previews
+                    if isinstance(path, str) and path.lower().endswith(".png")
+                )
+        calibration = ReportGenerator._advanced_summary(
+            advanced_evidence.get("calibration_summary")
+        )
+        threshold = ReportGenerator._advanced_summary(
+            advanced_evidence.get("threshold_operating_point_summary")
+        )
+        if calibration is not None or threshold is not None:
+            lines.extend(["", "## Optional Calibration and Threshold Evaluation", ""])
+            if calibration is not None:
+                labels = calibration.get("labels_available") is True
+                lines.extend([
+                    "Fitted calibration is optional, is not a universal anomaly probability, "
+                    "and requires human review.",
+                    f"- Artifact path: `{calibration['artifact_path']}`",
+                    f"- Artifact fingerprint: `{calibration.get('artifact_fingerprint', 'not recorded')}`",
+                    f"- Calibrated: {str(calibration.get('calibrated', False)).lower()}",
+                    f"- Labels available: {str(labels).lower()}",
+                    "- Mode: supervised evaluation" if labels else (
+                        "- Mode: unsupervised workload-only evaluation; "
+                        "label-based metrics are unavailable."
+                    ),
+                ])
+            if threshold is not None:
+                lines.extend([
+                    "Candidate operating points prioritize review workload; "
+                    "they are not automated decisions.",
+                    f"- Artifact path: `{threshold['artifact_path']}`",
+                    f"- Candidate operating point count: {threshold.get('operating_point_count', 0)}",
+                ])
+        benchmark = ReportGenerator._advanced_summary(
+            advanced_evidence.get("benchmark_validation_summary")
+        )
+        if benchmark is not None:
+            lines.extend([
+                "", "## Optional Benchmark Validation Artifact", "",
+                "This benchmark validation artifact records a local evaluation, not a "
+                "guarantee, and requires human review.",
+                f"- Artifact path: `{benchmark['artifact_path']}`",
+                f"- Artifact fingerprint: `{benchmark.get('artifact_fingerprint', 'not recorded')}`",
+                f"- Dataset: `{benchmark.get('dataset_name', 'not recorded')}`",
+                f"- Labels available: {str(benchmark.get('labels_available', False)).lower()}",
+            ])
+        return lines
+
+    @staticmethod
+    def _advanced_summary(value: object) -> dict[str, object] | None:
+        """Return a real artifact-backed summary, never a placeholder section."""
+
+        if not isinstance(value, dict):
+            return None
+        artifact_path = value.get("artifact_path")
+        if not isinstance(artifact_path, str) or not artifact_path.strip():
+            return None
+        fingerprint = value.get("artifact_fingerprint")
+        if not isinstance(fingerprint, str) or not _SHA256.fullmatch(fingerprint):
+            return None
+        summary = dict(value)
+        summary["requires_human_review"] = True
+        return summary
 
     def build_run_metadata(
         self,

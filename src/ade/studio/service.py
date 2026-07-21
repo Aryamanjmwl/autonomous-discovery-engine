@@ -13,7 +13,7 @@ from typing import Any
 from ade import __version__
 from ade.cli import run_pipeline
 from ade.reporting.html_report import write_html_report
-from ade.reporting.report_validator import validate_report_file
+from ade.reporting.report_validator import validate_report_dict, validate_report_file
 from ade.reporting.run_index import load_run_index
 
 DEFAULT_PROJECT_ROOT = Path(__file__).resolve().parents[3]
@@ -22,6 +22,13 @@ DEFAULT_RUN_INDEX_PATH = DEFAULT_REPORTS_DIR / "runs/index.json"
 DEFAULT_DASHBOARD_DIR = DEFAULT_PROJECT_ROOT / "data/dashboard"
 DEFAULT_FEEDBACK_PATH = DEFAULT_PROJECT_ROOT / "data/feedback/feedback.jsonl"
 DEFAULT_REPORT_ASSETS_DIR = DEFAULT_REPORTS_DIR / "assets"
+ADVANCED_EVIDENCE_FIELDS = (
+    "reference_scoring_summary",
+    "spatial_anomaly_map_summary",
+    "calibration_summary",
+    "threshold_operating_point_summary",
+    "benchmark_validation_summary",
+)
 
 
 @dataclass(frozen=True)
@@ -69,6 +76,7 @@ def build_summary(paths: StudioPaths = StudioPaths()) -> dict[str, object]:
         if latest_report_name is not None
         else None
     )
+    advanced_flags = _advanced_evidence_flags(latest_report_detail)
     return {
         "mode": "local-only",
         "label": "Technical Preview",
@@ -97,6 +105,7 @@ def build_summary(paths: StudioPaths = StudioPaths()) -> dict[str, object]:
         "input_directory": _string_from_mapping(latest_report_detail, "input_directory"),
         "number_of_images": _int_from_mapping(latest_report_detail, "number_of_images"),
         "number_of_patches": _int_from_mapping(latest_report_detail, "number_of_patches"),
+        "advanced_evidence_available": advanced_flags,
         "human_review_required": True,
         "no_cloud_upload": True,
     }
@@ -275,6 +284,7 @@ def _normalize_report_detail(
     html_path = str(html_candidate) if html_candidate.exists() else None
     anomalies = [_normalize_candidate_anomaly(item) for item in _list(report.get("candidate_anomalies"))]
     concepts = [_json_safe(item) for item in _list(report.get("candidate_unknown_concepts"))]
+    advanced_evidence = _valid_advanced_evidence(report)
     return {
         "report_name": report_name,
         "run_id": _first_string(report.get("run_id"), run_metadata.get("run_id")),
@@ -305,10 +315,42 @@ def _normalize_report_detail(
         or run_metadata.get("human_review_required") is True,
         "candidate_anomalies": anomalies,
         "candidate_concepts": concepts,
+        "advanced_evidence": advanced_evidence,
+        "advanced_evidence_available": {
+            key: key in advanced_evidence for key in ADVANCED_EVIDENCE_FIELDS
+        },
         "markdown_report_path": markdown_path,
         "json_report_path": json_path,
         "html_report_path": html_path,
     }
+
+
+def _valid_advanced_evidence(report: dict[str, Any]) -> dict[str, object]:
+    """Return only strict artifact-backed optional evidence summaries."""
+
+    evidence: dict[str, object] = {}
+    for field_name in ADVANCED_EVIDENCE_FIELDS:
+        if field_name not in report:
+            continue
+        candidate = {
+            "project_name": "ADE",
+            "run_id": "studio-validation",
+            "run_metadata": {},
+            "candidate_anomalies": [],
+            "candidate_unknown_concepts": [],
+            "human_review_required": True,
+            field_name: report[field_name],
+        }
+        if validate_report_dict(candidate).is_valid:
+            evidence[field_name] = _json_safe(report[field_name])
+    return evidence
+
+
+def _advanced_evidence_flags(
+    detail: dict[str, object] | None,
+) -> dict[str, bool]:
+    evidence = _dict(detail.get("advanced_evidence")) if detail is not None else {}
+    return {key: key in evidence for key in ADVANCED_EVIDENCE_FIELDS}
 
 
 def _normalize_candidate_anomaly(item: object) -> dict[str, object]:

@@ -32,6 +32,7 @@ export interface StudioSummary {
   input_directory?: string | null
   number_of_images?: number
   number_of_patches?: number
+  advanced_evidence_available?: Record<string, boolean>
   human_review_required: boolean
   no_cloud_upload: boolean
 }
@@ -105,6 +106,8 @@ export interface StudioReportDetail {
   human_review_required: boolean
   candidate_anomalies: StudioCandidateAnomaly[]
   candidate_concepts: Array<Record<string, unknown>>
+  advanced_evidence?: Record<string, Record<string, unknown>>
+  advanced_evidence_available?: Record<string, boolean>
   markdown_report_path?: string | null
   json_report_path?: string | null
   html_report_path?: string | null

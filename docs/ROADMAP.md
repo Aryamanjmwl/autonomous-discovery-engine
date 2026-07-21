@@ -182,3 +182,10 @@ Initial verticals:
 - No heavy ML dependencies in the default install
 - No dashboard before the core engine is solid
 - No attempt to support every data modality at once
+## Stage 4F: Optional Visual Evidence Integration
+
+Stage 4F connects real advanced visual artifacts to JSON, Markdown, HTML, and connected ADE Studio
+views without enabling the underlying workflows by default. Reference scoring, fitted calibration,
+candidate operating points, spatial maps, and benchmark validation remain optional. All candidate
+findings require human review under Technical Preview limitations. Full temporal report and CLI
+workflow remains Stage 5B.

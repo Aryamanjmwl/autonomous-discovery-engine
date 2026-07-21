@@ -123,3 +123,13 @@ Generated frontend artifacts are ignored by Git and should not be committed.
 
 
 
+## Optional Advanced Visual Evidence
+
+Connected ADE Studio report details expose advanced evidence only when a local report contains a
+valid artifact-backed summary. Reference-score evidence, spatial anomaly maps, fitted calibration,
+candidate operating points, and benchmark validation artifacts are optional and are not generated
+by the default analysis workflow. Malformed summaries are omitted without breaking report browsing.
+
+These values are review-prioritization signals in a Technical Preview. Calibrated scores are not
+universal probabilities, benchmark validation artifacts are not guarantees, and candidate findings
+require human review.
