@@ -298,3 +298,7 @@ document as temporal only by its Stage 5B report type, validates the report, res
 artifact within configured local workspace roots, and revalidates artifact integrity.
 Invalid reports are omitted with diagnostics. Connected UI projections are derived from
 those validated fields and do not create monitoring, timeline, chart, or map state.
+
+Stage 5D adds only a deterministic local fixture generator and an isolated smoke verifier.
+It exercises the same manifest, CLI, artifact, report, and HTML boundaries as user-provided
+sequences without changing runtime defaults or introducing external data.
