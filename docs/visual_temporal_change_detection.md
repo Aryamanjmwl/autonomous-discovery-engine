@@ -1,9 +1,9 @@
 # Temporal Visual Change Detection
 
-Stage 5A adds an explicit, local, offline foundation for comparing repeated image
+Stages 5A and 5B provide an explicit, local, offline workflow for comparing repeated image
 observations of the same scene or entity. It does not run during normal image-folder
-analysis. A caller must supply a versioned JSON observation manifest and invoke the
-temporal library API.
+analysis. A caller must supply a versioned JSON observation manifest and explicitly
+invoke the temporal library API or CLI.
 
 ## Observation manifest
 
@@ -17,6 +17,47 @@ metadata, image dimensions, SHA-256, and a mask path.
 Validation rejects parent traversal and paths outside the dataset root. Strict mode
 requires every image and declared mask to exist. Serialization orders observations
 deterministically. Image dimensions are measured during analysis.
+
+Minimal sequence-index manifest:
+
+```json
+{
+  "schema_version": 1,
+  "dataset_name": "inspection-revisits",
+  "dataset_version": "1",
+  "dataset_root": "./inspection-data",
+  "sequence_id": "asset-17",
+  "scene_id": "bay-a",
+  "entity_id": "asset-17",
+  "observations": [
+    {"observation_id": "o0", "source_path": "frames/0.png", "timestamp": null,
+     "sequence_index": 0, "entity_id": null, "scene_id": null, "metadata": {},
+     "width": null, "height": null, "image_sha256": null, "mask_path": null},
+    {"observation_id": "o1", "source_path": "frames/1.png", "timestamp": null,
+     "sequence_index": 1, "entity_id": null, "scene_id": null, "metadata": {},
+     "width": null, "height": null, "image_sha256": null, "mask_path": null}
+  ],
+  "metadata": {}
+}
+```
+
+## Explicit CLI Workflow
+
+```powershell
+python -m ade.cli --validate-temporal-manifest data/temporal/manifest.json
+python -m ade.cli --temporal-manifest data/temporal/manifest.json `
+  --temporal-output data/reports/temporal_report.md `
+  --temporal-strategy adjacent_difference
+python -m ade.cli --validate-temporal-artifact data/reports/temporal_report_artifacts/<id>
+python -m ade.cli --validate-temporal-report data/reports/temporal_report.json
+python -m ade.cli --export-temporal-html-report data/reports/temporal_report.json `
+  --temporal-output data/reports/temporal_report.html
+```
+
+`baseline_difference` is also available. `--temporal-patch-size` explicitly enables
+computed patch evidence; without it, reports contain no patch evidence. The analysis
+publishes and validates an immutable content-addressed result artifact before writing
+Markdown and deterministic JSON. HTML export displays metadata and evidence only.
 
 ## Scoring, evidence, and persistence
 

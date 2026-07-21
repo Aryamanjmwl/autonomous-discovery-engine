@@ -111,6 +111,14 @@ optional and explicit.
 
 ## Stage 5: API and Docker
 
+### Stage 5B: Temporal CLI and Reports
+
+- Explicit manifest validation and adjacent/baseline temporal analysis commands
+- Immutable temporal artifact publication and validation before report success
+- Deterministic JSON plus cautious Markdown and HTML review reports
+- Optional real patch evidence; no fake heatmaps, live feeds, or geospatial registration
+- Candidate temporal changes require human review
+
 Stage 5A now provides an additive temporal visual change-detection foundation for
 explicit ordered observation manifests. Adjacent/baseline comparison, optional patch
 evidence, deterministic summaries, and integrity-checked JSON artifacts are local
