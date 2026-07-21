@@ -18,7 +18,6 @@ from ade.discovery.concept_clusterer import ConceptClusterer
 from ade.discovery.confidence_scorer import ConfidenceScorer
 from ade.discovery.evidence_collector import EvidenceCollector
 from ade.discovery.novelty_scorer import NoveltyScorer
-from ade.discovery.registry import create_clustering_backend, create_scoring_backend
 from ade.discovery.tabular import TabularConceptGrouper, TabularNoveltyScorer
 from ade.discovery.timeseries import TimeSeriesConceptGrouper, TimeSeriesNoveltyScorer
 from ade.feedback import (
@@ -37,11 +36,23 @@ from ade.reporting.html_report import write_html_report
 from ade.reporting.report_generator import DatasetSummary, ReportGenerator
 from ade.reporting.report_validator import validate_report_file
 from ade.reporting.run_index import load_run_index
-from ade.representation.embedding_engine import EmbeddingEngine, PatchEmbedding
 from ade.reporting.tabular_report_generator import TabularReportGenerator
+from ade.reporting.temporal_report import (
+    validate_temporal_report_file,
+    write_temporal_html_report,
+    write_temporal_report,
+)
 from ade.reporting.timeseries_report_generator import TimeSeriesReportGenerator
+from ade.representation.embedding_engine import EmbeddingEngine, PatchEmbedding
 from ade.representation.tabular_engine import TabularFeatureEngine
 from ade.representation.timeseries_engine import TimeSeriesFeatureEngine
+from ade.visual import (
+    analyze_temporal_change,
+    load_temporal_manifest,
+    publish_temporal_change_artifact,
+    validate_temporal_change_artifact,
+)
+from ade.visual.temporal_contracts import TemporalChangeStrategy
 
 DEFAULT_RUN_INDEX_PATH = Path("data/reports/runs/index.json")
 
@@ -119,6 +130,57 @@ def build_parser() -> argparse.ArgumentParser:
         help="Export a local static dashboard from existing ADE artifacts and exit.",
     )
     parser.add_argument(
+        "--validate-temporal-manifest",
+        type=Path,
+        help="Strictly validate an explicit temporal observation manifest and exit.",
+    )
+    parser.add_argument(
+        "--temporal-manifest",
+        type=Path,
+        help="Run opt-in temporal visual change analysis from this manifest.",
+    )
+    parser.add_argument(
+        "--temporal-output",
+        type=Path,
+        help="Temporal Markdown report output, or HTML output for temporal export.",
+    )
+    parser.add_argument(
+        "--temporal-strategy",
+        choices=["adjacent_difference", "baseline_difference"],
+        default="adjacent_difference",
+        help="Explicit temporal comparison strategy.",
+    )
+    parser.add_argument(
+        "--temporal-patch-size",
+        type=int,
+        default=None,
+        help="Optional patch size for real local temporal patch evidence.",
+    )
+    parser.add_argument("--temporal-top-k", type=int, default=10)
+    parser.add_argument("--temporal-patch-top-k", type=int, default=5)
+    parser.add_argument(
+        "--temporal-artifact-root",
+        type=Path,
+        default=None,
+        help="Optional root for immutable temporal result artifacts.",
+    )
+    parser.add_argument(
+        "--validate-temporal-artifact",
+        type=Path,
+        help="Validate an immutable temporal change artifact and exit.",
+    )
+    parser.add_argument(
+        "--validate-temporal-report",
+        type=Path,
+        help="Validate a temporal JSON report and exit.",
+    )
+    parser.add_argument(
+        "--export-temporal-html-report",
+        type=Path,
+        metavar="REPORT_JSON",
+        help="Export a validated temporal JSON report to HTML and exit.",
+    )
+    parser.add_argument(
         "--add-feedback",
         type=Path,
         metavar="REPORT_JSON",
@@ -165,6 +227,47 @@ def build_parser() -> argparse.ArgumentParser:
         help="Output directory for `ade dashboard` static HTML files.",
     )
     return parser
+
+
+def run_temporal_pipeline(
+    manifest_path: Path,
+    output_path: Path,
+    *,
+    strategy: TemporalChangeStrategy = "adjacent_difference",
+    patch_size: int | None = None,
+    top_k: int = 10,
+    patch_top_k: int = 5,
+    artifact_root: Path | None = None,
+) -> tuple[Path, Path, Path]:
+    """Run the explicit manifest-driven temporal workflow and publish reports."""
+
+    sequence = load_temporal_manifest(manifest_path, strict=True)
+    result = analyze_temporal_change(
+        sequence,
+        manifest_path=manifest_path,
+        strategy=strategy,
+        patch_size=patch_size,
+        top_k=top_k,
+        patch_top_k=patch_top_k,
+    )
+    root = artifact_root or output_path.parent / f"{output_path.stem}_artifacts"
+    artifact_path = publish_temporal_change_artifact(result, root)
+    artifact = validate_temporal_change_artifact(artifact_path)
+    fingerprint = artifact_path.name
+    if (
+        artifact.get("provenance", {}).get("manifest_fingerprint")
+        != result.provenance.manifest_fingerprint
+    ):
+        raise ValueError(
+            "Published temporal artifact provenance does not match the analysis result"
+        )
+    markdown_path, json_path = write_temporal_report(
+        result, output_path, artifact_path, fingerprint
+    )
+    errors = validate_temporal_report_file(json_path)
+    if errors:
+        raise ValueError("Generated temporal report failed validation: " + "; ".join(errors))
+    return markdown_path, json_path, artifact_path
 
 
 def run_pipeline(
@@ -279,9 +382,7 @@ def run_pipeline(
         patch_strides=patch_strides,
     )
     patches = [
-        patch
-        for record in image_records
-        for patch in extractor.extract_from_path(record.path)
+        patch for record in image_records for patch in extractor.extract_from_path(record.path)
     ]
 
     embeddings = EmbeddingEngine().embed_patches(patches)
@@ -308,9 +409,7 @@ def run_pipeline(
     scored_candidates = novelty_scorer.score(embeddings, memory=memory)
     candidates = AnomalySelector(
         enabled=bool(discovery.get("diversity", {}).get("enabled", False)),
-        min_spatial_distance=float(
-            discovery.get("diversity", {}).get("min_spatial_distance", 32)
-        ),
+        min_spatial_distance=float(discovery.get("diversity", {}).get("min_spatial_distance", 32)),
         max_per_image=int(discovery.get("diversity", {}).get("max_per_image", 3)),
         prefer_multiple_scales=bool(
             discovery.get("diversity", {}).get("prefer_multiple_scales", True)
@@ -425,9 +524,7 @@ def run_timeseries_pipeline(
     window_size = int(timeseries_config.get("window_size", 3))
     adapter = TimeSeriesAdapter(
         input_path=input_path,
-        timestamp_column=(
-            str(effective_timestamp_column) if effective_timestamp_column else None
-        ),
+        timestamp_column=(str(effective_timestamp_column) if effective_timestamp_column else None),
         entity_column=str(effective_entity_column) if effective_entity_column else None,
         missing_value_tokens=missing_tokens,
     )
@@ -446,9 +543,7 @@ def run_timeseries_pipeline(
         embeddings,
         max_candidates=effective_max_candidates,
     )
-    concepts = TimeSeriesConceptGrouper(max_concepts=int(discovery["max_concepts"])).group(
-        findings
-    )
+    concepts = TimeSeriesConceptGrouper(max_concepts=int(discovery["max_concepts"])).group(findings)
     feature_vector_length = int(embeddings[0].vector.size) if embeddings else 0
     return TimeSeriesReportGenerator(
         project_name=str(project["name"]),
@@ -583,10 +678,7 @@ def _resolve_patch_scales(
 def _patch_scales_used(patches: list) -> list[str]:
     """Return stable patch scale labels used in this run."""
 
-    scales = {
-        str(patch.scale_label or f"s{patch.patch_size}")
-        for patch in patches
-    }
+    scales = {str(patch.scale_label or f"s{patch.patch_size}") for patch in patches}
     return sorted(scales)
 
 
@@ -625,9 +717,7 @@ def _build_vector_memory(
                 "scale_label": patch.scale_label,
                 "is_candidate_anomaly": candidate is not None,
                 "anomaly_id": candidate.anomaly_id if candidate is not None else None,
-                "novelty_score": (
-                    candidate.novelty_score if candidate is not None else None
-                ),
+                "novelty_score": (candidate.novelty_score if candidate is not None else None),
             },
         )
     return memory
@@ -694,7 +784,9 @@ def format_run_history(
         return "No ADE run history found yet. Run an analysis first."
 
     run_values = run_index.get("runs")
-    runs = [run for run in run_values if isinstance(run, dict)] if isinstance(run_values, list) else []
+    runs = (
+        [run for run in run_values if isinstance(run, dict)] if isinstance(run_values, list) else []
+    )
     if limit is not None:
         if limit < 1:
             raise ValueError("--limit must be greater than or equal to 1.")
@@ -715,8 +807,7 @@ def format_run_history(
                 f"   Markdown report: {run.get('markdown_report_path')}",
                 f"   JSON report: {run.get('json_report_path')}",
                 f"   Candidate anomalies: {run.get('number_of_candidate_anomalies')}",
-                "   Candidate unknown concepts: "
-                f"{run.get('number_of_candidate_unknown_concepts')}",
+                f"   Candidate unknown concepts: {run.get('number_of_candidate_unknown_concepts')}",
                 f"   Human review required: {run.get('human_review_required')}",
                 "",
             ]
@@ -823,9 +914,7 @@ def format_review_memory_summary(
     if summary.label_counts_by_target_type:
         lines.extend(["", "Target types:"])
         for target_type, counts in sorted(summary.label_counts_by_target_type.items()):
-            count_text = ", ".join(
-                f"{label}: {count}" for label, count in sorted(counts.items())
-            )
+            count_text = ", ".join(f"{label}: {count}" for label, count in sorted(counts.items()))
             lines.append(f"- {target_type}: {count_text}")
     return "\n".join(lines)
 
@@ -877,9 +966,7 @@ def _feedback_store_path(config: dict[str, Any]) -> Path:
 
 def _review_memory_store_path(config: dict[str, Any]) -> Path:
     review_memory_config = config.get("review_memory", {})
-    if isinstance(review_memory_config, dict) and review_memory_config.get(
-        "feedback_store_path"
-    ):
+    if isinstance(review_memory_config, dict) and review_memory_config.get("feedback_store_path"):
         return Path(str(review_memory_config["feedback_store_path"]))
     return _feedback_store_path(config)
 
@@ -900,11 +987,76 @@ def main() -> None:
 
     parser = build_parser()
     args = parser.parse_args()
+    if args.validate_temporal_manifest is not None:
+        try:
+            sequence = load_temporal_manifest(args.validate_temporal_manifest, strict=True)
+        except (OSError, ValueError) as error:
+            parser.error(str(error))
+        print(
+            "ADE temporal manifest validation passed: "
+            f"{args.validate_temporal_manifest} ({len(sequence.observations)} observations)"
+        )
+        return
+
+    if args.validate_temporal_artifact is not None:
+        try:
+            artifact = validate_temporal_change_artifact(args.validate_temporal_artifact)
+        except (OSError, ValueError) as error:
+            parser.error(str(error))
+        print(
+            "ADE temporal artifact validation passed: "
+            f"{args.validate_temporal_artifact} "
+            f"({artifact['summary']['observation_count']} observations)"
+        )
+        return
+
+    if args.validate_temporal_report is not None:
+        errors = validate_temporal_report_file(args.validate_temporal_report)
+        if errors:
+            for validation_error in errors:
+                print(f"ERROR: {validation_error}")
+            raise SystemExit(1)
+        print(f"ADE temporal report validation passed: {args.validate_temporal_report}")
+        return
+
+    if args.export_temporal_html_report is not None:
+        if args.temporal_output is None:
+            parser.error("--temporal-output is required with --export-temporal-html-report.")
+        try:
+            html_path = write_temporal_html_report(
+                args.export_temporal_html_report, args.temporal_output
+            )
+        except (OSError, ValueError) as error:
+            parser.error(str(error))
+        print(f"ADE temporal HTML report written to {html_path}")
+        return
+
+    if args.temporal_manifest is not None:
+        if args.temporal_output is None:
+            parser.error("--temporal-output is required with --temporal-manifest.")
+        try:
+            markdown_path, json_path, artifact_path = run_temporal_pipeline(
+                args.temporal_manifest,
+                args.temporal_output,
+                strategy=args.temporal_strategy,
+                patch_size=args.temporal_patch_size,
+                top_k=args.temporal_top_k,
+                patch_top_k=args.temporal_patch_top_k,
+                artifact_root=args.temporal_artifact_root,
+            )
+        except (OSError, ValueError) as error:
+            parser.error(str(error))
+        print("ADE temporal analysis complete. Candidate temporal changes require human review.")
+        print(f"Markdown report: {markdown_path}")
+        print(f"JSON report: {json_path}")
+        print(f"Temporal artifact: {artifact_path}")
+        return
+
     if args.validate_report is not None:
         result = validate_report_file(args.validate_report)
         if not result.is_valid:
-            for error in result.errors:
-                print(f"ERROR: {error}")
+            for validation_error in result.errors:
+                print(f"ERROR: {validation_error}")
             raise SystemExit(1)
         print(f"ADE report validation passed: {args.validate_report}")
         if result.warnings:
@@ -1019,6 +1171,9 @@ def main() -> None:
         parser.error(
             "--input and --output are required unless --list-runs, "
             "--validate-report, --export-html-report, --export-local-dashboard, "
+            "--validate-temporal-manifest, --temporal-manifest, "
+            "--validate-temporal-artifact, --validate-temporal-report, "
+            "--export-temporal-html-report, "
             "--add-feedback, "
             "--list-feedback, or --summarize-feedback-memory is used."
         )

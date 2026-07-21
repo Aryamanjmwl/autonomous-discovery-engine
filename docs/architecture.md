@@ -276,6 +276,13 @@ deterministic statistical features, with optional computed patch evidence. Canon
 result artifacts are content-addressed and SHA-256 validated. This local, offline path
 is separate from default image-folder execution; candidate change events require
 human review. It provides no registration, live feed, cloud, or monitoring subsystem.
+
+Stage 5B adds an explicit CLI and a separate temporal report boundary. The CLI strictly
+loads a manifest, computes adjacent or baseline candidate change events, publishes and
+validates the immutable Stage 5A artifact, then emits Markdown and deterministic JSON.
+Temporal HTML contains review metadata and patch coordinates only when computed evidence
+exists. Normal image-folder dispatch is unchanged.
+
 ## Optional Report Evidence Integration
 
 The report layer may carry artifact-backed summaries for reference scoring, spatial anomaly maps,

@@ -50,6 +50,20 @@ python -m ade.cli --export-html-report data/reports/demo_report.json --output da
 python -m ade.cli --export-local-dashboard --output data/dashboard
 ```
 
+Temporal visual change analysis is a separate, explicit manifest-driven workflow:
+
+```powershell
+python -m ade.cli --validate-temporal-manifest data/temporal/manifest.json
+python -m ade.cli --temporal-manifest data/temporal/manifest.json `
+  --temporal-output data/reports/temporal_report.md `
+  --temporal-strategy adjacent_difference
+python -m ade.cli --validate-temporal-report data/reports/temporal_report.json
+```
+
+It produces candidate temporal changes for human review and does not alter default
+image-folder analysis. See `docs/visual_temporal_change_detection.md` for manifest,
+artifact-validation, optional patch-evidence, and HTML-export details.
+
 Run ADE Studio in two terminals:
 
 ```bash

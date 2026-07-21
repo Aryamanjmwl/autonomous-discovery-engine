@@ -185,6 +185,12 @@ adjacent/baseline feature distance, optional computed patch evidence, review-ori
 summaries, and canonical SHA-256-validated artifacts. It does not establish
 geospatial registration, scientific confirmation, live ingestion, or production
 monitoring.
+
+Stage 5B exposes the temporal boundary through explicit CLI switches and a distinct
+report schema. A successful run records the validated content-addressed result artifact
+and manifest fingerprint. Reports describe candidate change events and possible
+movement/growth/damage/change only as review-prioritization signals that require human
+review. No live ingestion, registration service, or scientific confirmation is implied.
 ## Stage 4F Report Integration
 
 Advanced visual evidence is reportable only when a generated artifact summary supplies a real path
