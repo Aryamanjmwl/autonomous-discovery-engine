@@ -150,5 +150,5 @@ After running the workflow, a developer may manually capture:
 3. the connected Studio Reports screen showing the temporal visual report;
 4. the connected Studio Findings screen showing candidate change events.
 
-Do not use mock screenshots. Do not fabricate report values, event rows, artifact paths, or
-Studio states. Capture only real local outputs produced by the commands above.
+Capture only real local outputs produced by the commands above. Do not fabricate report
+values, event rows, artifact paths, screenshots, or Studio states.

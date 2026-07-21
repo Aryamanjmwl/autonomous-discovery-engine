@@ -140,7 +140,7 @@ ADE Studio discovers Stage 5B temporal JSON reports only after they exist in the
 reports directory. It validates both the report and its referenced immutable temporal
 artifact before exposing sequence metadata or candidate change events. Malformed reports
 are ignored with local summary warnings. This Technical Preview provides report review,
-not continuous observation, geospatial registration, or scientific confirmation.
+not continuous observation, geographic registration, or domain verification.
 
 The [Temporal Visual Demo Evidence](demo_temporal_visual_evidence.md) guide provides the
 exact local commands needed to create a real temporal report before opening Studio. Studio

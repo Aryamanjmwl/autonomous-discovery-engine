@@ -1,112 +1,69 @@
-# Technical Preview Release Checklist
+# v0.1.0 Technical Preview Release Checklist
 
-Use this checklist before tagging or sharing a technical preview build. It is a
-review aid, not a production certification.
+Use this checklist before sharing the local-first Technical Preview. It is a
+release review aid, not an operational-readiness certification.
 
-## Local Verification
+## Local setup and backend verification
 
-- `ruff check` passes.
-- `pytest` passes.
-- `python scripts/create_demo_data.py` works from the repository root.
-- `python -m ade.cli --input data/raw/demo_images --output data/reports/demo_report.md` writes Markdown and JSON reports.
-- `python -m ade.cli --validate-report data/reports/demo_report.json` passes.
-- `python -m ade.cli --export-html-report data/reports/demo_report.json --output data/reports/demo_report.html` passes.
-- `python scripts/run_benchmark.py --input data/raw/demo_images --config configs/default.yaml --output data/benchmarks/demo_benchmark.json` passes.
-- `python scripts/verify_local.py` passes.
-- `python -m ade.cli --list-runs --limit 5` works.
+- [ ] Install the repository in an isolated environment with `pip install -e ".[dev,studio]"`.
+- [ ] Run `ruff check`.
+- [ ] Run `python -m mypy src`.
+- [ ] Run `pytest`.
+- [ ] Run `python scripts/verify_local.py`.
+- [ ] Confirm a normal image-folder run still produces candidate findings that require human review.
 
-## Documentation
+## Frontend verification
 
-- README describes ADE as a general autonomous discovery platform with a visual-data-first implementation.
-- CLI reference includes analysis, validation, HTML export, feedback, benchmark, and local verification commands.
-- Report schema documents `anomaly_id`, `concept_id`, dataset profile, evidence, confidence, and human-review requirements.
-- Product scope, architecture, development workflow, and engineering quality docs match implemented behavior.
-- Known limitations are stated without overclaiming production readiness.
+From `apps/studio/frontend`:
 
-## Generated Artifact Hygiene
+- [ ] Run `npm --cache "D:\ADE\npm-cache" run typecheck`.
+- [ ] Run `npm --cache "D:\ADE\npm-cache" run build`.
+- [ ] Start the documented local backend and frontend, then confirm connected mode uses real local report data.
+- [ ] Confirm missing, malformed, or unavailable reports produce an honest empty or warning state.
+- [ ] Confirm every visible control performs a real action or is clearly disabled as Technical Preview functionality.
 
-- Demo images are ignored.
-- Markdown, JSON, HTML reports, preview assets, run metadata, benchmarks, feedback logs, caches, and bytecode are ignored.
-- `.gitkeep` files remain only where empty project directories are intentional.
-- No generated report, benchmark, feedback, cache, or `__pycache__` file is staged.
+## Deterministic temporal demo
 
-## Known Limitations
+- [ ] Run `python scripts/verify_temporal_demo.py`.
+- [ ] Confirm the generated sequence manifests validate.
+- [ ] Confirm the temporal artifact and JSON report pass their CLI validators.
+- [ ] Confirm Markdown and HTML describe candidate temporal changes as review-prioritization signals.
+- [ ] Confirm Studio exposes the temporal report only after a real validated report exists.
 
-- Current analysis support is image-folder based.
-- Non-visual adapters are future work unless explicitly present in a branch.
-- Deep visual embedding backends are not part of the lightweight default install.
-- Local feedback is not a production audit system.
-- Reports contain candidate findings that require human review.
-- No hosted dashboard, authentication, billing, cloud storage, database, or compliance certification is included.
+## Generated artifact hygiene
 
-## Pull Request Review
+- [ ] Generated demo images, reports, HTML, preview assets, run metadata, benchmark outputs, and caches remain ignored.
+- [ ] No generated temporal images, reports, or immutable artifact directories are included in release source files.
+- [ ] No secrets, private datasets, machine-specific paths, cache files, or bytecode are included.
+- [ ] Tiny tracked fixtures, if any, are intentional and covered by tests.
 
-- Scope is narrow and reviewable.
-- Tests cover changed behavior.
-- Docs and examples match the commands that actually work.
-- No secrets, local paths, generated artifacts, or unrelated files are included.
-- Changelog is updated for user-visible changes.
+## Documentation and claim audit
 
-## Final Release Verification Block
+- [ ] README and public docs call ADE a local-first Technical Preview.
+- [ ] Visual outputs use candidate anomaly or candidate concept language and require human review.
+- [ ] Temporal outputs use candidate temporal change or candidate change event language and require human review.
+- [ ] Optional DINOv2 and FAISS integrations are described as optional provider boundaries.
+- [ ] Calibration is not described as a universal probability, and candidate operating points are not automated decisions.
+- [ ] Benchmark outputs are described as validation artifacts, not general performance guarantees.
+- [ ] Studio is described as reviewing real local reports, not as an operational monitoring service.
+- [ ] Deterministic demo sequences are identified as synthetic generated local data.
 
-Run this block from the repository root before creating a technical preview tag:
+## Known limitations
 
-```powershell
-ruff check
-pytest
-python scripts/verify_local.py
-python scripts/create_demo_data.py
-python -m ade.cli --input data/raw/demo_images --output data/reports/demo_report.md
-python -m ade.cli --validate-report data/reports/demo_report.json
-python -m ade.cli --export-html-report data/reports/demo_report.json --output data/reports/demo_report.html
-python scripts/run_benchmark.py --input data/raw/demo_images --config configs/default.yaml --output data/benchmarks/demo_benchmark.json
-python -m ade.cli --export-local-dashboard --output data/dashboard
-```
+- Findings are review-prioritization signals, not autonomous conclusions.
+- Default analysis is the local image-folder workflow; temporal analysis requires an explicit manifest and command.
+- The lightweight default install does not enable optional DINOv2 or FAISS providers.
+- Temporal comparison does not perform geographic alignment or continuous ingestion.
+- Studio has no hosted accounts, authentication, billing, cloud storage, or multi-user review service.
+- No clinical, scientific, safety-critical, or operational decision should rely on ADE output without appropriate independent review.
 
-Suggested manual tag commands after review. Do not run these until the release
-contents have been manually inspected:
+## Not included in v0.1.0 Technical Preview
 
-```powershell
-git tag -a v0.1.0-preview -m "ADE v0.1.0 Technical Preview"
-git push origin v0.1.0-preview
-```
+- Hosted service operation, accounts, billing, or workspace tenancy.
+- Continuous streams, remote-imagery services, or background monitoring.
+- Geographic map registration or map-based review.
+- Automatic decisions or domain-level verification of candidate findings.
+- Operational support, service-level guarantees, or compliance certification.
 
-Generated demo data, reports, benchmark JSON, dashboard output, and feedback
-logs must remain ignored and uncommitted.
-# Release Checklist
-
-Use this checklist before creating an internal or public release.
-
-## Code
-
-- `pytest` passes.
-- Linting passes if enabled.
-- Type checks pass if enabled.
-- Public interfaces are typed.
-- Generated artifacts are not staged.
-
-## Product Scope
-
-- README describes current capabilities accurately.
-- Future roadmap items are not described as implemented.
-- Human review requirements are visible in reports and docs.
-- Limitations are documented.
-
-## Reports
-
-- Markdown report renders cleanly.
-- JSON report includes run metadata and dataset profile.
-- Run metadata file is written.
-- Run index is updated.
-
-## Project Files
-
-- `CHANGELOG.md` updated.
-- `SECURITY.md` current.
-- `CONTRIBUTING.md` current.
-- CI workflow present.
-- License unchanged unless intentionally reviewed.
-
-## Release Decision
-
-Do not release if generated artifacts, secrets, private datasets, or unreviewed proprietary methods are staged.
+Release only after every applicable item above has been checked and the actual
+release contents have been manually inspected.

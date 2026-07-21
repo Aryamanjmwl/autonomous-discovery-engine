@@ -183,14 +183,14 @@ Temporal analysis is an explicit manifest-driven library path, not a default vis
 engine mode. Completion covers strict ordering and root containment, deterministic
 adjacent/baseline feature distance, optional computed patch evidence, review-oriented
 summaries, and canonical SHA-256-validated artifacts. It does not establish
-geospatial registration, scientific confirmation, live ingestion, or production
+geographic registration, domain verification, continuous ingestion, or operational
 monitoring.
 
 Stage 5B exposes the temporal boundary through explicit CLI switches and a distinct
 report schema. A successful run records the validated content-addressed result artifact
 and manifest fingerprint. Reports describe candidate change events and possible
 movement/growth/damage/change only as review-prioritization signals that require human
-review. No live ingestion, registration service, or scientific confirmation is implied.
+review. No continuous ingestion, registration service, or domain verification is implied.
 ## Stage 4F Report Integration
 
 Advanced visual evidence is reportable only when a generated artifact summary supplies a real path
@@ -203,8 +203,8 @@ these optional paths changes default visual analysis behavior or removes human r
 
 Studio exposure is complete when both the temporal report and its referenced result artifact
 validate within configured local workspace roots. List, summary, and detail projections may
-then expose real sequence and event fields. Corrupt inputs must remain unavailable. No live
-feed, geospatial registration, temporal playback, or scientific conclusion is part of this
+then expose real sequence and event fields. Corrupt inputs must remain unavailable. No continuous
+feed, geographic registration, temporal playback, or domain-level conclusion is part of this
 boundary; candidate temporal changes require human review.
 
 ## Stage 5E Documentation Boundary
@@ -213,3 +213,11 @@ The temporal demo evidence workflow is documented end to end using only supporte
 CLI switches, report formats, and Studio launch commands. Documentation distinguishes
 generated shapes from real-world findings, requires validated local evidence for Studio,
 and permits only manually captured real outputs. It introduces no engine behavior.
+
+## Stage 6A Technical Preview Release Hardening
+
+Stage 6A audits public claims, CLI help, and Studio copy without changing analysis behavior.
+The release boundary is local-first and review-oriented: visual and temporal outputs remain
+candidate findings, optional providers stay opt-in, and connected Studio views use validated
+local reports. The release checklist records verification, artifact hygiene, documentation,
+and known limitations for the v0.1.0 Technical Preview.

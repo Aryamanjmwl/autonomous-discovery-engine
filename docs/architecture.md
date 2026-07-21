@@ -237,7 +237,7 @@ The current implementation includes image-folder inputs, plain CSV tabular
 inputs, and explicit timestamped CSV time-series inputs. Video has a placeholder
 adapter only. ADE does not currently include production video processing, audio,
 document, log/event, sensor stream, live satellite feed, database, live-stream,
-forecasting, or production monitoring adapters. Deep learning backends and
+forecasting, or operational monitoring adapters. Deep learning backends and
 enterprise storage are planned extension points, not current capabilities.
 
 Heavy model dependencies remain deferred. DINOv2, FAISS, PatchCore, persistent
@@ -275,7 +275,7 @@ It compares adjacent observations or each observation with the first using exist
 deterministic statistical features, with optional computed patch evidence. Canonical
 result artifacts are content-addressed and SHA-256 validated. This local, offline path
 is separate from default image-folder execution; candidate change events require
-human review. It provides no registration, live feed, cloud, or monitoring subsystem.
+human review. It provides no registration, continuous feed, cloud, or monitoring subsystem.
 
 Stage 5B adds an explicit CLI and a separate temporal report boundary. The CLI strictly
 loads a manifest, computes adjacent or baseline candidate change events, publishes and

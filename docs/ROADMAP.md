@@ -116,13 +116,13 @@ optional and explicit.
 - Explicit manifest validation and adjacent/baseline temporal analysis commands
 - Immutable temporal artifact publication and validation before report success
 - Deterministic JSON plus cautious Markdown and HTML review reports
-- Optional real patch evidence; no fake heatmaps, live feeds, or geospatial registration
+- Optional real patch evidence; no fabricated heatmaps, continuous ingestion, or geographic registration
 - Candidate temporal changes require human review
 
 Stage 5A now provides an additive temporal visual change-detection foundation for
 explicit ordered observation manifests. Adjacent/baseline comparison, optional patch
 evidence, deterministic summaries, and integrity-checked JSON artifacts are local
-library APIs. Normal image-folder analysis remains unchanged; live feeds and
+library APIs. Normal image-folder analysis remains unchanged; continuous ingestion and
 monitoring are out of scope.
 
 - FastAPI service
@@ -203,7 +203,7 @@ workflow is implemented through the explicit Stage 5B CLI and report path.
 - Discover validated local temporal reports and integrity-checked result artifacts
 - Show real sequence summaries, candidate change events, patch metadata, and provenance
 - Keep malformed reports out of connected views while exposing local warnings
-- No live feeds, geospatial UI, synthetic charts, or monitoring claims
+- No continuous feeds, map-based UI, synthetic charts, or monitoring claims
 
 ## Stage 5D: Deterministic Temporal Demo
 
@@ -218,3 +218,10 @@ workflow is implemented through the explicit Stage 5B CLI and report path.
 - Exact supported PowerShell commands and artifact-validation steps
 - Manual capture guidance limited to real reports and real connected Studio state
 - Technical Preview limitations and human-review wording preserved
+
+## Stage 6A: Visual Technical Preview Release Hardening
+
+- Audit public claims, CLI help, and Studio copy against implemented local behavior
+- Consolidate the practical v0.1.0 Technical Preview release checklist
+- Verify backend, deterministic temporal demo, and frontend release checks
+- Preserve default analysis behavior and optional provider boundaries
