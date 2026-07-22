@@ -3,6 +3,11 @@
 Use this checklist before sharing the local-first Technical Preview. It is a
 release review aid, not an operational-readiness certification.
 
+- [ ] Confirm `pyproject.toml`, `src/ade/__init__.py`, Studio metadata, and frontend
+  package metadata identify version `0.1.0`.
+- [ ] Review `docs/releases/v0.1.0-technical-preview.md` against the final release candidate.
+- [ ] Confirm `CHANGELOG.md` links to the canonical release note.
+
 ## Local setup and backend verification
 
 - [ ] Install the repository in an isolated environment with `pip install -e ".[dev,studio]"`.

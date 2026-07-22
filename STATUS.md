@@ -194,3 +194,11 @@ Technical Preview boundary. The practical release checklist now covers backend a
 verification, the deterministic temporal demo, generated artifact hygiene, public claims,
 known limitations, and explicitly excluded v0.1.0 capabilities. Analysis behavior and optional
 provider defaults remain unchanged.
+
+## Stage 6B v0.1.0 Technical Preview Preparation
+
+ADE's Python package, runtime package constants, Studio API, and frontend package metadata
+are aligned at version `0.1.0`. The canonical release note and changelog describe the current
+local-first, review-oriented scope, verification workflow, and known limitations. This stage
+prepares release materials only; hosted commercial capabilities remain future work and no
+release tag is created by the preparation workflow.

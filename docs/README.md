@@ -30,7 +30,7 @@ All findings are candidate findings and require human review.
 - [Release checklist](release_checklist.md): technical preview verification checklist.
 - [Versioning policy](versioning_policy.md): pre-1.0 version and schema expectations.
 - [Technical Preview readiness audit](releases/technical_preview_readiness_audit.md): current release-readiness assessment.
-- [v0.1.0 Technical Preview release notes](releases/v0.1.0-preview.md): release scope, verification, limitations, and compatibility notes.
+- [v0.1.0 Technical Preview release notes](releases/v0.1.0-technical-preview.md): release scope, verification, limitations, and compatibility notes.
 - [GitHub release body draft](releases/github_release_body_v0.1.0-preview.md): copy-paste release text for GitHub Releases.
 - [Demo asset guidance](demo_assets.md): manual screenshot plan and safe release attachment guidance.
 
