@@ -1,6 +1,7 @@
 """Release-readiness documentation checks."""
 
 import json
+import tomllib
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -28,6 +29,7 @@ def test_technical_preview_docs_exist() -> None:
         "docs/versioning_policy.md",
         "docs/releases/technical_preview_readiness_audit.md",
         "docs/releases/v0.1.0-preview.md",
+        "docs/releases/v0.1.0-technical-preview.md",
         "docs/releases/github_release_body_v0.1.0-preview.md",
         "docs/demo_temporal_visual_evidence.md",
         "examples/README.md",
@@ -220,7 +222,7 @@ def test_readme_includes_portfolio_demo_status_language() -> None:
 
     assert "most ai tools answer known questions" in readme
     assert "--export-local-dashboard" in readme
-    assert "v0.1.0-preview.md" in readme
+    assert "v0.1.0-technical-preview.md" in readme
     assert "ade v0.1.0 technical preview" in readme
     assert "implemented" in readme
     assert "foundation" in readme
@@ -495,6 +497,41 @@ def test_visual_technical_preview_docs_define_release_boundaries() -> None:
         text = _read(path).lower()
         for phrase in forbidden:
             assert phrase not in text, f"{phrase!r} found in {path}"
+
+
+def test_v0_1_0_release_metadata_and_notes_are_aligned() -> None:
+    project = tomllib.loads(_read("pyproject.toml"))
+    package_init = _read("src/ade/__init__.py")
+    studio_init = _read("src/ade/studio/__init__.py")
+    studio_package = json.loads(_read("apps/studio/frontend/package.json"))
+    release_note = _read("docs/releases/v0.1.0-technical-preview.md").lower()
+    changelog = _read("CHANGELOG.md").lower()
+    readme = _read("README.md")
+
+    assert project["project"]["version"] == "0.1.0"
+    assert '__version__ = "0.1.0"' in package_init
+    assert '__version__ = "0.1.0"' in studio_init
+    assert studio_package["version"] == "0.1.0"
+    assert "docs/releases/v0.1.0-technical-preview.md" in readme
+    assert "0.1.0 technical preview" in changelog
+    assert "docs/releases/v0.1.0-technical-preview.md" in changelog
+    assert "known limitations" in release_note
+    assert "requires human review" in release_note
+    assert "local-first" in release_note
+
+    for forbidden in (
+        "guaranteed detection",
+        "scientific confirmation",
+        "production monitoring",
+        "live feed",
+        "autonomous truth",
+        "confirmed geological activity",
+        "confirmed biological growth",
+        "state-of-the-art",
+        "enterprise-ready saas",
+        "subscription-ready product",
+    ):
+        assert forbidden not in release_note
 
 
 def test_docs_do_not_claim_published_pip_package() -> None:

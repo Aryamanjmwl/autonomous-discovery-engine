@@ -2,7 +2,7 @@
 
 [![CI workflow](https://img.shields.io/badge/CI-GitHub%20Actions-informational)](.github/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/Python-%3E%3D3.11-blue)](pyproject.toml)
-[![Status](https://img.shields.io/badge/Status-Technical%20Preview-yellow)](docs/releases/v0.1.0-preview.md)
+[![Status](https://img.shields.io/badge/Status-v0.1.0%20Technical%20Preview-yellow)](docs/releases/v0.1.0-technical-preview.md)
 [![License](https://img.shields.io/badge/License-see%20LICENSE.md-lightgrey)](LICENSE.md)
 
 Most AI tools answer known questions. ADE helps surface candidate patterns,
@@ -137,7 +137,7 @@ enterprise deployment. All candidate findings require human review.
 ADE v0.1.0 Technical Preview is prepared for local demo review and manual
 release tagging. It is not a hosted product release.
 
-- [v0.1.0 Technical Preview release notes](docs/releases/v0.1.0-preview.md)
+- [v0.1.0 Technical Preview release notes](docs/releases/v0.1.0-technical-preview.md)
 - [Portfolio case study](docs/portfolio_case_study.md)
 - [CV/project wording](docs/cv_project_description.md)
 - [Modality capability matrix](docs/modality_capability_matrix.md)

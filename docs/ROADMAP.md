@@ -225,3 +225,10 @@ workflow is implemented through the explicit Stage 5B CLI and report path.
 - Consolidate the practical v0.1.0 Technical Preview release checklist
 - Verify backend, deterministic temporal demo, and frontend release checks
 - Preserve default analysis behavior and optional provider boundaries
+
+## Stage 6B: v0.1.0 Technical Preview Preparation
+
+- Align existing Python and Studio version metadata at `0.1.0`
+- Publish a canonical local-first Technical Preview release note and concise changelog entry
+- Link README and documentation indexes to the release boundary
+- Keep hosted commercial capabilities and managed service readiness as future work
