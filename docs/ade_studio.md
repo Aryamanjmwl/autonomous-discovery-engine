@@ -4,9 +4,10 @@ ADE Studio is the local-first interactive app layer for ADE v0.1.0 Technical
 Preview. It lives in `apps/studio/frontend` and connects to a small local Python
 API under `ade.studio`.
 
-The current connected workflow supports visual/image-folder analysis through
-the local ADE engine. ADE Studio can read local run/report artifacts and submit
-a local path for synchronous visual analysis. If the backend is unavailable,
+The current connected workflow supports visual/image-folder and manifest-driven
+temporal analysis through the local ADE engine. ADE Studio can read local
+run/report artifacts and the Stage 7A backend can accept synchronous local runs.
+The browser run UI is planned for the next stage. If the backend is unavailable,
 the frontend falls back to mock preview data for demos. It does not add cloud
 hosting, auth, database storage, billing, production streaming, browser upload,
 or hosted product behavior.
@@ -63,6 +64,27 @@ path or a repository-relative path for visual/image-folder analysis:
 }
 ```
 
+Stage 7A also exposes a job-oriented local run API:
+
+- `POST /api/studio/runs/image-folder`
+- `POST /api/studio/runs/temporal`
+- `GET /api/studio/runs`
+- `GET /api/studio/runs/{job_id}`
+
+Jobs are stored in memory for the lifetime of the backend process and move
+through `queued`, `running`, `succeeded`, or `failed`. Execution is synchronous
+in this stage. Image-folder requests accept `input_path`, optional `output_name`,
+optional `config_path`, and optional `run_label`. Temporal requests accept
+`manifest_path`, `strategy` (`adjacent_difference` or `baseline_difference`),
+optional existing patch/evidence limits, optional `output_name`, and optional
+`run_label`.
+
+All inputs must exist inside the configured local workspace. External URLs and
+path traversal are rejected. Report outputs remain inside the configured report
+root, and temporal artifacts remain inside the configured artifact root. The API
+does not download inputs, browse the filesystem, or execute arbitrary commands.
+Failed jobs expose no report or artifact path as valid evidence.
+
 Generated report preview assets are served locally through
 `GET /api/studio/report-assets/{asset_name}` from `data/reports/assets/`. The
 route accepts asset filenames only, blocks path traversal, and is intended for
@@ -113,7 +135,7 @@ Generated frontend artifacts are ignored by Git and should not be committed.
 ## Current Limits And Future Steps
 
 - Browser file upload is not implemented; use a local path input.
-- Visual/image-folder analysis is the connected workflow for this milestone.
+- Browser controls for the Stage 7A run endpoints arrive in the next stage.
 - Tabular and time-series workflows remain lightweight foundations for future
   Studio wiring.
 - Render feedback-informed review status from the JSONL feedback store.
@@ -136,12 +158,18 @@ require human review.
 
 ## Temporal Reports in Connected Mode
 
-ADE Studio discovers Stage 5B temporal JSON reports only after they exist in the local
-reports directory. It validates both the report and its referenced immutable temporal
+ADE Studio discovers Stage 5B temporal JSON reports after they exist in the local
+reports directory, including reports produced by the Stage 7A local run API. It
+validates both the report and its referenced immutable temporal
 artifact before exposing sequence metadata or candidate change events. Malformed reports
 are ignored with local summary warnings. This Technical Preview provides report review,
 not continuous observation, geographic registration, or domain verification.
 
 The [Temporal Visual Demo Evidence](demo_temporal_visual_evidence.md) guide provides the
 exact local commands needed to create a real temporal report before opening Studio. Studio
-does not populate temporal panels from examples or mock report values.
+does not populate temporal panels from examples or mock report values. Candidate
+temporal changes are review-prioritization signals and require human review.
+
+Stage 7A is local-only Technical Preview infrastructure. It does not provide a
+cloud or SaaS backend, accounts, uploads, continuous monitoring, satellite integration,
+or geospatial registration.

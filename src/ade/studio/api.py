@@ -8,15 +8,16 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from ade.studio.jobs import DEFAULT_STUDIO_JOB_STORE, StudioJobStore
 from ade.studio.service import (
     StudioPaths,
     build_summary,
     health_status,
     list_reports,
-    list_runs,
     load_report,
     resolve_report_asset,
     resolve_report_html,
+    run_temporal_analysis,
     run_visual_analysis,
 )
 
@@ -38,7 +39,46 @@ class StudioAnalysisRequest(BaseModel):
         return value
 
 
-def create_app() -> Any:
+class _LocalRunRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    output_name: str | None = Field(default=None, max_length=4096)
+    run_label: str | None = Field(default=None, max_length=255)
+
+    @field_validator("*")
+    @classmethod
+    def reject_unsafe_text(cls, value: object) -> object:
+        if isinstance(value, str) and "\x00" in value:
+            raise ValueError("must not contain null bytes")
+        if isinstance(value, str) and "://" in value:
+            raise ValueError("must be a local filesystem path, not an external URL")
+        if isinstance(value, str) and ".." in Path(value).parts:
+            raise ValueError("must not contain path traversal")
+        return value
+
+
+class ImageFolderRunRequest(_LocalRunRequest):
+    """Validated body for a local image-folder run."""
+
+    input_path: str = Field(..., min_length=1, max_length=4096)
+    config_path: str | None = Field(default=None, max_length=4096)
+
+
+class TemporalRunRequest(_LocalRunRequest):
+    """Validated body for a local temporal run."""
+
+    manifest_path: str = Field(..., min_length=1, max_length=4096)
+    strategy: Literal["adjacent_difference", "baseline_difference"] = "adjacent_difference"
+    patch_size: int | None = Field(default=None, ge=1, le=4096)
+    top_k: int = Field(default=10, ge=1, le=1000)
+    patch_top_k: int = Field(default=5, ge=1, le=1000)
+
+
+def create_app(
+    *,
+    paths: StudioPaths | None = None,
+    job_store: StudioJobStore | None = None,
+) -> Any:
     """Create the ADE Studio FastAPI app."""
 
     try:
@@ -51,6 +91,9 @@ def create_app() -> Any:
             "Install with: pip install -e .[studio]"
         ) from error
 
+    custom_paths = paths is not None
+    studio_paths = paths or StudioPaths()
+    jobs = job_store or DEFAULT_STUDIO_JOB_STORE
     app = FastAPI(
         title="ADE Studio Local API",
         version="0.1.0",
@@ -72,20 +115,31 @@ def create_app() -> Any:
 
     @app.get("/api/studio/summary")
     def summary() -> dict[str, object]:
-        return build_summary()
+        return build_summary(studio_paths) if custom_paths else build_summary()
 
     @app.get("/api/studio/runs")
     def runs() -> list[dict[str, object]]:
-        return list_runs()
+        return jobs.list()
+
+    @app.get("/api/studio/runs/{job_id}")
+    def run(job_id: str) -> dict[str, object]:
+        job = jobs.get(job_id)
+        if job is None:
+            raise HTTPException(status_code=404, detail=f"Studio job was not found: {job_id}")
+        return job
 
     @app.get("/api/studio/reports")
     def reports() -> list[dict[str, object]]:
-        return list_reports()
+        return list_reports(studio_paths) if custom_paths else list_reports()
 
     @app.get("/api/studio/reports/{report_name}/html")
     def report_html(report_name: str) -> Any:
         try:
-            html_path = resolve_report_html(report_name)
+            html_path = (
+                resolve_report_html(report_name, studio_paths)
+                if custom_paths
+                else resolve_report_html(report_name)
+            )
         except FileNotFoundError as error:
             raise HTTPException(status_code=404, detail=str(error)) from error
         except ValueError as error:
@@ -95,7 +149,11 @@ def create_app() -> Any:
     @app.get("/api/studio/reports/{report_name}")
     def report(report_name: str) -> dict[str, object]:
         try:
-            return load_report(report_name)
+            return (
+                load_report(report_name, studio_paths)
+                if custom_paths
+                else load_report(report_name)
+            )
         except FileNotFoundError as error:
             raise HTTPException(status_code=404, detail=str(error)) from error
         except ValueError as error:
@@ -104,7 +162,11 @@ def create_app() -> Any:
     @app.get("/api/studio/report-assets/{asset_name:path}")
     def report_asset(asset_name: str) -> Any:
         try:
-            asset_path = resolve_report_asset(asset_name)
+            asset_path = (
+                resolve_report_asset(asset_name, studio_paths)
+                if custom_paths
+                else resolve_report_asset(asset_name)
+            )
         except (FileNotFoundError, ValueError) as error:
             raise HTTPException(status_code=404, detail=str(error)) from error
         return FileResponse(asset_path)
@@ -115,12 +177,80 @@ def create_app() -> Any:
             return run_visual_analysis(
                 input_path=Path(payload.input_path),
                 output_name=payload.output_name,
-                paths=StudioPaths(),
+                paths=studio_paths,
             )
         except FileNotFoundError as error:
             raise HTTPException(status_code=400, detail=str(error)) from error
         except ValueError as error:
             raise HTTPException(status_code=400, detail=str(error)) from error
+
+    @app.post("/api/studio/runs/image-folder")
+    def image_folder_run(payload: ImageFolderRunRequest = Body(...)) -> dict[str, object]:
+        job = jobs.create(
+            "image_folder_analysis",
+            {
+                "input_path": payload.input_path,
+                "config_path": payload.config_path,
+                "run_label": payload.run_label,
+            },
+        )
+        jobs.start(job)
+        try:
+            result = run_visual_analysis(
+                input_path=Path(payload.input_path),
+                output_name=payload.output_name,
+                config_path=Path(payload.config_path) if payload.config_path else None,
+                paths=studio_paths,
+            )
+            report_paths = [
+                value
+                for key in (
+                    "markdown_report_path",
+                    "json_report_path",
+                    "html_report_path",
+                )
+                if isinstance((value := result.get(key)), str)
+            ]
+            jobs.succeed(job, report_paths=report_paths, artifact_paths=[])
+        except (FileNotFoundError, OSError, ValueError) as error:
+            jobs.fail(job, error)
+        return job.to_dict()
+
+    @app.post("/api/studio/runs/temporal")
+    def temporal_run(payload: TemporalRunRequest = Body(...)) -> dict[str, object]:
+        job = jobs.create(
+            "temporal_analysis",
+            {
+                "manifest_path": payload.manifest_path,
+                "strategy": payload.strategy,
+                "run_label": payload.run_label,
+            },
+        )
+        jobs.start(job)
+        try:
+            result = run_temporal_analysis(
+                manifest_path=Path(payload.manifest_path),
+                output_name=payload.output_name,
+                strategy=payload.strategy,
+                patch_size=payload.patch_size,
+                top_k=payload.top_k,
+                patch_top_k=payload.patch_top_k,
+                paths=studio_paths,
+            )
+            report_paths = [
+                value
+                for key in ("markdown_report_path", "json_report_path")
+                if isinstance((value := result.get(key)), str)
+            ]
+            artifact = result.get("artifact_path")
+            jobs.succeed(
+                job,
+                report_paths=report_paths,
+                artifact_paths=[artifact] if isinstance(artifact, str) else [],
+            )
+        except (FileNotFoundError, OSError, ValueError) as error:
+            jobs.fail(job, error)
+        return job.to_dict()
 
     return app
 

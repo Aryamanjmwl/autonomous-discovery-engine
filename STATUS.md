@@ -9,8 +9,9 @@ anomalies, candidate concepts, or possible patterns that require human review.
 
 - Technical Preview foundation for local, adapter-based discovery workflows
 - Mature visual workflow for local image folders
-- ADE Studio localhost API integration for synchronous visual/image-folder runs,
-  local run/report reads, and constrained report asset/HTML serving
+- ADE Studio localhost API integration for synchronous visual/image-folder and
+  temporal local runs, in-memory job status, local report reads, and constrained
+  report asset/HTML serving
 - Schema-versioned visual-engine contracts, strict configuration validation,
   deterministic dataset fingerprints, and integrity-checked manifest codecs
 - Immutable, content-addressed visual reference memory with validated NumPy
@@ -46,6 +47,22 @@ anomalies, candidate concepts, or possible patterns that require human review.
 - Local human-review feedback through JSONL records
 - Dashboard UX docs and frontend contracts; no production dashboard app
 - Not a hosted product deployment: no hosted uploads, auth, billing, database, or cloud deployment
+
+## Stage 7A Studio Local Run API
+
+The local Studio backend can trigger the existing image-folder and temporal
+workflows through job-oriented endpoints. Jobs are synchronous and stored only
+in process memory. Successful jobs reference validated reports and immutable
+temporal artifacts already compatible with Studio discovery; failed jobs retain
+safe error text and no valid output references.
+
+Paths are confined to the configured local workspace, report root, and artifact
+root. External URLs, traversal, missing inputs, malformed manifests, downloads,
+and arbitrary command execution are rejected or fail cleanly. The browser run UI
+is planned for the next stage. This remains a local-only Technical Preview: no
+cloud/SaaS backend, accounts, continuous monitoring, satellite integration, or
+geospatial registration. All candidate findings are review-prioritization
+signals and require human review.
 
 ## Done
 
@@ -170,7 +187,7 @@ workflow integration uses the separate explicit Stage 5B CLI and report path.
 Connected ADE Studio now discovers valid local temporal reports, verifies their referenced
 immutable artifacts, and exposes sequence summaries and candidate change events through the
 existing report APIs and UI. Invalid temporal files are omitted with warnings. No temporal
-run controls, live monitoring, geospatial maps, or fake charts were added; findings remain
+run controls, continuous monitoring, geospatial maps, or fake charts were added; findings remain
 review-prioritization signals that require human review.
 
 ## Stage 5D Deterministic Temporal Demo

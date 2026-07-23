@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from ade import __version__
-from ade.cli import run_pipeline
+from ade.cli import run_pipeline, run_temporal_pipeline
 from ade.reporting.html_report import write_html_report
 from ade.reporting.report_validator import validate_report_dict, validate_report_file
 from ade.reporting.run_index import load_run_index
@@ -27,6 +27,7 @@ DEFAULT_RUN_INDEX_PATH = DEFAULT_REPORTS_DIR / "runs/index.json"
 DEFAULT_DASHBOARD_DIR = DEFAULT_PROJECT_ROOT / "data/dashboard"
 DEFAULT_FEEDBACK_PATH = DEFAULT_PROJECT_ROOT / "data/feedback/feedback.jsonl"
 DEFAULT_REPORT_ASSETS_DIR = DEFAULT_REPORTS_DIR / "assets"
+DEFAULT_ARTIFACTS_DIR = DEFAULT_PROJECT_ROOT / "data/artifacts"
 ADVANCED_EVIDENCE_FIELDS = (
     "reference_scoring_summary",
     "spatial_anomaly_map_summary",
@@ -45,6 +46,7 @@ class StudioPaths:
     dashboard_dir: Path = DEFAULT_DASHBOARD_DIR
     feedback_path: Path = DEFAULT_FEEDBACK_PATH
     report_assets_dir: Path = DEFAULT_REPORT_ASSETS_DIR
+    artifacts_dir: Path = DEFAULT_ARTIFACTS_DIR
     project_root: Path = DEFAULT_PROJECT_ROOT
 
 
@@ -234,24 +236,33 @@ def resolve_report_html(report_name: str, paths: StudioPaths = StudioPaths()) ->
 def run_visual_analysis(
     input_path: Path | str,
     output_name: str | None = None,
+    config_path: Path | str | None = None,
     paths: StudioPaths = StudioPaths(),
 ) -> dict[str, object]:
     """Run ADE's existing visual workflow for a local image folder."""
 
-    source = _resolve_input_path(input_path, paths.project_root)
+    source = resolve_workspace_input(input_path, paths, kind="input path")
     if not source.exists():
         raise FileNotFoundError(f"Input path does not exist: {source}")
     if not source.is_dir():
         raise ValueError("Only visual/image-folder analysis is supported in ADE Studio.")
 
-    report_name = _report_name(output_name)
-    reports_root = paths.reports_dir.resolve()
-    output_path = (reports_root / report_name).resolve()
-    if output_path.parent != reports_root:
-        raise ValueError("Output report must resolve inside the reports directory.")
+    config = (
+        resolve_workspace_input(config_path, paths, kind="config file")
+        if config_path is not None
+        else None
+    )
+    if config is not None and not config.is_file():
+        raise ValueError("Config path must identify a local file.")
+    output_path = resolve_report_output(output_name, paths, prefix="studio_report")
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    markdown_path = run_pipeline(input_dir=source, output_path=output_path, modality="image")
+    markdown_path = run_pipeline(
+        input_dir=source,
+        output_path=output_path,
+        config_path=config,
+        modality="image",
+    )
     json_path = markdown_path.with_suffix(".json")
     validation = validate_report_file(json_path)
     if not validation.is_valid:
@@ -283,6 +294,112 @@ def run_visual_analysis(
         "human_review_required": report.get("human_review_required") is True,
         "validated": True,
     }
+
+
+def run_temporal_analysis(
+    manifest_path: Path | str,
+    output_name: str | None,
+    *,
+    strategy: str,
+    patch_size: int | None = None,
+    top_k: int = 10,
+    patch_top_k: int = 5,
+    paths: StudioPaths = StudioPaths(),
+) -> dict[str, object]:
+    """Run ADE's existing manifest-driven temporal workflow locally."""
+
+    manifest = resolve_workspace_input(manifest_path, paths, kind="temporal manifest")
+    if not manifest.is_file():
+        raise ValueError("Temporal manifest path must identify a local file.")
+    output_path = resolve_report_output(output_name, paths, prefix="studio_temporal")
+    artifact_root = (paths.artifacts_dir / output_path.stem).resolve()
+    _require_within(artifact_root, paths.artifacts_dir.resolve(), "artifact output")
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    artifact_root.parent.mkdir(parents=True, exist_ok=True)
+    markdown_path, json_path, artifact_path = run_temporal_pipeline(
+        manifest,
+        output_path,
+        strategy=strategy,  # type: ignore[arg-type]
+        patch_size=patch_size,
+        top_k=top_k,
+        patch_top_k=patch_top_k,
+        artifact_root=artifact_root,
+    )
+    return {
+        "status": "ok",
+        "message": (
+            "Temporal analysis complete. Candidate temporal changes require human review."
+        ),
+        "workflow": "temporal",
+        "input_path": manifest.as_posix(),
+        "markdown_report_path": markdown_path.as_posix(),
+        "json_report_path": json_path.as_posix(),
+        "artifact_path": artifact_path.as_posix(),
+        "human_review_required": True,
+        "validated": True,
+    }
+
+
+def resolve_workspace_input(
+    input_path: Path | str,
+    paths: StudioPaths,
+    *,
+    kind: str,
+) -> Path:
+    """Validate and resolve a local input confined to the Studio workspace."""
+
+    raw_path = str(input_path).strip()
+    if not raw_path or "\x00" in raw_path:
+        raise ValueError(f"{kind} must be a non-empty local filesystem path")
+    if _looks_like_url(raw_path):
+        raise ValueError(f"{kind} must not be an external URL")
+    candidate = Path(raw_path)
+    if ".." in candidate.parts:
+        raise ValueError(f"{kind} must not contain path traversal")
+    root = paths.project_root.resolve()
+    resolved = candidate.resolve() if candidate.is_absolute() else (root / candidate).resolve()
+    _require_within(resolved, root, kind)
+    if not resolved.exists():
+        raise FileNotFoundError(f"{kind.capitalize()} does not exist: {resolved}")
+    return resolved
+
+
+def resolve_report_output(
+    output_name: str | None,
+    paths: StudioPaths,
+    *,
+    prefix: str,
+) -> Path:
+    """Resolve a Markdown output confined to the configured reports root."""
+
+    reports_root = paths.reports_dir.resolve()
+    if output_name is None or not output_name.strip():
+        name = f"{prefix}_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S_%f')}.md"
+        return reports_root / name
+    raw_path = output_name.strip()
+    if "\x00" in raw_path or _looks_like_url(raw_path):
+        raise ValueError("Output report must be a local path")
+    candidate = Path(raw_path)
+    if ".." in candidate.parts:
+        raise ValueError("Output report must not contain path traversal")
+    resolved = (
+        candidate.resolve()
+        if candidate.is_absolute()
+        else (reports_root / candidate).resolve()
+    )
+    _require_within(resolved, reports_root, "output report")
+    if resolved.parent != reports_root:
+        raise ValueError("Output report must be directly inside the reports directory")
+    return resolved.with_suffix(".md")
+
+
+def _require_within(path: Path, root: Path, kind: str) -> None:
+    if path != root and root not in path.parents:
+        raise ValueError(f"{kind.capitalize()} must remain inside the approved local root")
+
+
+def _looks_like_url(value: str) -> bool:
+    return bool(re.match(r"^[A-Za-z][A-Za-z0-9+.-]*://", value))
 
 
 def _normalize_report_detail(
