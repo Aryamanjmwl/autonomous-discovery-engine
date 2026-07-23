@@ -40,7 +40,7 @@ npm run dev
 The frontend uses `NEXT_PUBLIC_ADE_API_URL` and defaults to
 `http://127.0.0.1:8765`.
 
-The frontend posts JSON to `POST /api/studio/analysis`. The `input_path` value
+The existing frontend posts JSON to `POST /api/studio/analysis`. The `input_path` value
 can be an absolute Windows path such as `D:\ADE\ade\data\raw\demo_images` or a
 repo-relative path such as `data/raw/demo_images`:
 
@@ -51,6 +51,28 @@ repo-relative path such as `data/raw/demo_images`:
   "output_name": "studio_report.md"
 }
 ```
+
+## Stage 7A Local Run API
+
+The local backend now provides synchronous job endpoints for existing ADE
+workflows:
+
+- `POST /api/studio/runs/image-folder`
+- `POST /api/studio/runs/temporal`
+- `GET /api/studio/runs`
+- `GET /api/studio/runs/{job_id}`
+
+Job history is process-local and in memory. Each record includes its job type,
+status and timestamps, input summary, validated report/artifact paths, warnings,
+safe failure text, and `human_review_required`. The browser run UI is the next
+stage; these endpoints do not add fake controls or values to the current UI.
+
+Input folders, config files, and temporal manifests must already exist inside
+the configured local workspace. External URLs, traversal, missing inputs, and
+outputs outside the configured report/artifact roots are rejected. There are no
+downloads, filesystem browsing endpoints, shell commands, cloud services, or
+continuous monitoring. Outputs remain candidate findings and review-prioritization
+signals that require human review.
 
 Generated report preview assets are served locally through
 `GET /api/studio/report-assets/{asset_name}` from `data/reports/assets/`. The

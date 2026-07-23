@@ -145,7 +145,16 @@ monitoring are out of scope.
 - Feedback labels
 - Export controls
 
-## Stage 7: Multi-Modal Expansion
+## Stage 7A: Studio Local Run API
+
+- Local synchronous jobs for image-folder and temporal analysis
+- In-memory queued/running/succeeded/failed records with safe errors
+- Workspace-confined inputs and report/artifact outputs
+- Reuse existing workflow and validation boundaries
+- Browser run UI follows in the next stage
+- No cloud/SaaS backend, accounts, downloads, or continuous monitoring
+
+## Later Stage 7: Multi-Modal Expansion
 
 1. Tabular adapter
 2. Time-series adapter

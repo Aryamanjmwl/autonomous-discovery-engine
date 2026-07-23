@@ -302,3 +302,26 @@ those validated fields and do not create monitoring, timeline, chart, or map sta
 Stage 5D adds only a deterministic local fixture generator and an isolated smoke verifier.
 It exercises the same manifest, CLI, artifact, report, and HTML boundaries as user-provided
 sequences without changing runtime defaults or introducing external data.
+
+## Studio Local Run Boundary
+
+Stage 7A adds a synchronous, process-local job boundary around the existing
+image-folder and temporal workflow functions. A thread-safe in-memory registry
+records queued, running, succeeded, and failed states; restarting the Studio
+backend clears this history. This is intentionally not a durable queue or worker
+system.
+
+Request validation has two layers. Schemas reject external URLs, traversal,
+unknown fields, invalid strategies, and invalid evidence limits. Canonical path
+resolution then confines inputs/config/manifests to the configured local
+workspace, reports to the report root, and temporal artifacts to the artifact
+root. The service calls internal Python workflows directly and validates their
+reports/artifacts before attaching paths to a successful job. A failed job has
+empty output lists.
+
+The existing CLI dispatch and report discovery formats are unchanged. Studio
+can discover reports produced by these runs through the same validated report
+endpoints. This Technical Preview boundary has no cloud/SaaS services, accounts,
+downloads, arbitrary command execution, continuous monitoring, satellite integration,
+or geospatial registration. Candidate anomalies, candidate concepts, and
+candidate temporal changes require human review.
