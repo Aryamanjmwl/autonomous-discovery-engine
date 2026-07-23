@@ -52,6 +52,45 @@ export interface StudioRun {
   modality?: string
 }
 
+export type StudioRunStatus = 'queued' | 'running' | 'succeeded' | 'failed'
+export type StudioRunJobType = 'image_folder_analysis' | 'temporal_analysis'
+
+export interface StudioRunJob {
+  job_id: string
+  job_type: StudioRunJobType
+  status: StudioRunStatus
+  created_at: string
+  started_at: string | null
+  finished_at: string | null
+  input_summary: Record<string, unknown>
+  output_report_paths: string[]
+  output_artifact_paths: string[]
+  error_message: string | null
+  warnings: string[]
+  human_review_required: boolean
+}
+
+export interface ImageFolderRunRequest {
+  input_path: string
+  output_name?: string
+  config_path?: string
+  run_label?: string
+}
+
+export interface TemporalRunRequest {
+  manifest_path: string
+  output_name?: string
+  strategy: 'adjacent_difference' | 'baseline_difference'
+  run_label?: string
+  patch_size?: number
+  top_k?: number
+  patch_top_k?: number
+}
+
+export interface StudioRunErrorResponse {
+  detail?: string | Array<{ loc?: Array<string | number>; msg?: string }>
+}
+
 export interface StudioReport {
   name: string
   path: string
@@ -180,7 +219,7 @@ export interface StudioData {
   mode: EngineMode
   health: StudioHealth | null
   summary: StudioSummary | null
-  runs: StudioRun[]
+  runs: StudioRunJob[]
   reports: StudioReport[]
   selectedReport: StudioReportDetail | null
   error: string | null
@@ -188,6 +227,7 @@ export interface StudioData {
 
 const DEFAULT_API_URL = 'http://127.0.0.1:8765'
 const REQUEST_TIMEOUT_MS = 15_000
+const RUN_REQUEST_TIMEOUT_MS = 30 * 60_000
 
 export function adeApiBaseUrl(): string {
   const configured = (process.env.NEXT_PUBLIC_ADE_API_URL || DEFAULT_API_URL).trim()
@@ -211,7 +251,7 @@ export async function loadStudioData(reportName?: string): Promise<StudioData> {
     const [health, summary, runs, reports] = await Promise.all([
       request<StudioHealth>('/health'),
       request<StudioSummary>('/api/studio/summary'),
-      request<StudioRun[]>('/api/studio/runs'),
+      listStudioRuns(),
       request<StudioReport[]>('/api/studio/reports'),
     ])
     const selectedName = reportName || reports[0]?.name
@@ -240,6 +280,40 @@ export async function loadStudioData(reportName?: string): Promise<StudioData> {
   }
 }
 
+export async function createImageFolderRun(
+  payload: ImageFolderRunRequest,
+): Promise<StudioRunJob> {
+  return request<StudioRunJob>(
+    '/api/studio/runs/image-folder',
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(payload),
+    },
+    RUN_REQUEST_TIMEOUT_MS,
+  )
+}
+
+export async function createTemporalRun(payload: TemporalRunRequest): Promise<StudioRunJob> {
+  return request<StudioRunJob>(
+    '/api/studio/runs/temporal',
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(payload),
+    },
+    RUN_REQUEST_TIMEOUT_MS,
+  )
+}
+
+export async function listStudioRuns(): Promise<StudioRunJob[]> {
+  return request<StudioRunJob[]>('/api/studio/runs')
+}
+
+export async function getStudioRun(jobId: string): Promise<StudioRunJob> {
+  return request<StudioRunJob>(`/api/studio/runs/${encodeURIComponent(jobId)}`)
+}
+
 export async function runStudioAnalysis(payload: {
   input_path: string
   workflow: 'visual' | 'tabular' | 'time-series'
@@ -262,8 +336,12 @@ export function reportHtmlUrl(reportName?: string | null): string | null {
   return `${adeApiBaseUrl()}/api/studio/reports/${encodeURIComponent(reportName)}/html`
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const timeout = AbortSignal.timeout(REQUEST_TIMEOUT_MS)
+async function request<T>(
+  path: string,
+  init?: RequestInit,
+  timeoutMs = REQUEST_TIMEOUT_MS,
+): Promise<T> {
+  const timeout = AbortSignal.timeout(timeoutMs)
   const response = await fetch(`${adeApiBaseUrl()}${path}`, {
     cache: 'no-store',
     signal: timeout,

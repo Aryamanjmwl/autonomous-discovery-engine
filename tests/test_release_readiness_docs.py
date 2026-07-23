@@ -334,7 +334,8 @@ def test_ade_studio_connected_mode_does_not_expose_inert_controls() -> None:
 
     assert "Studio feedback submission is not implemented in this Technical Preview" in combined
     assert "reportHtmlUrl" in combined
-    assert "Clear form" in combined
+    assert "Run image-folder analysis" in combined
+    assert "Run temporal analysis" in combined
     assert "onRefresh" in combined
 
 
@@ -357,6 +358,53 @@ def test_ade_studio_temporal_ui_is_report_backed_without_fake_controls() -> None
         "Growth percentage",
     ):
         assert forbidden not in combined
+
+
+def test_stage_7b_studio_run_ui_uses_real_local_job_contracts() -> None:
+    api = _read("apps/studio/frontend/lib/ade-api.ts")
+    run_form = _read("apps/studio/frontend/components/ade/screens/new-analysis.tsx")
+    run_status = _read("apps/studio/frontend/components/ade/screens/runs.tsx")
+    studio = _read("apps/studio/frontend/components/ade/ade-studio.tsx")
+    combined = "\n".join((run_form, run_status))
+
+    for helper in (
+        "createImageFolderRun",
+        "createTemporalRun",
+        "listStudioRuns",
+        "getStudioRun",
+    ):
+        assert f"function {helper}" in api
+    for type_name in (
+        "StudioRunJob",
+        "StudioRunStatus",
+        "ImageFolderRunRequest",
+        "TemporalRunRequest",
+        "StudioRunErrorResponse",
+    ):
+        assert f"interface {type_name}" in api or f"type {type_name}" in api
+
+    assert 'value="adjacent_difference"' in run_form
+    assert 'value="baseline_difference"' in run_form
+    assert "machine running the ADE Studio backend" in run_form
+    assert "Browser upload and server filesystem browsing are not available" in run_form
+    assert "No Studio runs have been started in this local session." in run_status
+    assert "error_message" in run_status
+    assert "output_report_paths" in run_status
+    assert "output_artifact_paths" in run_status
+    assert "onRunComplete" in studio
+    assert "runsFromApi={studioData.runs}" in studio
+
+    for forbidden in (
+        'href="#"',
+        "progress%",
+        "selected.progress",
+        "fake progress",
+        "Satellite feed",
+        "Live monitor",
+        "cloud upload",
+    ):
+        assert forbidden not in combined
+    assert "onClick={() => {}}" not in combined
 
 
 def test_technical_preview_release_docs_are_release_ready_without_overclaiming() -> None:

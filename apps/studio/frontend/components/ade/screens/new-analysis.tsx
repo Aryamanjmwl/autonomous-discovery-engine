@@ -1,321 +1,272 @@
 'use client'
 
 import { useState } from 'react'
-import { Folder, Eye, Grid3x3, AudioWaveform, Lock, ChevronDown, FileText, type LucideIcon } from 'lucide-react'
+import { FileClock, Folder, Lock, Settings2 } from 'lucide-react'
 import { ScreenHeader } from '@/components/ade/screen-header'
 import { Panel, PanelHeader, SectionLabel, TechButton } from '@/components/ade/primitives'
-import { projects, type ScreenId } from '@/lib/ade-data'
-import { runStudioAnalysis, type EngineMode, type StudioAnalysisResult } from '@/lib/ade-api'
-import { cn } from '@/lib/utils'
+import type { ScreenId } from '@/lib/ade-data'
+import {
+  createImageFolderRun,
+  createTemporalRun,
+  type EngineMode,
+  type StudioRunJob,
+} from '@/lib/ade-api'
 
-type Workflow = 'visual' | 'tabular' | 'time-series'
-
-const WORKFLOWS: { id: Workflow; label: string; icon: LucideIcon }[] = [
-  { id: 'visual', label: 'Visual', icon: Eye },
-  { id: 'tabular', label: 'Tabular', icon: Grid3x3 },
-  { id: 'time-series', label: 'Series', icon: AudioWaveform },
-]
-
-const ARTIFACTS = [
-  { name: 'Markdown report', size: 'Expected artifact' },
-  { name: 'JSON report', size: 'Expected artifact' },
-  { name: 'HTML report', size: 'Expected artifact' },
-  { name: 'Candidate findings', size: 'Requires human review' },
-]
+type SubmitKind = 'image' | 'temporal' | null
+type TemporalStrategy = 'adjacent_difference' | 'baseline_difference'
 
 export function NewAnalysisScreen({
-  activeProject,
-  onProjectChange,
   onNavigate,
   engineMode,
-  onAnalysisComplete,
+  onRunComplete,
 }: {
-  activeProject: string
-  onProjectChange: (name: string) => void
   onNavigate: (id: ScreenId) => void
   engineMode: EngineMode
-  onAnalysisComplete: (result: StudioAnalysisResult) => void
+  onRunComplete: (job: StudioRunJob) => void
 }) {
-  const [workflow, setWorkflow] = useState<Workflow>('visual')
-  const [dataset, setDataset] = useState('data/raw/demo_images')
-  const [outputName, setOutputName] = useState('studio_report.md')
-  const [result, setResult] = useState<StudioAnalysisResult | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [isRunning, setIsRunning] = useState(false)
-
   const connected = engineMode === 'connected'
-  const canRun = connected && workflow === 'visual' && dataset.trim().length > 0 && !isRunning
+  const [imagePath, setImagePath] = useState('')
+  const [imageLabel, setImageLabel] = useState('')
+  const [configPath, setConfigPath] = useState('')
+  const [manifestPath, setManifestPath] = useState('')
+  const [temporalLabel, setTemporalLabel] = useState('')
+  const [strategy, setStrategy] = useState<TemporalStrategy>('adjacent_difference')
+  const [patchSize, setPatchSize] = useState('')
+  const [submitting, setSubmitting] = useState<SubmitKind>(null)
+  const [job, setJob] = useState<StudioRunJob | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
-  async function runAnalysis() {
-    if (!canRun) return
-    setIsRunning(true)
+  async function submitImageRun() {
+    if (!connected || !imagePath.trim() || submitting) return
+    setSubmitting('image')
     setError(null)
-    setResult(null)
+    setJob(null)
     try {
-      const nextResult = await runStudioAnalysis({
-        input_path: dataset.trim(),
-        workflow,
-        output_name: outputName.trim() || undefined,
+      const nextJob = await createImageFolderRun({
+        input_path: imagePath.trim(),
+        config_path: configPath.trim() || undefined,
+        run_label: imageLabel.trim() || undefined,
       })
-      setResult(nextResult)
-      onAnalysisComplete(nextResult)
+      finish(nextJob)
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : 'Local analysis failed.')
+      setError(errorMessage(nextError, 'Image-folder local run failed.'))
     } finally {
-      setIsRunning(false)
+      setSubmitting(null)
     }
   }
 
-  function clearForm() {
-    setWorkflow('visual')
-    setDataset('')
-    setOutputName('studio_report.md')
-    setResult(null)
+  async function submitTemporalRun() {
+    if (!connected || !manifestPath.trim() || submitting) return
+    setSubmitting('temporal')
     setError(null)
+    setJob(null)
+    const parsedPatchSize = patchSize.trim() ? Number(patchSize) : undefined
+    if (parsedPatchSize !== undefined && (!Number.isInteger(parsedPatchSize) || parsedPatchSize < 1)) {
+      setError('Patch size must be a positive whole number.')
+      setSubmitting(null)
+      return
+    }
+    try {
+      const nextJob = await createTemporalRun({
+        manifest_path: manifestPath.trim(),
+        strategy,
+        run_label: temporalLabel.trim() || undefined,
+        patch_size: parsedPatchSize,
+      })
+      finish(nextJob)
+    } catch (nextError) {
+      setError(errorMessage(nextError, 'Temporal local run failed.'))
+    } finally {
+      setSubmitting(null)
+    }
+  }
+
+  function finish(nextJob: StudioRunJob) {
+    setJob(nextJob)
+    onRunComplete(nextJob)
+    if (nextJob.status === 'failed') {
+      setError(nextJob.error_message || 'The local run failed without an error message.')
+    }
   }
 
   return (
     <div className="flex flex-col gap-6">
       <ScreenHeader
-        eyebrow="New Analysis"
-        title="Configure Local Analysis"
-        description="Run the local ADE visual/image-folder workflow through the connected engine."
+        eyebrow="Run"
+        title="Start a Local Run"
+        description="Start image-folder or temporal analysis through the local ADE Studio backend."
       />
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,380px)_1fr]">
-        {/* Config column */}
-        <div className="flex flex-col gap-5">
-          <div>
-            <SectionLabel>{connected ? 'Workspace' : 'Project'}</SectionLabel>
-            {connected ? (
-              <div className="mt-2 rounded-md border border-border bg-card px-3 py-3 font-mono text-sm text-foreground">
-                ADE Local Engine
-              </div>
-            ) : (
-              <div className="relative mt-2">
-                <select
-                  value={activeProject}
-                  onChange={(e) => onProjectChange(e.target.value)}
-                  aria-label="Project"
-                  className="h-11 w-full appearance-none rounded-md border border-border bg-card px-3 pr-9 font-mono text-sm text-foreground focus:border-primary/50 focus:outline-none"
-                >
-                  {projects.map((p) => (
-                    <option key={p.id} value={p.name}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              </div>
-            )}
-          </div>
+      <div className="flex items-start gap-3 rounded-md border border-pattern/40 bg-pattern/10 p-4">
+        <Lock className="mt-0.5 size-4 shrink-0 text-pattern" />
+        <div className="text-sm leading-relaxed text-pattern">
+          <p className="font-mono text-xs uppercase tracking-[0.12em]">Local workspace only</p>
+          <p className="mt-1">
+            Enter paths that already exist on the machine running the ADE Studio backend.
+            Browser upload and server filesystem browsing are not available in this Technical Preview.
+          </p>
+        </div>
+      </div>
 
-          <div>
-            <SectionLabel>Local input path</SectionLabel>
-            <div className="mt-2 flex items-center gap-3 rounded-md border border-border bg-card p-3">
-              <Folder className="size-4 shrink-0 text-muted-foreground" />
-              <input
-                value={dataset}
-                onChange={(e) => setDataset(e.target.value)}
-                aria-label="Dataset path"
-                className="min-w-0 flex-1 bg-transparent font-mono text-sm text-foreground focus:outline-none"
-              />
-            </div>
-            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-              Browser upload is not implemented yet. Enter a local folder path that the backend can read.
-            </p>
-          </div>
+      {!connected ? (
+        <div className="rounded-md border border-critical/40 bg-critical/10 p-4 text-sm text-critical">
+          The local ADE backend is unavailable. Start it before submitting a local run.
+        </div>
+      ) : null}
 
-          <div>
-            <SectionLabel>Output report name</SectionLabel>
-            <div className="mt-2 flex items-center gap-3 rounded-md border border-border bg-card p-3">
-              <FileText className="size-4 shrink-0 text-muted-foreground" />
-              <input
-                value={outputName}
-                onChange={(e) => setOutputName(e.target.value)}
-                aria-label="Output report name"
-                className="min-w-0 flex-1 bg-transparent font-mono text-sm text-foreground focus:outline-none"
-              />
-            </div>
-          </div>
-
-          <div>
-            <SectionLabel>Adapter workflow</SectionLabel>
-            <div className="mt-2 grid grid-cols-3 gap-2">
-              {WORKFLOWS.map((w) => {
-                const Icon = w.icon
-                const active = workflow === w.id
-                const enabled = w.id === 'visual'
-                return (
-                  <button
-                    key={w.id}
-                    type="button"
-                    onClick={() => setWorkflow(w.id)}
-                    aria-pressed={active}
-                    disabled={!enabled}
-                    className={cn(
-                      'flex flex-col items-center gap-2 rounded-md border px-2 py-4 transition-colors',
-                      active
-                        ? 'border-primary bg-primary/10 text-primary'
-                        : 'border-border bg-card text-muted-foreground hover:text-foreground',
-                      !enabled && 'cursor-not-allowed opacity-55 hover:text-muted-foreground',
-                    )}
-                  >
-                    <Icon className="size-5" />
-                    <span className="font-mono text-[11px] uppercase tracking-[0.1em]">{w.label}</span>
-                    {!enabled ? (
-                      <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-faint">
-                        Foundation
-                      </span>
-                    ) : null}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
-          <div className="flex items-start gap-3 rounded-md border border-pattern/40 bg-pattern/10 p-3">
-            <Lock className="mt-0.5 size-4 shrink-0 text-pattern" />
-            <div>
-              <p className="font-mono text-xs uppercase tracking-[0.12em] text-pattern">Local-only execution</p>
-              <p className="mt-1 text-xs leading-relaxed text-pattern/90">
-                All processing is represented as a local workflow. No data leaves this workspace.
-              </p>
-            </div>
-          </div>
-
-          {!connected ? (
-            <div className="rounded-md border border-pattern/40 bg-pattern/10 p-3 text-xs leading-relaxed text-pattern">
-              Backend unavailable. Start the local API to run connected analysis.
-            </div>
-          ) : null}
-
-          {error ? (
-            <div className="rounded-md border border-critical/40 bg-critical/10 p-3 text-xs leading-relaxed text-critical">
-              {error}
-            </div>
-          ) : null}
-
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+        <RunFormPanel title="Image folder analysis">
+          <PathField
+            label="Local image folder path"
+            value={imagePath}
+            onChange={setImagePath}
+            placeholder="data/raw/demo_images"
+            icon="folder"
+          />
+          <TextField label="Optional run label" value={imageLabel} onChange={setImageLabel} />
+          <PathField
+            label="Optional config path"
+            value={configPath}
+            onChange={setConfigPath}
+            placeholder="configs/default.yaml"
+            icon="settings"
+          />
           <TechButton
             variant="primary"
-            className="h-11 w-full"
-            onClick={runAnalysis}
-            disabled={!canRun}
+            className="w-full"
+            onClick={() => void submitImageRun()}
+            disabled={!connected || !imagePath.trim() || submitting !== null}
           >
-            {isRunning ? 'Running local analysis...' : 'Run local analysis'}
+            {submitting === 'image' ? 'Submitting local run…' : 'Run image-folder analysis'}
           </TechButton>
-          <TechButton variant="secondary" className="h-10 w-full" onClick={clearForm} disabled={isRunning}>
-            Clear form
-          </TechButton>
-          {result ? (
-            <div className="rounded-md border border-operational/40 bg-operational/10 p-3 text-xs leading-relaxed text-operational">
-              {result.message || 'Local analysis complete.'}
-            </div>
-          ) : null}
+        </RunFormPanel>
 
-          {result ? (
-            <TechButton variant="secondary" className="h-10 w-full" onClick={() => onNavigate('reports')}>
-              View generated report
+        <RunFormPanel title="Temporal analysis">
+          <PathField
+            label="Local temporal manifest path"
+            value={manifestPath}
+            onChange={setManifestPath}
+            placeholder="data/raw/temporal_demo/scene/manifest.json"
+            icon="manifest"
+          />
+          <div>
+            <SectionLabel>Strategy</SectionLabel>
+            <select
+              value={strategy}
+              onChange={(event) => setStrategy(event.target.value as TemporalStrategy)}
+              aria-label="Temporal strategy"
+              className="mt-2 h-11 w-full rounded-md border border-border bg-card px-3 font-mono text-sm text-foreground focus:border-primary/50 focus:outline-none"
+            >
+              <option value="adjacent_difference">adjacent_difference</option>
+              <option value="baseline_difference">baseline_difference</option>
+            </select>
+          </div>
+          <TextField label="Optional run label" value={temporalLabel} onChange={setTemporalLabel} />
+          <TextField
+            label="Optional patch size"
+            value={patchSize}
+            onChange={setPatchSize}
+            inputMode="numeric"
+          />
+          <TechButton
+            variant="primary"
+            className="w-full"
+            onClick={() => void submitTemporalRun()}
+            disabled={!connected || !manifestPath.trim() || submitting !== null}
+          >
+            {submitting === 'temporal' ? 'Submitting local run…' : 'Run temporal analysis'}
+          </TechButton>
+        </RunFormPanel>
+      </div>
+
+      {error ? (
+        <div role="alert" className="rounded-md border border-critical/40 bg-critical/10 p-4 text-sm text-critical">
+          {error}
+        </div>
+      ) : null}
+
+      {job && job.status === 'succeeded' ? (
+        <div className="rounded-md border border-operational/40 bg-operational/10 p-4 text-sm text-operational">
+          <p>Local run completed. Generated outputs remain candidate findings and require human review.</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <TechButton variant="secondary" onClick={() => onNavigate('reports')}>
+              Open Reports
             </TechButton>
-          ) : null}
+            <TechButton variant="secondary" onClick={() => onNavigate('runs')}>
+              View job details
+            </TechButton>
+          </div>
         </div>
+      ) : null}
+    </div>
+  )
+}
 
-        {/* Preview column */}
-        <div className="flex flex-col gap-6">
-          <Panel>
-            <PanelHeader title="Dataset validation preview" />
-            <div className="p-4">
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <PreviewStat label="Input type" value={workflow === 'visual' ? 'Image folder' : 'Foundation'} />
-                <PreviewStat label="Path" value={dataset.trim() || 'Not available from current report'} />
-                <PreviewStat label="Workflow" value={workflow} />
-                <PreviewStat
-                  label="Run status"
-                  value={connected && workflow === 'visual' ? 'Ready locally' : 'Not available'}
-                />
-              </div>
-              <div className="mt-4 rounded-md border border-border bg-card p-4">
-                <SectionLabel>Expected artifacts</SectionLabel>
-                <div className="mt-3 grid gap-2 text-sm text-muted-foreground">
-                  <div>Markdown report</div>
-                  <div>JSON report</div>
-                  <div>HTML report</div>
-                  <div>Candidate findings requiring human review</div>
-                </div>
-              </div>
-              {result ? (
-                <div className="mt-4 rounded-md border border-operational/40 bg-operational/10 p-4">
-                  <p className="font-mono text-xs uppercase tracking-[0.12em] text-operational">
-                    Local analysis complete.
-                  </p>
-                  <div className="mt-3 grid gap-2 font-mono text-xs text-foreground">
-                    <ResultRow label="Run ID" value={result.run_id} />
-                    <ResultRow label="Input" value={result.input_path} />
-                    <ResultRow label="Images" value={String(result.number_of_images ?? 'Not available')} />
-                    <ResultRow label="Patches" value={String(result.number_of_patches ?? 'Not available')} />
-                    <ResultRow label="Markdown" value={result.markdown_report_path} />
-                    <ResultRow label="JSON" value={result.json_report_path} />
-                    <ResultRow label="HTML" value={result.html_report_path} />
-                    <ResultRow
-                      label="Candidates"
-                      value={`${result.candidate_anomaly_count} anomalies · ${result.candidate_concept_count} concepts`}
-                    />
-                    <ResultRow
-                      label="Human review"
-                      value={result.human_review_required ? 'Required' : 'Not available from current report'}
-                    />
-                  </div>
-                </div>
-              ) : null}
-            </div>
-          </Panel>
+function RunFormPanel({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <Panel>
+      <PanelHeader title={title} />
+      <div className="flex flex-col gap-5 p-5">{children}</div>
+    </Panel>
+  )
+}
 
-          <Panel>
-            <PanelHeader title="Expected output artifacts" />
-            <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2">
-              {(result ? resultArtifacts(result) : ARTIFACTS).map((a) => (
-                <div key={a.name} className="flex items-center gap-3 rounded-md border border-border bg-card p-4">
-                  <FileText className="size-4 shrink-0 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{a.name}</p>
-                    <p className="font-mono text-xs text-muted-foreground">{a.size}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Panel>
-        </div>
+function PathField({
+  label,
+  value,
+  onChange,
+  placeholder,
+  icon,
+}: {
+  label: string
+  value: string
+  onChange: (value: string) => void
+  placeholder: string
+  icon: 'folder' | 'settings' | 'manifest'
+}) {
+  const Icon = icon === 'folder' ? Folder : icon === 'settings' ? Settings2 : FileClock
+  return (
+    <div>
+      <SectionLabel>{label}</SectionLabel>
+      <div className="mt-2 flex items-center gap-3 rounded-md border border-border bg-card p-3">
+        <Icon className="size-4 shrink-0 text-muted-foreground" />
+        <input
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={placeholder}
+          aria-label={label}
+          className="min-w-0 flex-1 bg-transparent font-mono text-sm text-foreground placeholder:text-faint focus:outline-none"
+        />
       </div>
     </div>
   )
 }
 
-function resultArtifacts(result: StudioAnalysisResult) {
-  return [
-    { name: 'Markdown report', size: result.markdown_report_path },
-    { name: 'JSON report', size: result.json_report_path },
-    { name: 'HTML report', size: result.html_report_path || 'HTML export unavailable' },
-    {
-      name: 'Candidate findings',
-      size: `${result.candidate_anomaly_count} anomalies · ${result.candidate_concept_count} concepts`,
-    },
-  ]
-}
-
-function PreviewStat({ label, value }: { label: string; value: string }) {
+function TextField({
+  label,
+  value,
+  onChange,
+  inputMode,
+}: {
+  label: string
+  value: string
+  onChange: (value: string) => void
+  inputMode?: 'numeric'
+}) {
   return (
-    <div className="rounded-md border border-border bg-card p-3">
-      <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">{label}</p>
-      <p className="mt-1 font-mono text-xl text-foreground">{value}</p>
+    <div>
+      <SectionLabel>{label}</SectionLabel>
+      <input
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        inputMode={inputMode}
+        aria-label={label}
+        className="mt-2 h-11 w-full rounded-md border border-border bg-card px-3 font-mono text-sm text-foreground focus:border-primary/50 focus:outline-none"
+      />
     </div>
   )
 }
 
-function ResultRow({ label, value }: { label: string; value?: string | null }) {
-  return (
-    <div className="grid grid-cols-[100px_1fr] gap-3">
-      <span className="uppercase tracking-[0.12em] text-muted-foreground">{label}</span>
-      <span className="break-all">{value || 'Not available from current report'}</span>
-    </div>
-  )
+function errorMessage(error: unknown, fallback: string) {
+  return error instanceof Error && error.message ? error.message : fallback
 }

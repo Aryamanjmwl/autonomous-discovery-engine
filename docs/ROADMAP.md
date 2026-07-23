@@ -151,8 +151,17 @@ monitoring are out of scope.
 - In-memory queued/running/succeeded/failed records with safe errors
 - Workspace-confined inputs and report/artifact outputs
 - Reuse existing workflow and validation boundaries
-- Browser run UI follows in the next stage
+- Browser run UI delivered in Stage 7B
 - No cloud/SaaS backend, accounts, downloads, or continuous monitoring
+
+## Stage 7B: Studio Browser Run UI
+
+- Run screen for local image-folder and temporal paths
+- Exact temporal strategy controls aligned with the backend schema
+- Synchronous submitting/completed/failed behavior without estimated progress
+- Process-local job history with warnings, errors, and validated output paths
+- Existing report discovery refresh and generated-report opening
+- No browser upload, remote filesystem picker, or fake report state
 
 ## Later Stage 7: Multi-Modal Expansion
 

@@ -58,11 +58,29 @@ safe error text and no valid output references.
 
 Paths are confined to the configured local workspace, report root, and artifact
 root. External URLs, traversal, missing inputs, malformed manifests, downloads,
-and arbitrary command execution are rejected or fail cleanly. The browser run UI
-is planned for the next stage. This remains a local-only Technical Preview: no
+and arbitrary command execution are rejected or fail cleanly. This remains a
+local-only Technical Preview: no
 cloud/SaaS backend, accounts, continuous monitoring, satellite integration, or
 geospatial registration. All candidate findings are review-prioritization
 signals and require human review.
+
+## Stage 7B Studio Browser Run UI
+
+ADE Studio can now start image-folder and temporal local runs from the browser
+through the Stage 7A endpoints. Users enter paths that exist on the ADE backend
+machine; no browser upload or filesystem picker is presented. Temporal controls
+match the supported adjacent and baseline difference strategies.
+
+The Runs screen reads exact backend job records and displays their status,
+timestamps, input summary, warnings, errors, validated report/artifact paths,
+and human-review requirement. Synchronous submissions use submitting,
+completed, and failed presentation without estimated progress. Successful jobs
+refresh existing report discovery and open returned JSON reports through the
+Reports screen.
+
+Stage 7B adds no cloud/SaaS backend, accounts, continuous monitoring, satellite
+integration, or geospatial registration. Outputs remain candidate anomalies,
+candidate concepts, or candidate temporal changes that require human review.
 
 ## Done
 

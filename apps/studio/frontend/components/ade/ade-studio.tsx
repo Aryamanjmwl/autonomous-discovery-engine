@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import type { ScreenId } from '@/lib/ade-data'
-import { loadStudioData, type StudioAnalysisResult, type StudioData } from '@/lib/ade-api'
+import { loadStudioData, type StudioData } from '@/lib/ade-api'
 import { Sidebar } from '@/components/ade/sidebar'
 import { Topbar } from '@/components/ade/topbar'
 import { ExecutionStrip } from '@/components/ade/execution-strip'
@@ -28,7 +28,6 @@ export function AdeStudio() {
     selectedReport: null,
     error: null,
   })
-  const [analysisResult, setAnalysisResult] = useState<StudioAnalysisResult | null>(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
 
   const refreshStudioData = async (reportName?: string) => {
@@ -78,12 +77,9 @@ export function AdeStudio() {
             )}
             {screen === 'new-analysis' && (
               <NewAnalysisScreen
-                activeProject={project}
-                onProjectChange={setProject}
                 onNavigate={setScreen}
                 engineMode={studioData.mode}
-                onAnalysisComplete={(result) => {
-                  setAnalysisResult(result)
+                onRunComplete={() => {
                   void refreshStudioData()
                 }}
               />
@@ -91,8 +87,9 @@ export function AdeStudio() {
             {screen === 'runs' && (
               <RunsScreen
                 runsFromApi={studioData.runs}
-                analysisResult={analysisResult}
                 engineMode={studioData.mode}
+                onNavigate={setScreen}
+                onRefresh={(reportName) => void refreshStudioData(reportName)}
               />
             )}
             {screen === 'findings' && (
