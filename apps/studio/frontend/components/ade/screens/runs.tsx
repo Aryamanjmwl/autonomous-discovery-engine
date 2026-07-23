@@ -1,263 +1,269 @@
 'use client'
 
-import { useState } from 'react'
-import { CheckCircle2, AlertTriangle, FileText } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { AlertTriangle, FileText, RefreshCw } from 'lucide-react'
 import { ScreenHeader } from '@/components/ade/screen-header'
-import { Panel, PanelHeader, StatusBadge } from '@/components/ade/primitives'
-import { runs, runLogLines, type RunRecord } from '@/lib/ade-data'
-import type { EngineMode, StudioAnalysisResult, StudioRun } from '@/lib/ade-api'
+import { Panel, PanelHeader, StatusBadge, TechButton } from '@/components/ade/primitives'
+import type { ScreenId } from '@/lib/ade-data'
+import {
+  getStudioRun,
+  type EngineMode,
+  type StudioRunJob,
+  type StudioRunStatus,
+} from '@/lib/ade-api'
 import { cn } from '@/lib/utils'
 
 export function RunsScreen({
   runsFromApi,
-  analysisResult,
   engineMode,
+  onNavigate,
+  onRefresh,
 }: {
-  runsFromApi: StudioRun[]
-  analysisResult: StudioAnalysisResult | null
+  runsFromApi: StudioRunJob[]
   engineMode: EngineMode
+  onNavigate: (id: ScreenId) => void
+  onRefresh: (reportName?: string) => void
 }) {
   const connected = engineMode === 'connected'
-  const displayRuns = connected ? runsFromApi.map(toRunRecord) : runs
-  const [selectedId, setSelectedId] = useState(displayRuns[0]?.id ?? '')
-  const selected = displayRuns.find((r) => r.id === selectedId) ?? displayRuns[0]
-  const selectedApiRun = connected
-    ? runsFromApi.find((run) => (run.run_id || 'local-run') === selected?.id)
-    : null
+  const [selectedId, setSelectedId] = useState(runsFromApi[0]?.job_id ?? '')
+  const [detail, setDetail] = useState<StudioRunJob | null>(null)
+  const [detailError, setDetailError] = useState<string | null>(null)
+  const selected = detail?.job_id === selectedId
+    ? detail
+    : runsFromApi.find((run) => run.job_id === selectedId) ?? runsFromApi[0]
+
+  useEffect(() => {
+    if (!selectedId && runsFromApi[0]) setSelectedId(runsFromApi[0].job_id)
+  }, [runsFromApi, selectedId])
+
+  async function selectJob(jobId: string) {
+    setSelectedId(jobId)
+    setDetailError(null)
+    try {
+      setDetail(await getStudioRun(jobId))
+    } catch (error) {
+      setDetailError(error instanceof Error ? error.message : 'Unable to load local job detail.')
+    }
+  }
 
   return (
     <div className="flex flex-col gap-6">
       <ScreenHeader
         eyebrow="Execution"
-        title="Run Status"
-        description="Review local discovery runs, current stage, local run telemetry, and generated artifacts."
+        title="Local Run Jobs"
+        description="Review exact job state and validated outputs from this local ADE Studio backend session."
+        actions={
+          <TechButton variant="secondary" onClick={onRefresh} disabled={!connected}>
+            <RefreshCw className="size-3.5" />
+            Refresh jobs and reports
+          </TechButton>
+        }
       />
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,300px)_1fr]">
-        {/* Run list */}
-        <Panel>
-          <PanelHeader title={`Runs (${displayRuns.length})`} />
-          {displayRuns.length === 0 ? (
-            <EmptyState text="No local runs are available from the connected backend yet." />
-          ) : (
+      <p className="text-sm text-muted-foreground">
+        Run history is local to this Studio backend session and is cleared when the backend process restarts.
+      </p>
+
+      {!connected ? (
+        <Panel className="p-5 text-sm text-muted-foreground">
+          Connect to the local ADE backend to view Studio run jobs.
+        </Panel>
+      ) : runsFromApi.length === 0 ? (
+        <Panel className="p-5 text-sm text-muted-foreground">
+          No Studio runs have been started in this local session.
+        </Panel>
+      ) : (
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,320px)_1fr]">
+          <Panel>
+            <PanelHeader title={`Jobs (${runsFromApi.length})`} />
             <ul>
-              {displayRuns.map((r) => (
-                <li key={r.id}>
+              {runsFromApi.map((run) => (
+                <li key={run.job_id}>
                   <button
                     type="button"
-                    onClick={() => setSelectedId(r.id)}
+                    onClick={() => void selectJob(run.job_id)}
                     className={cn(
                       'flex w-full flex-col gap-2 border-b border-border px-4 py-3 text-left transition-colors last:border-b-0',
-                      r.id === selectedId ? 'bg-primary/10' : 'hover:bg-card',
+                      run.job_id === selected?.job_id ? 'bg-primary/10' : 'hover:bg-card',
                     )}
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono text-sm text-foreground">{r.id}</span>
-                      <RunStatusBadge status={r.status} />
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="truncate font-mono text-sm text-foreground">
+                        {shortJobId(run.job_id)}
+                      </span>
+                      <RunStatusBadge status={run.status} />
                     </div>
-                    <div className="flex items-center justify-between font-mono text-[11px] text-muted-foreground">
-                      <span className="uppercase tracking-[0.1em]">{r.workflow}</span>
-                      <span>{r.startedAt}</span>
-                    </div>
+                    <span className="font-mono text-[11px] uppercase tracking-[0.1em] text-muted-foreground">
+                      {jobTypeLabel(run.job_type)}
+                    </span>
                   </button>
                 </li>
               ))}
             </ul>
-          )}
-        </Panel>
-
-        {/* Run detail */}
-        {selected ? (
-        <div className="flex flex-col gap-6">
-          <Panel className="p-5">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="font-mono text-sm text-foreground">{selected.id}</p>
-                <p className="text-sm text-muted-foreground">{selected.project}</p>
-              </div>
-              <RunStatusBadge status={selected.status} />
-            </div>
-
-            {!connected ? (
-            <div className="mt-5">
-              <div className="flex items-center justify-between font-mono text-xs text-muted-foreground">
-                <span>Stage: {selected.stage}</span>
-                <span>{selected.progress}%</span>
-              </div>
-              <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
-                <div
-                  className={cn(
-                    'h-full rounded-full transition-all',
-                    selected.status === 'complete' ? 'bg-operational' : 'bg-primary',
-                  )}
-                  style={{ width: `${selected.progress}%` }}
-                />
-              </div>
-            </div>
-            ) : null}
-
-            {connected ? (
-              <dl className="mt-5 grid gap-2 font-mono text-xs text-muted-foreground md:grid-cols-2">
-                <RunMeta label="Input" value={selectedApiRun?.input_path} />
-                <RunMeta label="Report" value={selectedApiRun?.json_report_path} />
-                <RunMeta
-                  label="Candidates"
-                  value={`${selectedApiRun?.number_of_candidate_anomalies ?? 0} anomalies`}
-                />
-                <RunMeta
-                  label="Concepts"
-                  value={`${selectedApiRun?.number_of_candidate_unknown_concepts ?? 0} concepts`}
-                />
-              </dl>
-            ) : null}
           </Panel>
 
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-            <Panel>
-              <PanelHeader title="Logs preview" />
-              <div className="max-h-64 overflow-y-auto p-4 font-mono text-xs leading-relaxed">
-                {connected ? (
-                  <DerivedRunLog run={selectedApiRun} />
-                ) : (
-                  runLogLines.map((line, i) => (
-                    <p key={i} className="whitespace-pre-wrap text-muted-foreground">
-                      <span className="text-primary/70">{line.slice(0, 10)}</span>
-                      {line.slice(10)}
-                    </p>
-                  ))
-                )}
-              </div>
-            </Panel>
-
-            <div className="flex flex-col gap-6">
-              <Panel>
-                <PanelHeader title="Warnings" />
-                <div className="flex items-start gap-2 p-4">
-                  <AlertTriangle className="mt-0.5 size-4 shrink-0 text-pattern" />
-                  <p className="text-sm text-muted-foreground">
-                    {selected.findings} candidate findings flagged as{' '}
-                    <span className="text-pattern">requires human review</span> before local use.
-                  </p>
-                </div>
-              </Panel>
-
-              <Panel>
-                <PanelHeader title="Generated artifacts" />
-                <ul className="p-4">
-                  {artifactNames(analysisResult, selectedApiRun, connected).map((f) => (
-                    <li
-                      key={f}
-                      className="flex items-center gap-3 border-b border-border py-2 last:border-b-0"
-                    >
-                      <FileText className="size-4 text-muted-foreground" />
-                      <span className="font-mono text-xs text-foreground">{f}</span>
-                      {selected.status === 'complete' ? (
-                        <StatusBadge tone="operational" className="ml-auto">Ready</StatusBadge>
-                      ) : (
-                        <StatusBadge tone="muted" className="ml-auto">Pending</StatusBadge>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </Panel>
-            </div>
-          </div>
-
-          {selected.status === 'complete' ? (
-            <div className="flex items-center gap-2 rounded-md border border-operational/40 bg-operational/10 px-4 py-3">
-              <CheckCircle2 className="size-4 text-operational" />
-              <p className="text-sm text-operational">
-                Run complete · {selected.findings} candidate findings · report generated.
-              </p>
-            </div>
+          {selected ? (
+            <JobDetail job={selected} onNavigate={onNavigate} onRefresh={onRefresh} />
           ) : null}
         </div>
-        ) : (
-          <Panel className="p-5">
-            <EmptyState text="Detailed run data is not available from the connected backend yet." />
-          </Panel>
-        )}
-      </div>
+      )}
+
+      {detailError ? (
+        <div role="alert" className="rounded-md border border-critical/40 bg-critical/10 p-4 text-sm text-critical">
+          {detailError}
+        </div>
+      ) : null}
     </div>
   )
 }
 
-function toRunRecord(run: StudioRun): RunRecord {
-  return {
-    id: run.run_id || 'local-run',
-    project: 'ADE Local Engine',
-    workflow: run.modality === 'timeseries' ? 'time-series' : run.modality === 'tabular' ? 'tabular' : 'visual',
-    stage: 'Report generated',
-    progress: 100,
-    findings: run.number_of_candidate_anomalies ?? 0,
-    startedAt: run.generated_at || 'local run',
-    status: 'complete',
-  }
-}
-
-function artifactNames(
-  result: StudioAnalysisResult | null,
-  run: StudioRun | null | undefined,
-  connected: boolean,
-) {
-  if (result) {
-    return [
-      result.markdown_report_path,
-      result.json_report_path,
-      result.html_report_path || 'HTML export unavailable',
-    ]
-  }
-  if (connected) {
-    return [
-      run?.markdown_report_path || 'Markdown report not available from current run',
-      run?.json_report_path || 'JSON report not available from current run',
-    ]
-  }
-  return [
-    'candidate_anomalies.json',
-    'candidate_concepts.json',
-    'discovery_report.md',
-  ]
-}
-
-function DerivedRunLog({ run }: { run: StudioRun | null | undefined }) {
-  if (!run) {
-    return <p className="text-muted-foreground">Detailed logs are not available for this run yet.</p>
-  }
-  const lines = [
-    ['input validated', run.input_path],
-    ['visual features extracted', run.markdown_report_path],
-    ['candidate findings ranked', `${run.number_of_candidate_anomalies ?? 0} candidate anomalies`],
-    ['report generated', run.json_report_path],
-  ]
+function JobDetail({
+  job,
+  onNavigate,
+  onRefresh,
+}: {
+  job: StudioRunJob
+  onNavigate: (id: ScreenId) => void
+  onRefresh: (reportName?: string) => void
+}) {
+  const reportName = jsonReportName(job.output_report_paths)
   return (
-    <>
-      {lines.map(([label, value]) => (
-        <p key={label} className="whitespace-pre-wrap text-muted-foreground">
-          <span className="text-primary/70">{label}</span>
-          {value ? ` · ${value}` : ' · Not available from current report'}
-        </p>
-      ))}
-      <p className="mt-2 text-faint">Detailed logs are not available for this run yet.</p>
-    </>
+    <div className="flex flex-col gap-6">
+      <Panel className="p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="break-all font-mono text-sm text-foreground">{job.job_id}</p>
+            <p className="text-sm text-muted-foreground">{jobTypeLabel(job.job_type)}</p>
+          </div>
+          <RunStatusBadge status={job.status} />
+        </div>
+        <dl className="mt-5 grid gap-3 font-mono text-xs md:grid-cols-2">
+          <RunMeta label="Created" value={formatTime(job.created_at)} />
+          <RunMeta label="Started" value={formatTime(job.started_at)} />
+          <RunMeta label="Finished" value={formatTime(job.finished_at)} />
+          <RunMeta label="Human review" value={job.human_review_required ? 'Required' : 'Not indicated'} />
+        </dl>
+      </Panel>
+
+      <Panel>
+        <PanelHeader title="Input summary" />
+        <dl className="grid gap-3 p-4 font-mono text-xs">
+          {Object.entries(job.input_summary).map(([key, value]) => (
+            <RunMeta key={key} label={key.replaceAll('_', ' ')} value={formatValue(value)} />
+          ))}
+        </dl>
+      </Panel>
+
+      {job.error_message ? (
+        <div role="alert" className="flex items-start gap-2 rounded-md border border-critical/40 bg-critical/10 p-4 text-sm text-critical">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+          <span>{job.error_message}</span>
+        </div>
+      ) : null}
+
+      <OutputPanel title="Warnings" values={job.warnings} emptyText="No warnings were recorded for this job." />
+      <OutputPanel
+        title="Output reports"
+        values={job.output_report_paths}
+        emptyText="No validated report paths were recorded for this job."
+      />
+      <OutputPanel
+        title="Output artifacts"
+        values={job.output_artifact_paths}
+        emptyText="No artifact paths were recorded for this job."
+      />
+
+      {job.status === 'succeeded' ? (
+        <div className="rounded-md border border-operational/40 bg-operational/10 p-4 text-sm text-operational">
+          <p>Run completed. Outputs are review-prioritization signals and require human review.</p>
+          {!reportName ? (
+            <p className="mt-2">Run completed. Open the Reports screen to view generated reports.</p>
+          ) : null}
+          <div className="mt-3 flex flex-wrap gap-2">
+            <TechButton
+              variant="secondary"
+              onClick={() => {
+                onRefresh(reportName)
+                onNavigate('reports')
+              }}
+            >
+              {reportName ? 'Open generated report' : 'Open Reports'}
+            </TechButton>
+            <TechButton variant="secondary" onClick={onRefresh}>
+              Refresh report list
+            </TechButton>
+          </div>
+        </div>
+      ) : null}
+    </div>
   )
 }
 
-function EmptyState({ text }: { text: string }) {
-  return <div className="p-4 text-sm text-muted-foreground">{text}</div>
+function OutputPanel({
+  title,
+  values,
+  emptyText,
+}: {
+  title: string
+  values: string[]
+  emptyText: string
+}) {
+  return (
+    <Panel>
+      <PanelHeader title={title} />
+      {values.length ? (
+        <ul className="p-4">
+          {values.map((value) => (
+            <li key={value} className="flex gap-3 border-b border-border py-2 last:border-b-0">
+              <FileText className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+              <span className="break-all font-mono text-xs text-foreground">{value}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="p-4 text-sm text-muted-foreground">{emptyText}</p>
+      )}
+    </Panel>
+  )
 }
 
-function RunStatusBadge({ status }: { status: string }) {
-  if (status === 'complete') return <StatusBadge tone="operational" dot>Complete</StatusBadge>
+function RunStatusBadge({ status }: { status: StudioRunStatus }) {
+  if (status === 'succeeded') return <StatusBadge tone="operational" dot>Succeeded</StatusBadge>
+  if (status === 'failed') return <StatusBadge tone="critical" dot>Failed</StatusBadge>
   if (status === 'running') return <StatusBadge tone="anomaly" dot>Running</StatusBadge>
   return <StatusBadge tone="muted" dot>Queued</StatusBadge>
 }
 
-function RunMeta({ label, value }: { label: string; value?: string | null }) {
+function RunMeta({ label, value }: { label: string; value: string }) {
   return (
-    <div className="grid grid-cols-[90px_1fr] gap-3">
+    <div className="grid grid-cols-[110px_1fr] gap-3">
       <dt className="uppercase tracking-[0.12em] text-faint">{label}</dt>
-      <dd className="break-all text-foreground">{value || 'Not available from current run'}</dd>
+      <dd className="break-all text-foreground">{value}</dd>
     </div>
   )
+}
+
+function shortJobId(jobId: string) {
+  return jobId.length > 22 ? `${jobId.slice(0, 19)}…` : jobId
+}
+
+function jobTypeLabel(jobType: StudioRunJob['job_type']) {
+  return jobType === 'image_folder_analysis' ? 'Image folder analysis' : 'Temporal analysis'
+}
+
+function formatTime(value: string | null) {
+  if (!value) return 'Not recorded'
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString()
+}
+
+function formatValue(value: unknown) {
+  if (value === null || value === undefined || value === '') return 'Not provided'
+  return typeof value === 'string' ? value : JSON.stringify(value)
+}
+
+function jsonReportName(paths: string[]) {
+  const jsonPath = paths.find((path) => path.toLowerCase().endsWith('.json'))
+  if (!jsonPath) return undefined
+  return jsonPath.replaceAll('\\', '/').split('/').pop() || undefined
 }

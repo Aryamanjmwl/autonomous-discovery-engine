@@ -7,7 +7,7 @@ API under `ade.studio`.
 The current connected workflow supports visual/image-folder and manifest-driven
 temporal analysis through the local ADE engine. ADE Studio can read local
 run/report artifacts and the Stage 7A backend can accept synchronous local runs.
-The browser run UI is planned for the next stage. If the backend is unavailable,
+Stage 7B connects those endpoints to the browser Run screen. If the backend is unavailable,
 the frontend falls back to mock preview data for demos. It does not add cloud
 hosting, auth, database storage, billing, production streaming, browser upload,
 or hosted product behavior.
@@ -85,6 +85,25 @@ root, and temporal artifacts remain inside the configured artifact root. The API
 does not download inputs, browse the filesystem, or execute arbitrary commands.
 Failed jobs expose no report or artifact path as valid evidence.
 
+## Stage 7B Browser Run Screen
+
+The Run screen can submit an image-folder path or temporal manifest path to the
+local backend. Image-folder runs accept an optional label and config path.
+Temporal runs select `adjacent_difference` or `baseline_difference` and may
+provide an optional label and patch size. Submit controls are disabled while the
+synchronous request is active, and validation or workflow failures show the real
+backend error.
+
+The Runs screen lists exact process-local job records with status, timestamps,
+input summary, warnings, errors, report paths, artifact paths, and the
+human-review requirement. Successful jobs can refresh report discovery and open
+the generated JSON report through the existing report detail route when the job
+returns one.
+
+Paths refer to the machine running the ADE backend. There is no browser upload,
+server filesystem picker, drag-and-drop transfer, or remote download. Restarting
+the backend clears its in-memory Studio job history.
+
 Generated report preview assets are served locally through
 `GET /api/studio/report-assets/{asset_name}` from `data/reports/assets/`. The
 route accepts asset filenames only, blocks path traversal, and is intended for
@@ -135,7 +154,7 @@ Generated frontend artifacts are ignored by Git and should not be committed.
 ## Current Limits And Future Steps
 
 - Browser file upload is not implemented; use a local path input.
-- Browser controls for the Stage 7A run endpoints arrive in the next stage.
+- Browser local run controls cover image-folder and temporal workflows.
 - Tabular and time-series workflows remain lightweight foundations for future
   Studio wiring.
 - Render feedback-informed review status from the JSONL feedback store.

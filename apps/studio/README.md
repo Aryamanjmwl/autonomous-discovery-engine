@@ -64,8 +64,7 @@ workflows:
 
 Job history is process-local and in memory. Each record includes its job type,
 status and timestamps, input summary, validated report/artifact paths, warnings,
-safe failure text, and `human_review_required`. The browser run UI is the next
-stage; these endpoints do not add fake controls or values to the current UI.
+safe failure text, and `human_review_required`.
 
 Input folders, config files, and temporal manifests must already exist inside
 the configured local workspace. External URLs, traversal, missing inputs, and
@@ -73,6 +72,26 @@ outputs outside the configured report/artifact roots are rejected. There are no
 downloads, filesystem browsing endpoints, shell commands, cloud services, or
 continuous monitoring. Outputs remain candidate findings and review-prioritization
 signals that require human review.
+
+## Stage 7B Browser Run UI
+
+The Run navigation screen now calls the Stage 7A endpoints directly. It provides
+separate forms for image-folder paths and temporal manifest paths, including the
+two supported temporal strategies and only backend-supported optional settings.
+Paths must exist on the machine running the local ADE backend; they are not
+browser uploads.
+
+While a synchronous request is active, its submit controls are disabled. The UI
+shows backend validation failures without invented percentages or stages. The
+Runs screen displays exact in-memory job metadata, warnings, errors, and
+validated output paths. A successful job refreshes report discovery and can open
+its returned JSON report through the existing Reports screen. Backend restart
+clears the job list.
+
+This remains a local-only Technical Preview without cloud/SaaS services,
+accounts, browser upload, continuous monitoring, satellite integration, or
+geospatial registration. Candidate anomalies, candidate concepts, and candidate
+temporal changes are review-prioritization signals that require human review.
 
 Generated report preview assets are served locally through
 `GET /api/studio/report-assets/{asset_name}` from `data/reports/assets/`. The

@@ -23,7 +23,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     items: [
       { id: 'overview', label: 'Overview', icon: LayoutDashboard },
       { id: 'projects', label: 'Projects', icon: FolderGit2 },
-      { id: 'new-analysis', label: 'New Analysis', icon: PlusSquare },
+      { id: 'new-analysis', label: 'Run', icon: PlusSquare },
       { id: 'runs', label: 'Runs', icon: Activity },
     ],
   },

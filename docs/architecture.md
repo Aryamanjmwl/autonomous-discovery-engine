@@ -325,3 +325,15 @@ endpoints. This Technical Preview boundary has no cloud/SaaS services, accounts,
 downloads, arbitrary command execution, continuous monitoring, satellite integration,
 or geospatial registration. Candidate anomalies, candidate concepts, and
 candidate temporal changes require human review.
+
+Stage 7B adds only a browser client for this boundary. Typed client functions
+submit the two supported job requests and read job lists/details through the
+configured localhost base URL. The Run screen sends local path strings; it does
+not read files in the browser or offer a filesystem picker. Because Stage 7A is
+synchronous, the UI represents request submission and the returned terminal job
+state without estimating progress.
+
+The Runs screen renders job fields returned by the backend. A JSON report name
+is derived only from an actual validated output report path before the existing
+report detail flow is used. Report discovery remains the source of report and
+finding content, so the browser does not synthesize candidate findings.
