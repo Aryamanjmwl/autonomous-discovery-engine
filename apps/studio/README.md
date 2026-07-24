@@ -93,6 +93,29 @@ accounts, browser upload, continuous monitoring, satellite integration, or
 geospatial registration. Candidate anomalies, candidate concepts, and candidate
 temporal changes are review-prioritization signals that require human review.
 
+## Stage 7C Local Review Feedback
+
+The Findings screen now submits reviewer actions to
+`POST /api/studio/feedback`. Each request identifies a discovered local report,
+stable candidate ID, visual or temporal candidate type, action, and optional
+note. The backend validates the report and candidate before appending ADE's
+existing local JSONL feedback record.
+
+Available actions are Mark useful, Mark not useful, and Needs review. The UI
+shows reviewer-marked useful or reviewer-marked not useful state only after a
+successful response; backend errors are displayed without pretending the action
+was saved. The Feedback screen reports the configured local store and directs
+reviewers to real candidate controls instead of displaying example entries.
+
+Successful run jobs use a returned JSON report path to offer Open in Reports.
+When no JSON reference exists, Studio directs the reviewer to the Reports screen
+without inventing a URL or report name. Failed jobs remain visually separate and
+show their recorded safe error.
+
+Feedback is review-oriented and does not scientifically confirm candidate
+findings. Job history remains process-local and clears when the backend restarts;
+feedback uses the existing append-only local JSONL store.
+
 Generated report preview assets are served locally through
 `GET /api/studio/report-assets/{asset_name}` from `data/reports/assets/`. The
 route accepts asset filenames only, blocks path traversal, and is intended for

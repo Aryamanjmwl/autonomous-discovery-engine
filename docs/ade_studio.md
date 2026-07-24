@@ -192,3 +192,24 @@ temporal changes are review-prioritization signals and require human review.
 Stage 7A is local-only Technical Preview infrastructure. It does not provide a
 cloud or SaaS backend, accounts, uploads, continuous monitoring, satellite integration,
 or geospatial registration.
+
+## Stage 7C Local Review Feedback
+
+Studio Findings now records real local reviewer actions for candidate anomalies,
+candidate concepts, and candidate temporal changes. Reviewers can mark a
+candidate useful, not useful, or needing review and may attach a short note.
+The backend validates the report and stable target ID before appending to ADE's
+existing `data/feedback/feedback.jsonl` pattern. No second feedback store or
+database is introduced.
+
+Studio actions map onto the existing feedback labels: useful uses `interesting`,
+not useful uses `not_useful`, and needs review uses `needs_more_data`. Temporal
+events use the same record fields with the additive `temporal` target type.
+Saved state appears only after the local API confirms the append; validation and
+storage errors remain visible to the reviewer.
+
+Feedback is local review state and may inform later review-prioritization
+signals. A reviewer action does not scientifically confirm a candidate finding.
+Run history remains in memory for the lifetime of the Studio backend session,
+while feedback is append-only local JSONL. Stage 7C adds no cloud/SaaS service,
+account system, browser upload, continuous monitoring, or remote data transfer.
