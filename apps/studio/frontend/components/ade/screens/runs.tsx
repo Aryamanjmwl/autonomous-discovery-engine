@@ -187,7 +187,7 @@ function JobDetail({
                 onNavigate('reports')
               }}
             >
-              {reportName ? 'Open generated report' : 'Open Reports'}
+              {reportName ? 'Open in Reports' : 'Open Reports'}
             </TechButton>
             <TechButton variant="secondary" onClick={onRefresh}>
               Refresh report list

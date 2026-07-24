@@ -15,6 +15,7 @@ from ade.studio.service import (
     health_status,
     list_reports,
     load_report,
+    record_review_feedback,
     resolve_report_asset,
     resolve_report_html,
     run_temporal_analysis,
@@ -72,6 +73,34 @@ class TemporalRunRequest(_LocalRunRequest):
     patch_size: int | None = Field(default=None, ge=1, le=4096)
     top_k: int = Field(default=10, ge=1, le=1000)
     patch_top_k: int = Field(default=5, ge=1, le=1000)
+
+
+class StudioReviewFeedbackRequest(BaseModel):
+    """Validated body for one local Studio reviewer action."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    report_name: str = Field(..., min_length=1, max_length=255)
+    finding_id: str = Field(..., min_length=1, max_length=255)
+    finding_type: Literal["visual_candidate", "temporal_candidate"]
+    reviewer_action: Literal["useful", "not_useful", "needs_review"]
+    note: str = Field(default="", max_length=2000)
+
+    @field_validator("report_name", "finding_id", "note")
+    @classmethod
+    def reject_feedback_null_bytes(cls, value: str) -> str:
+        if "\x00" in value:
+            raise ValueError("must not contain null bytes")
+        return value
+
+    @field_validator("report_name")
+    @classmethod
+    def reject_unsafe_report_name(cls, value: str) -> str:
+        if "://" in value:
+            raise ValueError("must not contain an external URL")
+        if ".." in Path(value).parts:
+            raise ValueError("must not contain path traversal")
+        return value
 
 
 def create_app(
@@ -153,6 +182,22 @@ def create_app(
                 load_report(report_name, studio_paths)
                 if custom_paths
                 else load_report(report_name)
+            )
+        except FileNotFoundError as error:
+            raise HTTPException(status_code=404, detail=str(error)) from error
+        except ValueError as error:
+            raise HTTPException(status_code=400, detail=str(error)) from error
+
+    @app.post("/api/studio/feedback")
+    def feedback(payload: StudioReviewFeedbackRequest = Body(...)) -> dict[str, object]:
+        try:
+            return record_review_feedback(
+                report_name=payload.report_name,
+                finding_id=payload.finding_id,
+                finding_type=payload.finding_type,
+                reviewer_action=payload.reviewer_action,
+                note=payload.note,
+                paths=studio_paths,
             )
         except FileNotFoundError as error:
             raise HTTPException(status_code=404, detail=str(error)) from error

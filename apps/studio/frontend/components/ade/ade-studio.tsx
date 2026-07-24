@@ -107,7 +107,9 @@ export function AdeStudio() {
               />
             )}
             {screen === 'benchmarks' && <BenchmarksScreen engineMode={studioData.mode} />}
-            {screen === 'feedback' && <FeedbackScreen studioData={studioData} />}
+            {screen === 'feedback' && (
+              <FeedbackScreen studioData={studioData} onNavigate={setScreen} />
+            )}
             {screen === 'settings' && <SettingsScreen />}
           </main>
         </div>

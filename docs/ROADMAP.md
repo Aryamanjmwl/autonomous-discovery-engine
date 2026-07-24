@@ -163,6 +163,16 @@ monitoring are out of scope.
 - Existing report discovery refresh and generated-report opening
 - No browser upload, remote filesystem picker, or fake report state
 
+## Stage 7C: Studio Review Feedback and Run-Result Polish
+
+- Real reviewer actions for visual and temporal candidate IDs
+- Existing append-only local JSONL feedback storage
+- Useful, not useful, and needs-review actions with optional notes
+- Saved state only after backend confirmation and honest error presentation
+- Open in Reports only from returned JSON report references
+- Newest-first process-local job history without invented progress or duration
+- No cloud/SaaS backend, accounts, uploads, or continuous monitoring
+
 ## Later Stage 7: Multi-Modal Expansion
 
 1. Tabular adapter

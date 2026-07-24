@@ -337,3 +337,24 @@ The Runs screen renders job fields returned by the backend. A JSON report name
 is derived only from an actual validated output report path before the existing
 report detail flow is used. Report discovery remains the source of report and
 finding content, so the browser does not synthesize candidate findings.
+
+## Studio Review Feedback Boundary
+
+Stage 7C exposes one localhost feedback endpoint over the established
+`ReviewFeedback` and `FeedbackStore` contracts. Visual candidates reuse the same
+report validation and target lookup as the CLI. Temporal candidates first pass
+the existing temporal report and artifact validation boundary, then match a real
+candidate event ID. Records remain append-only JSONL at the configured Studio
+feedback path.
+
+The API accepts Studio-oriented actions and maps them to established labels:
+`useful` to `interesting`, `not_useful` to `not_useful`, and `needs_review` to
+`needs_more_data`. The existing record fields remain unchanged; `temporal` is an
+additive target type for candidate temporal changes. The reviewer identity is
+the explicit local value `studio-local`.
+
+The browser keeps saved actions only after a successful append response. It
+does not infer prior feedback records because no feedback-history endpoint is
+introduced. Feedback is local review state, not evidence that a candidate is correct.
+In-memory Studio job history and persistent local JSONL feedback have separate,
+explicit lifetimes.

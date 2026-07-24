@@ -1,10 +1,16 @@
 'use client'
 
 import { useState } from 'react'
-import { Copy, Filter } from 'lucide-react'
+import { Copy, Eye, Filter, ThumbsDown, ThumbsUp } from 'lucide-react'
 import { Panel, PanelHeader, SectionLabel, StatusBadge, TechButton, MetricRow, ReviewDisclaimer } from '@/components/ade/primitives'
 import { findings, type Finding } from '@/lib/ade-data'
-import { reportAssetUrl, type EngineMode, type StudioReportDetail } from '@/lib/ade-api'
+import {
+  reportAssetUrl,
+  submitStudioReviewFeedback,
+  type EngineMode,
+  type StudioReportDetail,
+  type StudioReviewerAction,
+} from '@/lib/ade-api'
 import { cn } from '@/lib/utils'
 
 interface StudioFinding extends Finding {
@@ -26,7 +32,41 @@ export function FindingsScreen({
   const connected = engineMode === 'connected'
   const displayFindings = reportFindings(selectedReport, connected)
   const [selectedId, setSelectedId] = useState(displayFindings[1]?.id ?? displayFindings[0]?.id ?? '')
+  const [note, setNote] = useState('')
+  const [submittingAction, setSubmittingAction] = useState<StudioReviewerAction | null>(null)
+  const [savedActions, setSavedActions] = useState<Record<string, StudioReviewerAction>>({})
+  const [feedbackError, setFeedbackError] = useState<string | null>(null)
   const selected = displayFindings.find((f) => f.id === selectedId) ?? displayFindings[0]
+  const selectedFeedbackKey = selected
+    ? feedbackKey(selectedReport?.report_name, selected.id)
+    : ''
+  const savedAction = selected ? savedActions[selectedFeedbackKey] : undefined
+
+  async function saveFeedback(action: StudioReviewerAction) {
+    if (!connected || !selected || !selectedReport?.report_name || submittingAction) return
+    setSubmittingAction(action)
+    setFeedbackError(null)
+    try {
+      const response = await submitStudioReviewFeedback({
+        report_name: selectedReport.report_name,
+        finding_id: selected.id,
+        finding_type: selectedReport.report_type === 'temporal'
+          ? 'temporal_candidate'
+          : 'visual_candidate',
+        reviewer_action: action,
+        note: note.trim() || undefined,
+      })
+      setSavedActions((current) => ({
+        ...current,
+        [feedbackKey(selectedReport.report_name, selected.id)]: response.reviewer_action,
+      }))
+      setNote('')
+    } catch (error) {
+      setFeedbackError(error instanceof Error ? error.message : 'Local review feedback failed.')
+    } finally {
+      setSubmittingAction(null)
+    }
+  }
 
   if (!selected) {
     return (
@@ -67,7 +107,10 @@ export function FindingsScreen({
                     </span>
                   </div>
                   <span className="text-sm font-medium text-foreground">{f.title}</span>
-                  <VerdictLabel status={f.status} />
+                  <VerdictLabel
+                    status={f.status}
+                    savedAction={savedActions[feedbackKey(selectedReport?.report_name, f.id)]}
+                  />
                 </button>
               </li>
             )
@@ -131,9 +174,61 @@ export function FindingsScreen({
       <Panel className="flex flex-col p-4 xl:h-fit">
         <SectionLabel>Review actions</SectionLabel>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-          Studio feedback submission is not implemented in this Technical Preview. Use the ADE CLI
-          feedback commands to record reviewer labels against stable candidate IDs.
+          Save local review feedback against this stable candidate ID. Reviewer actions support
+          review prioritization and do not scientifically confirm a candidate finding.
         </p>
+        <label
+          htmlFor="review-note"
+          className="mt-4 font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground"
+        >
+          Optional reviewer note
+        </label>
+        <textarea
+          id="review-note"
+          value={note}
+          onChange={(event) => setNote(event.target.value)}
+          rows={3}
+          maxLength={2000}
+          disabled={!connected || submittingAction !== null}
+          className="mt-2 w-full resize-none rounded-md border border-border bg-card p-3 text-sm text-foreground focus:border-primary/50 focus:outline-none disabled:opacity-50"
+        />
+        <div className="mt-3 grid gap-2">
+          <TechButton
+            variant="secondary"
+            className="justify-start border-operational/50 text-operational"
+            onClick={() => void saveFeedback('useful')}
+            disabled={!connected || submittingAction !== null}
+          >
+            <ThumbsUp className="size-3.5" />
+            {submittingAction === 'useful' ? 'Saving…' : 'Mark useful'}
+          </TechButton>
+          <TechButton
+            variant="secondary"
+            className="justify-start border-critical/50 text-critical"
+            onClick={() => void saveFeedback('not_useful')}
+            disabled={!connected || submittingAction !== null}
+          >
+            <ThumbsDown className="size-3.5" />
+            {submittingAction === 'not_useful' ? 'Saving…' : 'Mark not useful'}
+          </TechButton>
+          <TechButton
+            variant="secondary"
+            className="justify-start"
+            onClick={() => void saveFeedback('needs_review')}
+            disabled={!connected || submittingAction !== null}
+          >
+            <Eye className="size-3.5" />
+            {submittingAction === 'needs_review' ? 'Saving…' : 'Needs review'}
+          </TechButton>
+        </div>
+        {savedAction ? (
+          <p className="mt-3 font-mono text-xs text-operational">
+            Saved locally: {reviewActionLabel(savedAction)}.
+          </p>
+        ) : null}
+        {feedbackError ? (
+          <p role="alert" className="mt-3 text-sm text-critical">{feedbackError}</p>
+        ) : null}
         <TechButton
           variant="secondary"
           className="mt-3 justify-start"
@@ -335,7 +430,20 @@ function MetaItem({ label, value }: { label: string; value: string }) {
   )
 }
 
-function VerdictLabel({ status }: { status: Finding['status'] }) {
+function VerdictLabel({
+  status,
+  savedAction,
+}: {
+  status: Finding['status']
+  savedAction?: StudioReviewerAction
+}) {
+  if (savedAction) {
+    return (
+      <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-operational">
+        {reviewActionLabel(savedAction)}
+      </span>
+    )
+  }
   const map: Record<Finding['status'], { label: string; className: string }> = {
     pending: { label: 'Pending', className: 'text-muted-foreground' },
     useful: { label: 'Useful', className: 'text-operational' },
@@ -347,6 +455,16 @@ function VerdictLabel({ status }: { status: Finding['status'] }) {
   return (
     <span className={cn('font-mono text-[10px] uppercase tracking-[0.12em]', cfg.className)}>{cfg.label}</span>
   )
+}
+
+function reviewActionLabel(action: StudioReviewerAction) {
+  if (action === 'useful') return 'Reviewer-marked useful'
+  if (action === 'not_useful') return 'Reviewer-marked not useful'
+  return 'Needs review'
+}
+
+function feedbackKey(reportName: string | undefined, findingId: string) {
+  return `${reportName || 'no-report'}::${findingId}`
 }
 
 function copyText(value?: string | null) {

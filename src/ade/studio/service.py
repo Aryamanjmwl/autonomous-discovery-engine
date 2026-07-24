@@ -11,7 +11,8 @@ from pathlib import Path
 from typing import Any
 
 from ade import __version__
-from ade.cli import run_pipeline, run_temporal_pipeline
+from ade.cli import add_feedback_from_report, run_pipeline, run_temporal_pipeline
+from ade.feedback import FeedbackStore, ReviewFeedback
 from ade.reporting.html_report import write_html_report
 from ade.reporting.report_validator import validate_report_dict, validate_report_file
 from ade.reporting.run_index import load_run_index
@@ -338,6 +339,97 @@ def run_temporal_analysis(
         "human_review_required": True,
         "validated": True,
     }
+
+
+def record_review_feedback(
+    *,
+    report_name: str,
+    finding_id: str,
+    finding_type: str,
+    reviewer_action: str,
+    note: str = "",
+    paths: StudioPaths = StudioPaths(),
+) -> dict[str, object]:
+    """Validate and append local Studio review feedback using ADE's JSONL store."""
+
+    safe_name = _validate_report_name(report_name)
+    report_path = paths.reports_dir / safe_name
+    report = _load_json_object(report_path)
+    if report is None:
+        if not report_path.exists():
+            raise FileNotFoundError(f"Report was not found: {safe_name}")
+        raise ValueError(f"Report is not valid JSON: {safe_name}")
+    label_by_action = {
+        "useful": "interesting",
+        "not_useful": "not_useful",
+        "needs_review": "needs_more_data",
+    }
+    label = label_by_action.get(reviewer_action)
+    if label is None:
+        raise ValueError("Unsupported reviewer action")
+
+    if finding_type == "visual_candidate":
+        target_type = _visual_feedback_target_type(report, finding_id)
+        feedback = add_feedback_from_report(
+            report_path=report_path,
+            target_type=target_type,
+            target_id=finding_id,
+            label=label,
+            notes=note,
+            reviewer="studio-local",
+            store_path=paths.feedback_path,
+        )
+    elif finding_type == "temporal_candidate":
+        error = _temporal_report_error(report, report_path, paths)
+        if error is not None:
+            raise ValueError(f"Temporal report is invalid: {error}")
+        events = [_dict(item) for item in _list(report.get("candidate_change_events"))]
+        if finding_id not in {
+            str(event.get("event_id")) for event in events if event.get("event_id")
+        }:
+            raise ValueError(f"Candidate temporal change was not found: {finding_id}")
+        summary = _dict(report.get("sequence_summary"))
+        sequence_id = _first_string(summary.get("sequence_id"))
+        if sequence_id is None:
+            raise ValueError("Temporal report does not contain a sequence_id")
+        feedback = ReviewFeedback.create(
+            run_id=f"temporal:{sequence_id}",
+            report_path=report_path,
+            target_type="temporal",
+            target_id=finding_id,
+            label=label,
+            notes=note,
+            reviewer="studio-local",
+            metadata={"report_type": TEMPORAL_REPORT_TYPE},
+        )
+        FeedbackStore(paths.feedback_path).append(feedback)
+    else:
+        raise ValueError("Unsupported finding type")
+
+    result = feedback.to_dict()
+    result["report_name"] = safe_name
+    result["finding_type"] = finding_type
+    result["reviewer_action"] = reviewer_action
+    result["human_review_required"] = True
+    return _json_safe(result)
+
+
+def _visual_feedback_target_type(report: dict[str, Any], finding_id: str) -> str:
+    anomalies = [_dict(item) for item in _list(report.get("candidate_anomalies"))]
+    concepts = [_dict(item) for item in _list(report.get("candidate_unknown_concepts"))]
+    if finding_id in {
+        str(item.get("anomaly_id") or item.get("id"))
+        for item in anomalies
+        if item.get("anomaly_id") or item.get("id")
+    }:
+        return "anomaly"
+    if finding_id in {
+        str(item.get("concept_id") or item.get("id"))
+        for item in concepts
+        if item.get("concept_id") or item.get("id")
+    }:
+        return "concept"
+    raise ValueError(f"Visual candidate was not found: {finding_id}")
 
 
 def resolve_workspace_input(

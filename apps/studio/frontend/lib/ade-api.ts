@@ -91,6 +91,32 @@ export interface StudioRunErrorResponse {
   detail?: string | Array<{ loc?: Array<string | number>; msg?: string }>
 }
 
+export type StudioReviewerAction = 'useful' | 'not_useful' | 'needs_review'
+
+export interface StudioReviewFeedbackRequest {
+  report_name: string
+  finding_id: string
+  finding_type: 'visual_candidate' | 'temporal_candidate'
+  reviewer_action: StudioReviewerAction
+  note?: string
+}
+
+export interface StudioReviewFeedbackResponse {
+  feedback_id: string
+  run_id: string
+  report_path: string
+  report_name: string
+  target_type: 'anomaly' | 'concept' | 'temporal'
+  target_id: string
+  label: string
+  finding_type: 'visual_candidate' | 'temporal_candidate'
+  reviewer_action: StudioReviewerAction
+  notes: string
+  reviewer: string
+  created_at: string
+  human_review_required: boolean
+}
+
 export interface StudioReport {
   name: string
   path: string
@@ -312,6 +338,16 @@ export async function listStudioRuns(): Promise<StudioRunJob[]> {
 
 export async function getStudioRun(jobId: string): Promise<StudioRunJob> {
   return request<StudioRunJob>(`/api/studio/runs/${encodeURIComponent(jobId)}`)
+}
+
+export async function submitStudioReviewFeedback(
+  payload: StudioReviewFeedbackRequest,
+): Promise<StudioReviewFeedbackResponse> {
+  return request<StudioReviewFeedbackResponse>('/api/studio/feedback', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
 }
 
 export async function runStudioAnalysis(payload: {

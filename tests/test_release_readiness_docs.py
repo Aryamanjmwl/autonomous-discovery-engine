@@ -332,7 +332,7 @@ def test_ade_studio_connected_mode_does_not_expose_inert_controls() -> None:
     for phrase in forbidden:
         assert phrase not in combined
 
-    assert "Studio feedback submission is not implemented in this Technical Preview" in combined
+    assert "submitStudioReviewFeedback" in combined
     assert "reportHtmlUrl" in combined
     assert "Run image-folder analysis" in combined
     assert "Run temporal analysis" in combined
@@ -405,6 +405,36 @@ def test_stage_7b_studio_run_ui_uses_real_local_job_contracts() -> None:
     ):
         assert forbidden not in combined
     assert "onClick={() => {}}" not in combined
+
+
+def test_stage_7c_feedback_controls_use_real_local_api_and_report_references() -> None:
+    api = _read("apps/studio/frontend/lib/ade-api.ts")
+    findings = _read("apps/studio/frontend/components/ade/screens/findings.tsx")
+    feedback = _read("apps/studio/frontend/components/ade/screens/feedback.tsx")
+    runs = _read("apps/studio/frontend/components/ade/screens/runs.tsx")
+    combined = "\n".join((findings, feedback, runs))
+
+    assert "function submitStudioReviewFeedback" in api
+    assert "'/api/studio/feedback'" in api
+    assert "submitStudioReviewFeedback({" in findings
+    assert "Mark useful" in findings
+    assert "Mark not useful" in findings
+    assert "Needs review" in findings
+    assert "Saved locally:" in findings
+    assert "feedbackError" in findings
+    assert "selectedReport.report_name" in findings
+    assert "selected.id" in findings
+    assert "jsonReportName(job.output_report_paths)" in runs
+    assert "Open in Reports" in runs
+    assert "Run completed. Open the Reports screen to view generated reports." in runs
+    assert "job.error_message" in runs
+
+    lowered = combined.lower()
+    assert "confirmed finding" not in lowered
+    assert 'href="#"' not in combined
+    assert "onClick={() => {}}" not in combined
+    assert "selected.progress" not in combined
+    assert "fake feedback" not in lowered
 
 
 def test_technical_preview_release_docs_are_release_ready_without_overclaiming() -> None:

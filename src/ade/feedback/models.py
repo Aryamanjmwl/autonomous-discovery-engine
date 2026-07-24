@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-ALLOWED_TARGET_TYPES = frozenset({"anomaly", "concept"})
+ALLOWED_TARGET_TYPES = frozenset({"anomaly", "concept", "temporal"})
 ALLOWED_FEEDBACK_LABELS = frozenset(
     {
         "interesting",

@@ -82,6 +82,27 @@ Stage 7B adds no cloud/SaaS backend, accounts, continuous monitoring, satellite
 integration, or geospatial registration. Outputs remain candidate anomalies,
 candidate concepts, or candidate temporal changes that require human review.
 
+## Stage 7C Studio Review Feedback and Run-Result Polish
+
+Studio now records real local review actions for candidate anomalies, candidate
+concepts, and candidate temporal changes. The localhost feedback endpoint
+validates each report and stable target ID, maps Studio actions to ADE's existing
+feedback labels, and appends the established `ReviewFeedback` record to the
+configured JSONL store.
+
+Findings exposes Mark useful, Mark not useful, Needs review, and an optional
+note. Saved labels appear only after backend confirmation. The Feedback screen
+uses real store counts and paths rather than example feedback entries.
+Reviewer-marked useful and reviewer-marked not useful are local review state;
+they do not scientifically confirm findings.
+
+Successful jobs offer Open in Reports only when a returned JSON output provides
+a real report name. Failed jobs retain their safe error and do not present
+successful outputs. Job history remains newest-first and process-local to the
+backend session, while feedback remains append-only local JSONL. No cloud/SaaS
+backend, accounts, uploads, continuous monitoring, satellite integration, or
+geospatial registration were added.
+
 ## Done
 
 - Python package scaffold with `src/` layout

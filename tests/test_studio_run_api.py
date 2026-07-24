@@ -8,10 +8,12 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from ade.feedback import FeedbackStore
 from ade.studio.jobs import StudioJobStore
 from ade.studio.service import (
     StudioPaths,
     list_reports,
+    record_review_feedback,
     resolve_report_output,
     resolve_workspace_input,
     run_temporal_analysis,
@@ -227,3 +229,99 @@ def test_studio_run_request_schema_rejects_invalid_strategy_and_url(
     )
     assert invalid_strategy.status_code == 422
     assert external.status_code == 422
+
+
+def test_studio_feedback_endpoint_validates_target_and_uses_existing_jsonl_store(
+    tmp_path: Path,
+) -> None:
+    pytest.importorskip("fastapi")
+    from fastapi.testclient import TestClient
+
+    from ade.studio.api import create_app
+
+    paths = _paths(tmp_path)
+    result = run_visual_analysis(_images(tmp_path), "feedback_report.md", paths=paths)
+    report = json.loads(Path(str(result["json_report_path"])).read_text(encoding="utf-8"))
+    finding_id = report["candidate_anomalies"][0]["anomaly_id"]
+    client = TestClient(create_app(paths=paths, job_store=StudioJobStore()))
+
+    response = client.post(
+        "/api/studio/feedback",
+        json={
+            "report_name": "feedback_report.json",
+            "finding_id": finding_id,
+            "finding_type": "visual_candidate",
+            "reviewer_action": "useful",
+            "note": "Reviewer-marked useful for local review.",
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["reviewer_action"] == "useful"
+    assert body["label"] == "interesting"
+    assert body["target_type"] == "anomaly"
+    records = FeedbackStore(paths.feedback_path).read_all()
+    assert len(records) == 1
+    assert records[0].target_id == finding_id
+    assert records[0].notes == "Reviewer-marked useful for local review."
+
+    unknown = client.post(
+        "/api/studio/feedback",
+        json={
+            "report_name": "feedback_report.json",
+            "finding_id": "missing-candidate",
+            "finding_type": "visual_candidate",
+            "reviewer_action": "not_useful",
+        },
+    )
+    traversal = client.post(
+        "/api/studio/feedback",
+        json={
+            "report_name": "../feedback_report.json",
+            "finding_id": finding_id,
+            "finding_type": "visual_candidate",
+            "reviewer_action": "needs_review",
+        },
+    )
+    external = client.post(
+        "/api/studio/feedback",
+        json={
+            "report_name": "https://example.test/report.json",
+            "finding_id": finding_id,
+            "finding_type": "visual_candidate",
+            "reviewer_action": "needs_review",
+        },
+    )
+    assert unknown.status_code == 400
+    assert traversal.status_code == 422
+    assert external.status_code == 422
+
+
+def test_studio_feedback_records_temporal_candidate_in_existing_store(
+    tmp_path: Path,
+) -> None:
+    paths = _paths(tmp_path)
+    result = run_temporal_analysis(
+        _manifest(tmp_path),
+        "feedback_temporal.md",
+        strategy="adjacent_difference",
+        paths=paths,
+    )
+    report = json.loads(Path(str(result["json_report_path"])).read_text(encoding="utf-8"))
+    event_id = report["candidate_change_events"][0]["event_id"]
+
+    feedback = record_review_feedback(
+        report_name="feedback_temporal.json",
+        finding_id=event_id,
+        finding_type="temporal_candidate",
+        reviewer_action="needs_review",
+        note="Inspect this candidate temporal change again.",
+        paths=paths,
+    )
+
+    assert feedback["reviewer_action"] == "needs_review"
+    assert feedback["label"] == "needs_more_data"
+    record = FeedbackStore(paths.feedback_path).read_all()[0]
+    assert record.target_type == "temporal"
+    assert record.target_id == event_id
