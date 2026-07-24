@@ -103,6 +103,26 @@ backend session, while feedback remains append-only local JSONL. No cloud/SaaS
 backend, accounts, uploads, continuous monitoring, satellite integration, or
 geospatial registration were added.
 
+## Stage 7D Studio Local App Onboarding and Final Hardening
+
+The Technical Preview local app loop is now documented from installation through
+backend verification, deterministic demo generation, localhost startup,
+image-folder and temporal local runs, report opening, and local reviewer
+feedback. Small PowerShell helpers start the existing backend and frontend after
+checking prerequisites; they do not install dependencies or alter the global
+environment.
+
+The existing `/health` endpoint is documented as the local status check and
+returns only real service identity and capability fields. Local input paths must
+exist on the backend machine, browser upload is not implemented, Studio job
+history remains process-local, and review feedback remains append-only local
+JSONL. Outputs are candidate anomalies, candidate concepts, or candidate
+temporal changes that require human review.
+
+Future work may consider browser import and durable job history. Authentication
+or hosted service capabilities remain later work and are not part of this local
+app Technical Preview.
+
 ## Done
 
 - Python package scaffold with `src/` layout

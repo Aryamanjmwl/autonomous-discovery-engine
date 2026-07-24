@@ -15,6 +15,26 @@ def test_local_verification_scripts_exist() -> None:
     assert (PROJECT_ROOT / "scripts" / "verify_local.py").is_file()
 
 
+def test_studio_startup_helpers_are_thin_local_wrappers() -> None:
+    backend_path = PROJECT_ROOT / "scripts" / "start_studio_backend.ps1"
+    frontend_path = PROJECT_ROOT / "scripts" / "start_studio_frontend.ps1"
+    assert backend_path.is_file()
+    assert frontend_path.is_file()
+
+    backend = backend_path.read_text(encoding="utf-8")
+    frontend = frontend_path.read_text(encoding="utf-8")
+    combined = f"{backend}\n{frontend}".lower()
+
+    assert "split-path -parent $psscriptroot" in combined
+    assert "python -m ade.studio.api --host 127.0.0.1 --port 8765" in backend
+    assert "http://127.0.0.1:8765/health" in backend
+    assert "& npm run dev" in frontend
+    assert "http://localhost:3000" in frontend
+    assert "node_modules" in frontend
+    for forbidden in ("& pip install", "& npm install", "install-module", "start-process"):
+        assert forbidden not in combined
+
+
 def test_create_demo_data_runs_as_direct_subprocess() -> None:
     result = _run_python_script(["scripts/create_demo_data.py"])
 

@@ -91,14 +91,51 @@ python scripts/verify_temporal_demo.py
 See the concise [temporal visual demo evidence guide](docs/demo_temporal_visual_evidence.md)
 for the complete generated-observation, artifact, report, HTML, and Studio review workflow.
 
-Run ADE Studio in two terminals:
+### ADE Studio local app quickstart
 
-```bash
-pip install -e ".[studio]"
-python -m ade.studio.api --host 127.0.0.1 --port 8765
-cd apps/studio/frontend
-npm run dev
+From PowerShell in the repository root, install the existing development and
+Studio extras, verify the backend, and prepare the deterministic local demos:
+
+```powershell
+pip install -e ".[dev,studio]"
+python scripts/verify_local.py
+python scripts/create_temporal_demo_data.py
+python scripts/verify_temporal_demo.py
 ```
+
+Install frontend packages once:
+
+```powershell
+Set-Location apps/studio/frontend
+npm install
+Set-Location ../../..
+```
+
+Start the backend and frontend in separate PowerShell terminals:
+
+```powershell
+.\scripts\start_studio_backend.ps1
+```
+
+```powershell
+.\scripts\start_studio_frontend.ps1
+```
+
+The helpers only check prerequisites and start the existing services; they do
+not install packages. Manual equivalents are documented in
+[ADE Studio](docs/ade_studio.md). Open `http://localhost:3000` and confirm the
+backend at `http://127.0.0.1:8765/health`.
+
+On the Run screen, use `data/raw/demo_images` for an image-folder local run. For
+a temporal local run, use
+`data/raw/temporal_demo/scene_revisit_shift/manifest.json` and select
+`adjacent_difference`. After completion, choose Open in Reports, inspect the
+candidate findings, then use Findings to save local review feedback.
+
+These are paths on the machine running the backend, not browser uploads. Studio
+job history is process-local; reviewer feedback is appended to the configured
+local JSONL store. All candidate anomalies, candidate concepts, and candidate
+temporal changes require human review.
 
 ## Demo Outputs
 

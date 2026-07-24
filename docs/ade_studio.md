@@ -25,7 +25,52 @@ or hosted product behavior.
 All findings are candidate findings and require human review. The UI supports
 review-oriented presentation; it does not claim automated truth.
 
-## How To Run Locally
+## New-User Local App Quickstart
+
+Use PowerShell from the repository root. Install the existing backend
+development and Studio extras:
+
+```powershell
+pip install -e ".[dev,studio]"
+```
+
+Verify the local backend workflows and generate deterministic demo inputs:
+
+```powershell
+python scripts/verify_local.py
+python scripts/create_temporal_demo_data.py
+python scripts/verify_temporal_demo.py
+```
+
+Install frontend packages once:
+
+```powershell
+Set-Location apps/studio/frontend
+npm install
+Set-Location ../../..
+```
+
+Start the backend in terminal 1:
+
+```powershell
+.\scripts\start_studio_backend.ps1
+```
+
+Start the frontend in terminal 2:
+
+```powershell
+.\scripts\start_studio_frontend.ps1
+```
+
+Open `http://localhost:3000`. The backend health endpoint is
+`http://127.0.0.1:8765/health`; it reports the service status, ADE version,
+local-only mode, Technical Preview label, supported workflows, and the
+human-review requirement. It does not report invented uptime, runtime metrics,
+or monitoring state.
+
+The startup helpers resolve the project root automatically, check prerequisites,
+and run the existing commands. They do not install dependencies. The manual
+equivalents are:
 
 Terminal 1, from the repository root:
 
@@ -49,6 +94,26 @@ npm run typecheck
 npm run build
 npm run dev
 ```
+
+### Complete a local review loop
+
+1. Open Run and enter `data/raw/demo_images` as the local image folder path.
+2. Submit the image-folder local run and wait for the synchronous response.
+3. Choose Open in Reports, then inspect its candidate anomalies and candidate
+   concepts on Reports and Findings.
+4. On Findings, mark a candidate useful, not useful, or needing review and
+   optionally save a reviewer note.
+5. For a temporal local run, enter
+   `data/raw/temporal_demo/scene_revisit_shift/manifest.json`, select
+   `adjacent_difference`, submit, and open the generated report.
+6. Review candidate temporal changes and save local reviewer feedback where
+   appropriate.
+
+Input paths must exist on the machine running the ADE backend. Browser upload,
+drag-and-drop import, and server filesystem browsing are not implemented. Run
+history is in memory and clears when the backend process restarts. Feedback is
+append-only local JSONL at the configured feedback path. Outputs are
+review-prioritization signals and require human review.
 
 The frontend calls `NEXT_PUBLIC_ADE_API_URL` and defaults to
 `http://127.0.0.1:8765`.

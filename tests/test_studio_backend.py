@@ -34,6 +34,9 @@ def test_studio_health_status_is_local_technical_preview() -> None:
     assert health["mode"] == "local-only"
     assert health["label"] == "Technical Preview"
     assert health["human_review_required"] is True
+    assert health["supports_remote_execution"] is False
+    for invented_metric in ("uptime", "progress", "load", "monitoring_status"):
+        assert invented_metric not in health
 
 
 def test_studio_fastapi_health_endpoint_when_dependency_available() -> None:
