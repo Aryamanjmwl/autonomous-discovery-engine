@@ -110,24 +110,25 @@ The JSON report must remain in `data/reports/` with its referenced artifact avai
 Start the existing local Studio backend in the first PowerShell terminal:
 
 ```powershell
-pip install -e ".[studio]"
-python -m ade.studio.api --host 127.0.0.1 --port 8765
+.\scripts\start_studio_backend.ps1
 ```
 
 Start the frontend in a second PowerShell terminal:
 
 ```powershell
-cd apps/studio/frontend
-npm install
-npm run typecheck
-npm run build
-npm run dev
+.\scripts\start_studio_frontend.ps1
 ```
 
-Open the local address printed by the frontend. In connected mode, select
-`temporal_demo_scene.json` on the Reports screen. ADE Studio displays it only if the
-temporal report and referenced artifact both validate. The Findings screen then presents
-the real candidate change events and computed patch evidence from that report.
+The helpers require backend and frontend dependencies to be installed first;
+they do not install packages. Open `http://localhost:3000` and use
+`http://127.0.0.1:8765/health` to verify the local backend.
+
+To run the workflow from Studio itself, open Run and enter
+`data/raw/temporal_demo/scene_revisit_shift/manifest.json`, choose
+`adjacent_difference`, and submit the temporal local run. Choose Open in Reports
+after it succeeds. ADE Studio displays the report only if the temporal report
+and referenced artifact both validate. Findings then presents real candidate
+change events and computed patch evidence, with local reviewer feedback actions.
 
 ## Interpreting the Output
 

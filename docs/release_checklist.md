@@ -16,6 +16,8 @@ release review aid, not an operational-readiness certification.
 - [ ] Run `pytest`.
 - [ ] Run `python scripts/verify_local.py`.
 - [ ] Confirm a normal image-folder run still produces candidate findings that require human review.
+- [ ] Confirm `.\scripts\start_studio_backend.ps1` starts the documented localhost API.
+- [ ] Confirm `http://127.0.0.1:8765/health` reports local-only Technical Preview state.
 
 ## Frontend verification
 
@@ -24,6 +26,9 @@ From `apps/studio/frontend`:
 - [ ] Run `npm --cache "D:\ADE\npm-cache" run typecheck`.
 - [ ] Run `npm --cache "D:\ADE\npm-cache" run build`.
 - [ ] Start the documented local backend and frontend, then confirm connected mode uses real local report data.
+- [ ] Confirm `.\scripts\start_studio_frontend.ps1` starts `http://localhost:3000`.
+- [ ] Complete one image-folder and one temporal local run from the browser.
+- [ ] Open a generated report and save one local reviewer action to the configured JSONL store.
 - [ ] Confirm missing, malformed, or unavailable reports produce an honest empty or warning state.
 - [ ] Confirm every visible control performs a real action or is clearly disabled as Technical Preview functionality.
 
@@ -60,6 +65,7 @@ From `apps/studio/frontend`:
 - The lightweight default install does not enable optional DINOv2 or FAISS providers.
 - Temporal comparison does not perform geographic alignment or continuous ingestion.
 - Studio has no hosted accounts, authentication, billing, cloud storage, or multi-user review service.
+- Browser upload/import and persistent Studio job history are not implemented.
 - No clinical, scientific, safety-critical, or operational decision should rely on ADE output without appropriate independent review.
 
 ## Not included in v0.1.0 Technical Preview

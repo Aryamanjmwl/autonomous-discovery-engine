@@ -102,8 +102,8 @@ def test_temporal_demo_evidence_uses_real_supported_workflow_language() -> None:
         "--validate-temporal-report",
         "--export-temporal-html-report",
         "python scripts/verify_temporal_demo.py",
-        "python -m ade.studio.api --host 127.0.0.1 --port 8765",
-        "npm run dev",
+        r".\scripts\start_studio_backend.ps1",
+        r".\scripts\start_studio_frontend.ps1",
     ):
         assert command in guide
     for forbidden in (
@@ -115,6 +115,49 @@ def test_temporal_demo_evidence_uses_real_supported_workflow_language() -> None:
         "live feed",
         "autonomous conclusion",
         "fake screenshot",
+    ):
+        assert forbidden not in lowered
+
+
+def test_stage_7d_local_app_onboarding_uses_supported_commands_and_limits() -> None:
+    checked = {
+        path: _read(path)
+        for path in (
+            "README.md",
+            "docs/ade_studio.md",
+            "apps/studio/README.md",
+        )
+    }
+    combined = "\n".join(checked.values())
+    lowered = combined.lower()
+
+    for command in (
+        'pip install -e ".[dev,studio]"',
+        "python scripts/verify_local.py",
+        "python scripts/create_temporal_demo_data.py",
+        "python scripts/verify_temporal_demo.py",
+        "npm install",
+        r".\scripts\start_studio_backend.ps1",
+        r".\scripts\start_studio_frontend.ps1",
+    ):
+        assert command in combined
+    assert "http://localhost:3000" in combined
+    assert "http://127.0.0.1:8765/health" in combined
+    assert "data/raw/demo_images" in combined
+    assert "data/raw/temporal_demo/scene_revisit_shift/manifest.json" in combined
+    assert "machine running the backend" in lowered or "backend machine" in lowered
+    assert "browser upload" in lowered
+    assert "process-local" in lowered or "in memory" in lowered
+    assert "local jsonl" in lowered
+    assert "requires human review" in lowered or "require human review" in lowered
+
+    for forbidden in (
+        "fake screenshot",
+        "production monitoring",
+        "live feed",
+        "saas-ready",
+        "subscription-ready",
+        "confirmed finding",
     ):
         assert forbidden not in lowered
 

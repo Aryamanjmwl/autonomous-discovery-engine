@@ -12,7 +12,36 @@ reports, validate reports, and export HTML. If the backend is unavailable, the
 frontend falls back to mock preview data. Findings shown in either mode are
 candidate findings and require human review.
 
-## Local Connected Workflow
+## Local App Quickstart
+
+Run these commands from the repository root in PowerShell:
+
+```powershell
+pip install -e ".[dev,studio]"
+python scripts/verify_local.py
+python scripts/create_temporal_demo_data.py
+python scripts/verify_temporal_demo.py
+Set-Location apps/studio/frontend
+npm install
+Set-Location ../../..
+```
+
+Start two terminals:
+
+```powershell
+.\scripts\start_studio_backend.ps1
+```
+
+```powershell
+.\scripts\start_studio_frontend.ps1
+```
+
+Open `http://localhost:3000`. Check
+`http://127.0.0.1:8765/health` if connected mode is unavailable. The health
+response contains real service identity and capability fields only; it does not
+claim uptime or monitoring state.
+
+The helper scripts do not install dependencies. Their manual equivalents are:
 
 Terminal 1, from the repository root:
 
@@ -39,6 +68,21 @@ npm run dev
 
 The frontend uses `NEXT_PUBLIC_ADE_API_URL` and defaults to
 `http://127.0.0.1:8765`.
+
+## First Local Run and Review
+
+- On Run, submit `data/raw/demo_images` as an image-folder path.
+- For temporal analysis, first generate the demo data, then submit
+  `data/raw/temporal_demo/scene_revisit_shift/manifest.json` with
+  `adjacent_difference`.
+- After success, use Open in Reports and inspect only the real generated report.
+- Open Findings to mark a candidate useful, not useful, or needing review and
+  optionally add a local reviewer note.
+
+Paths refer to the backend machine. There is no browser upload or filesystem
+picker. Run history is stored in memory for the backend session. Feedback is
+persisted in the configured append-only local JSONL store. Candidate anomalies,
+candidate concepts, and candidate temporal changes require human review.
 
 The existing frontend posts JSON to `POST /api/studio/analysis`. The `input_path` value
 can be an absolute Windows path such as `D:\ADE\ade\data\raw\demo_images` or a
@@ -177,8 +221,8 @@ Not implemented here:
 - Auth, users, database, billing, cloud deployment, or hosted product behavior
 - Automated truth claims
 
-Next integration work is richer feedback editing, broader adapter workflows,
-and deeper report browsing while preserving local execution.
+Future work may consider browser import and durable job history while preserving
+local execution and explicit human review.
 
 
 
@@ -194,6 +238,6 @@ review support; candidate findings require human review.
 
 The Reports and Findings screens can display validated temporal reports already generated
 by the ADE CLI. Sequence ranges, candidate temporal changes, real patch coordinates, and
-artifact fingerprints come directly from local report data. No temporal run form, live
-feed, playback, map, or synthetic chart is provided. Candidate change events require
-human review.
+artifact fingerprints come directly from local report data. Temporal local runs use explicit
+manifest paths; no continuous ingestion, playback, map, or synthetic chart is provided.
+Candidate change events require human review.

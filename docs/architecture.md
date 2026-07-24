@@ -358,3 +358,21 @@ does not infer prior feedback records because no feedback-history endpoint is
 introduced. Feedback is local review state, not evidence that a candidate is correct.
 In-memory Studio job history and persistent local JSONL feedback have separate,
 explicit lifetimes.
+
+## Studio Local App Onboarding
+
+Stage 7D adds no runtime service or analysis boundary. Two PowerShell helpers
+resolve the repository root, validate already-installed prerequisites, and start
+the existing localhost backend or Next.js development frontend. Dependency
+installation remains an explicit user step.
+
+The established `/health` endpoint is the onboarding status contract. It
+returns service identity, ADE version, local-only Technical Preview mode,
+supported workflows, and the human-review requirement. It intentionally omits
+uptime, load, progress, and monitoring fields.
+
+The documented local app loop is: verify the backend, generate local demo
+inputs, start both services, submit a local run using a backend-machine path,
+open its validated report, inspect candidate findings, and append local review
+feedback. Browser import, durable job history, hosted identity, and managed
+service operation remain future boundaries.

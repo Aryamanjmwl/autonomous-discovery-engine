@@ -173,6 +173,15 @@ monitoring are out of scope.
 - Newest-first process-local job history without invented progress or duration
 - No cloud/SaaS backend, accounts, uploads, or continuous monitoring
 
+## Stage 7D: Studio Local App Onboarding and Final Hardening
+
+- PowerShell-friendly backend and frontend startup helpers
+- Exact new-user verification, demo generation, startup, run, report, and review steps
+- Documented localhost health/status check without invented runtime metrics
+- Explicit backend-machine path, in-memory job history, and local JSONL feedback limits
+- Technical Preview local app loop complete
+- Later work: browser import, durable job history, and hosted identity only after local review
+
 ## Later Stage 7: Multi-Modal Expansion
 
 1. Tabular adapter
