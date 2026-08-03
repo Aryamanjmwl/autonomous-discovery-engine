@@ -203,6 +203,39 @@ function JobDetail({
         </dl>
       </Panel>
 
+      <Panel>
+        <PanelHeader title="Reproducibility evidence" />
+        {job.input_fingerprint && job.effective_configuration ? (
+          <div className="grid gap-5 p-4">
+            <dl className="grid gap-3 font-mono text-xs">
+              <RunMeta label="Input kind" value={job.input_fingerprint.kind.replaceAll('_', ' ')} />
+              <RunMeta label="Input SHA-256" value={job.input_fingerprint.digest} />
+              <RunMeta label="Files" value={String(job.input_fingerprint.file_count)} />
+              <RunMeta
+                label="Input bytes"
+                value={job.input_fingerprint.total_size_bytes.toLocaleString()}
+              />
+              <RunMeta
+                label="Config SHA-256"
+                value={job.effective_configuration.fingerprint}
+              />
+            </dl>
+            <details className="rounded-md border border-border p-3">
+              <summary className="cursor-pointer text-xs uppercase tracking-[0.12em] text-muted-foreground">
+                Effective configuration snapshot
+              </summary>
+              <pre className="mt-3 max-h-80 overflow-auto whitespace-pre-wrap break-all font-mono text-xs text-foreground">
+                {JSON.stringify(job.effective_configuration.values, null, 2)}
+              </pre>
+            </details>
+          </div>
+        ) : (
+          <p className="p-4 text-sm text-muted-foreground">
+            No content fingerprint or effective configuration was recorded for this job.
+          </p>
+        )}
+      </Panel>
+
       {job.error_message ? (
         <div role="alert" className="flex items-start gap-2 rounded-md border border-critical/40 bg-critical/10 p-4 text-sm text-critical">
           <AlertTriangle className="mt-0.5 size-4 shrink-0" />

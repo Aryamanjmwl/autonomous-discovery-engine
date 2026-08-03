@@ -185,7 +185,7 @@ def test_studio_run_endpoints_expose_job_metadata_when_dependencies_available(
         assert created.status_code == 202
         job = created.json()
         assert job["job_type"] == "image_folder_analysis"
-        assert job["manifest_version"] == "1.0"
+        assert job["manifest_version"] == "1.1"
         assert job["request_parameters"] == {
             "input_path": "images",
             "output_name": "api_image.md",
@@ -198,6 +198,10 @@ def test_studio_run_endpoints_expose_job_metadata_when_dependencies_available(
             if job["status"] in {"succeeded", "failed", "cancelled"}:
                 break
         assert job["status"] == "succeeded"
+        assert job["input_fingerprint"]["kind"] == "image_folder"
+        assert job["input_fingerprint"]["file_count"] == 3
+        assert job["effective_configuration"]["fingerprint"]
+        assert job["effective_configuration"]["values"]["project"]["name"] == "ADE"
         assert client.get("/api/studio/runs").json()[0] == job
         reports = client.get("/api/studio/reports").json()
         assert reports[0]["name"] == "api_image.json"

@@ -16,6 +16,11 @@ def test_studio_job_store_persists_completed_jobs(tmp_path: Path) -> None:
     store = StudioJobStore(storage_path)
     job = store.create("image_folder_analysis", {"input_path": "images"})
     store.start(job)
+    store.record_provenance(
+        job,
+        input_fingerprint={"digest": "dataset-digest"},
+        effective_configuration={"fingerprint": "config-digest", "values": {}},
+    )
     store.succeed(
         job,
         report_paths=["reports/run.json"],
@@ -27,9 +32,14 @@ def test_studio_job_store_persists_completed_jobs(tmp_path: Path) -> None:
 
     assert restored is not None
     assert restored["status"] == "succeeded"
-    assert restored["manifest_version"] == "1.0"
+    assert restored["manifest_version"] == "1.1"
     assert restored["ade_version"] == __version__
     assert restored["request_parameters"] == {"input_path": "images"}
+    assert restored["input_fingerprint"] == {"digest": "dataset-digest"}
+    assert restored["effective_configuration"] == {
+        "fingerprint": "config-digest",
+        "values": {},
+    }
     assert restored["output_report_paths"] == ["reports/run.json"]
     assert restored["output_artifact_paths"] == ["artifacts/run"]
     assert restored["warnings"] == ["Candidate findings require human review."]
@@ -56,7 +66,9 @@ def test_studio_job_store_migrates_v11_records(tmp_path: Path) -> None:
     assert restored["manifest_version"] == "1.0"
     assert restored["ade_version"] == "unknown"
     assert restored["request_parameters"] == {"input_path": "images"}
-    assert persisted["schema_version"] == "1.2"
+    assert restored["input_fingerprint"] is None
+    assert restored["effective_configuration"] is None
+    assert persisted["schema_version"] == "1.3"
 
 
 @pytest.mark.parametrize("status", ["queued", "running"])

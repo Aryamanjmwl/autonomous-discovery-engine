@@ -55,6 +55,21 @@ export interface StudioRun {
 export type StudioRunStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled'
 export type StudioRunJobType = 'image_folder_analysis' | 'temporal_analysis'
 
+export interface StudioInputFingerprint {
+  schema_version: string
+  kind: 'image_folder' | 'temporal_sequence'
+  algorithm: 'sha256'
+  digest: string
+  file_count: number
+  total_size_bytes: number
+}
+
+export interface StudioEffectiveConfiguration {
+  schema_version: string
+  fingerprint: string
+  values: Record<string, unknown>
+}
+
 export interface StudioRunJob {
   job_id: string
   job_type: StudioRunJobType
@@ -63,6 +78,8 @@ export interface StudioRunJob {
   manifest_version: string
   ade_version: string
   request_parameters: Record<string, unknown>
+  input_fingerprint: StudioInputFingerprint | null
+  effective_configuration: StudioEffectiveConfiguration | null
   started_at: string | null
   finished_at: string | null
   input_summary: Record<string, unknown>

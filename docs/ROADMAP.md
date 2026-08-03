@@ -201,6 +201,17 @@ monitoring are out of scope.
 - Request provenance only; dataset content fingerprints and resolved configuration
   snapshots remain separate pipeline-level work
 
+## Stage 8D: Studio Input and Configuration Provenance
+
+- SHA-256 content identity captured before image-folder and temporal execution
+- Supported image inputs fingerprinted with normalized relative paths
+- Temporal manifest, referenced image, and referenced mask content fingerprinted
+- Fully merged image-pipeline configuration retained with a canonical fingerprint
+- Applied temporal parameters retained with a canonical fingerprint
+- Existing records migrate to the v1.3 store without fabricated historical evidence
+- Provenance visible through the Studio API and Runs screen
+- Pre-execution snapshot only; inputs are not locked against concurrent changes
+
 ## Later Stage 7: Multi-Modal Expansion
 
 1. Tabular adapter
