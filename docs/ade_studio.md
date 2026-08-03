@@ -98,7 +98,8 @@ npm run dev
 ### Complete a local review loop
 
 1. Open Run and enter `data/raw/demo_images` as the local image folder path.
-2. Submit the image-folder local run and wait for the synchronous response.
+2. Submit the image-folder local run, then follow its exact queued or running
+   state on the Runs screen.
 3. Choose Open in Reports, then inspect its candidate anomalies and candidate
    concepts on Reports and Findings.
 4. On Findings, mark a candidate useful, not useful, or needing review and
@@ -136,13 +137,23 @@ Stage 7A also exposes a job-oriented local run API:
 - `POST /api/studio/runs/temporal`
 - `GET /api/studio/runs`
 - `GET /api/studio/runs/{job_id}`
+- `POST /api/studio/runs/{job_id}/cancel`
 
-Jobs move through `queued`, `running`, `succeeded`, or `failed`, and their state
-is persisted after every transition. A queued or running job found when the
-backend restarts is retained and marked failed with an interruption message;
-ADE never presents an interrupted job as completed evidence. Execution remains
-synchronous in this stage. Image-folder requests accept `input_path`, optional `output_name`,
-optional `config_path`, and optional `run_label`. Temporal requests accept
+Jobs move through `queued`, `running`, `succeeded`, `failed`, or `cancelled`,
+and their state is persisted after every transition. Submission returns HTTP 202
+without holding the request handler open; a bounded two-thread local executor
+runs accepted work. Queued jobs cancel before execution. Running jobs record a
+cooperative cancellation request and become cancelled when the current workflow
+call returns. A queued or running job found when the backend restarts is retained
+and marked failed with an interruption message. ADE never presents interrupted
+or cancelled work as completed evidence.
+
+Every new job also records a versioned run manifest containing the ADE version
+and the complete normalized request after API defaults are applied. Existing
+v1.0 and v1.1 job files migrate automatically. These fields record request
+provenance; they do not claim to fingerprint dataset contents or snapshot the
+resolved configuration file. Image-folder requests accept `input_path`, optional
+`output_name`, optional `config_path`, and optional `run_label`. Temporal requests accept
 `manifest_path`, `strategy` (`adjacent_difference` or `baseline_difference`),
 optional existing patch/evidence limits, optional `output_name`, and optional
 `run_label`.
@@ -158,13 +169,13 @@ Failed jobs expose no report or artifact path as valid evidence.
 The Run screen can submit an image-folder path or temporal manifest path to the
 local backend. Image-folder runs accept an optional label and config path.
 Temporal runs select `adjacent_difference` or `baseline_difference` and may
-provide an optional label and patch size. Submit controls are disabled while the
-synchronous request is active, and validation or workflow failures show the real
-backend error.
+provide an optional label and patch size. Accepted jobs are polled while active;
+queued and running jobs expose a cancellation control. Validation or workflow
+failures show the real backend error.
 
-The Runs screen lists exact local job records with status, timestamps,
-input summary, warnings, errors, report paths, artifact paths, and the
-human-review requirement. Successful jobs can refresh report discovery and open
+The Runs screen lists exact local job records with status, timestamps, manifest
+version, ADE version, normalized request parameters, warnings, errors, report
+paths, artifact paths, and the human-review requirement. Successful jobs can refresh report discovery and open
 the generated JSON report through the existing report detail route when the job
 returns one. Completed and failed records remain available after a backend restart.
 
