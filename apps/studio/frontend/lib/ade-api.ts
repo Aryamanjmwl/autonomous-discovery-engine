@@ -52,7 +52,7 @@ export interface StudioRun {
   modality?: string
 }
 
-export type StudioRunStatus = 'queued' | 'running' | 'succeeded' | 'failed'
+export type StudioRunStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled'
 export type StudioRunJobType = 'image_folder_analysis' | 'temporal_analysis'
 
 export interface StudioRunJob {
@@ -68,6 +68,7 @@ export interface StudioRunJob {
   error_message: string | null
   warnings: string[]
   human_review_required: boolean
+  cancellation_requested: boolean
 }
 
 export interface ImageFolderRunRequest {
@@ -253,7 +254,6 @@ export interface StudioData {
 
 const DEFAULT_API_URL = 'http://127.0.0.1:8765'
 const REQUEST_TIMEOUT_MS = 15_000
-const RUN_REQUEST_TIMEOUT_MS = 30 * 60_000
 
 export function adeApiBaseUrl(): string {
   const configured = (process.env.NEXT_PUBLIC_ADE_API_URL || DEFAULT_API_URL).trim()
@@ -315,8 +315,7 @@ export async function createImageFolderRun(
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(payload),
-    },
-    RUN_REQUEST_TIMEOUT_MS,
+    }
   )
 }
 
@@ -327,8 +326,7 @@ export async function createTemporalRun(payload: TemporalRunRequest): Promise<St
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(payload),
-    },
-    RUN_REQUEST_TIMEOUT_MS,
+    }
   )
 }
 
@@ -338,6 +336,12 @@ export async function listStudioRuns(): Promise<StudioRunJob[]> {
 
 export async function getStudioRun(jobId: string): Promise<StudioRunJob> {
   return request<StudioRunJob>(`/api/studio/runs/${encodeURIComponent(jobId)}`)
+}
+
+export async function cancelStudioRun(jobId: string): Promise<StudioRunJob> {
+  return request<StudioRunJob>(`/api/studio/runs/${encodeURIComponent(jobId)}/cancel`, {
+    method: 'POST',
+  })
 }
 
 export async function submitStudioReviewFeedback(

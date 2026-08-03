@@ -13,11 +13,13 @@ from typing import Literal
 from uuid import uuid4
 
 StudioJobType = Literal["image_folder_analysis", "temporal_analysis"]
-StudioJobStatus = Literal["queued", "running", "succeeded", "failed"]
+StudioJobStatus = Literal["queued", "running", "succeeded", "failed", "cancelled"]
+CancellationResult = Literal["cancelled", "requested", "terminal"]
 
-_STORE_SCHEMA_VERSION = "1.0"
+_STORE_SCHEMA_VERSION = "1.1"
+_SUPPORTED_STORE_SCHEMA_VERSIONS = {"1.0", _STORE_SCHEMA_VERSION}
 _JOB_TYPES = {"image_folder_analysis", "temporal_analysis"}
-_JOB_STATUSES = {"queued", "running", "succeeded", "failed"}
+_JOB_STATUSES = {"queued", "running", "succeeded", "failed", "cancelled"}
 _INTERRUPTED_MESSAGE = "ADE Studio restarted before this job completed."
 
 
@@ -41,6 +43,7 @@ class StudioJob:
     error_message: str | None = None
     warnings: list[str] = field(default_factory=list)
     human_review_required: bool = True
+    cancellation_requested: bool = False
 
     def to_dict(self) -> dict[str, object]:
         """Return a detached JSON-safe job representation."""
@@ -59,8 +62,6 @@ class StudioJobStore:
 
     @property
     def storage_path(self) -> Path | None:
-        """Return the configured persistence path, if persistence is enabled."""
-
         return self._storage_path
 
     def _load(self) -> None:
@@ -72,10 +73,12 @@ class StudioJobStore:
             raise ValueError(
                 f"Studio job store is unreadable: {self._storage_path}"
             ) from error
-        if (
-            not isinstance(payload, dict)
-            or payload.get("schema_version") != _STORE_SCHEMA_VERSION
-        ):
+        if not isinstance(payload, dict):
+            raise ValueError(
+                f"Studio job store has an unsupported schema: {self._storage_path}"
+            )
+        schema_version = payload.get("schema_version")
+        if schema_version not in _SUPPORTED_STORE_SCHEMA_VERSIONS:
             raise ValueError(
                 f"Studio job store has an unsupported schema: {self._storage_path}"
             )
@@ -83,9 +86,9 @@ class StudioJobStore:
         if not isinstance(records, list):
             raise TypeError(f"Studio job store has invalid jobs: {self._storage_path}")
 
-        recovered = False
+        recovered = schema_version != _STORE_SCHEMA_VERSION
         for record in records:
-            job = self._deserialize_job(record)
+            job = self._deserialize_job(record, schema_version=str(schema_version))
             if job.job_id in self._jobs:
                 raise ValueError(
                     f"Studio job store contains duplicate job_id {job.job_id}: "
@@ -102,25 +105,29 @@ class StudioJobStore:
         if recovered:
             self._persist()
 
-    def _deserialize_job(self, record: object) -> StudioJob:
+    def _deserialize_job(self, record: object, *, schema_version: str) -> StudioJob:
         if not isinstance(record, dict):
             raise TypeError(
                 f"Studio job store contains an invalid record: {self._storage_path}"
             )
+        normalized = dict(record)
+        if schema_version == "1.0":
+            normalized["cancellation_requested"] = False
         expected_fields = {item.name for item in fields(StudioJob)}
-        if set(record) != expected_fields:
+        if set(normalized) != expected_fields:
             raise ValueError(
                 f"Studio job store record fields are invalid: {self._storage_path}"
             )
         if (
-            record.get("job_type") not in _JOB_TYPES
-            or record.get("status") not in _JOB_STATUSES
+            normalized.get("job_type") not in _JOB_TYPES
+            or normalized.get("status") not in _JOB_STATUSES
+            or not isinstance(normalized.get("cancellation_requested"), bool)
         ):
             raise ValueError(
                 f"Studio job store record values are invalid: {self._storage_path}"
             )
         try:
-            return StudioJob(**record)  # type: ignore[arg-type]
+            return StudioJob(**normalized)  # type: ignore[arg-type]
         except TypeError as error:
             raise ValueError(
                 f"Studio job store record is invalid: {self._storage_path}"
@@ -169,11 +176,30 @@ class StudioJobStore:
             self._persist()
             return job
 
-    def start(self, job: StudioJob) -> None:
+    def start(self, job: StudioJob) -> bool:
         with self._lock:
+            if job.status != "queued" or job.cancellation_requested:
+                return False
             job.status = "running"
             job.started_at = _timestamp()
             self._persist()
+            return True
+
+    def request_cancel(self, job_id: str) -> CancellationResult | None:
+        with self._lock:
+            job = self._jobs.get(job_id)
+            if job is None:
+                return None
+            if job.status == "queued":
+                job.cancellation_requested = True
+                self._cancel(job)
+                self._persist()
+                return "cancelled"
+            if job.status == "running":
+                job.cancellation_requested = True
+                self._persist()
+                return "requested"
+            return "terminal"
 
     def succeed(
         self,
@@ -184,21 +210,35 @@ class StudioJobStore:
         warnings: list[str] | None = None,
     ) -> None:
         with self._lock:
-            job.status = "succeeded"
-            job.finished_at = _timestamp()
-            job.output_report_paths = list(report_paths)
-            job.output_artifact_paths = list(artifact_paths)
-            job.warnings = list(warnings or [])
+            if job.cancellation_requested:
+                self._cancel(job)
+            else:
+                job.status = "succeeded"
+                job.finished_at = _timestamp()
+                job.output_report_paths = list(report_paths)
+                job.output_artifact_paths = list(artifact_paths)
+                job.warnings = list(warnings or [])
             self._persist()
 
     def fail(self, job: StudioJob, error: Exception) -> None:
         with self._lock:
-            job.status = "failed"
-            job.finished_at = _timestamp()
-            job.error_message = str(error) or error.__class__.__name__
-            job.output_report_paths = []
-            job.output_artifact_paths = []
+            if job.cancellation_requested:
+                self._cancel(job)
+            else:
+                job.status = "failed"
+                job.finished_at = _timestamp()
+                job.error_message = str(error) or error.__class__.__name__
+                job.output_report_paths = []
+                job.output_artifact_paths = []
             self._persist()
+
+    @staticmethod
+    def _cancel(job: StudioJob) -> None:
+        job.status = "cancelled"
+        job.finished_at = _timestamp()
+        job.error_message = None
+        job.output_report_paths = []
+        job.output_artifact_paths = []
 
     def list(self) -> list[dict[str, object]]:
         with self._lock:
