@@ -10,7 +10,7 @@ anomalies, candidate concepts, or possible patterns that require human review.
 - Technical Preview foundation for local, adapter-based discovery workflows
 - Mature visual workflow for local image folders
 - ADE Studio localhost API integration for synchronous visual/image-folder and
-  temporal local runs, in-memory job status, local report reads, and constrained
+  temporal local runs, durable local job status, local report reads, and constrained
   report asset/HTML serving
 - Schema-versioned visual-engine contracts, strict configuration validation,
   deterministic dataset fingerprints, and integrity-checked manifest codecs
@@ -51,10 +51,10 @@ anomalies, candidate concepts, or possible patterns that require human review.
 ## Stage 7A Studio Local Run API
 
 The local Studio backend can trigger the existing image-folder and temporal
-workflows through job-oriented endpoints. Jobs are synchronous and stored only
-in process memory. Successful jobs reference validated reports and immutable
-temporal artifacts already compatible with Studio discovery; failed jobs retain
-safe error text and no valid output references.
+workflows through job-oriented endpoints. Jobs are synchronous and persisted
+locally after every state transition. Successful jobs reference validated
+reports and immutable temporal artifacts already compatible with Studio
+discovery; failed jobs retain safe error text and no valid output references.
 
 Paths are confined to the configured local workspace, report root, and artifact
 root. External URLs, traversal, missing inputs, malformed manifests, downloads,
@@ -98,8 +98,8 @@ they do not scientifically confirm findings.
 
 Successful jobs offer Open in Reports only when a returned JSON output provides
 a real report name. Failed jobs retain their safe error and do not present
-successful outputs. Job history remains newest-first and process-local to the
-backend session, while feedback remains append-only local JSONL. No cloud/SaaS
+successful outputs. Job history remains newest-first and is persisted locally,
+while feedback remains append-only local JSONL. No cloud/SaaS
 backend, accounts, uploads, continuous monitoring, satellite integration, or
 geospatial registration were added.
 
@@ -115,13 +115,27 @@ environment.
 The existing `/health` endpoint is documented as the local status check and
 returns only real service identity and capability fields. Local input paths must
 exist on the backend machine, browser upload is not implemented, Studio job
-history remains process-local, and review feedback remains append-only local
-JSONL. Outputs are candidate anomalies, candidate concepts, or candidate
-temporal changes that require human review.
+history is stored in an atomic local file, and review feedback remains
+append-only local JSONL. Outputs are candidate anomalies, candidate concepts,
+or candidate temporal changes that require human review.
 
-Future work may consider browser import and durable job history. Authentication
+Future work may consider browser import and asynchronous job execution. Authentication
 or hosted service capabilities remain later work and are not part of this local
 app Technical Preview.
+
+## Stage 8A Durable Studio Job History
+
+Studio job records now survive backend restarts in
+`data/reports/studio_jobs.json`. The store uses a versioned JSON envelope and
+atomic same-directory file replacement after every lifecycle transition. It
+fails clearly on corrupt or unsupported persisted state instead of silently
+discarding history.
+
+Queued or running records found at startup are retained and marked failed with
+an explicit restart interruption message. Their output paths are cleared, so an
+interrupted run cannot be presented as completed evidence. This stage does not
+claim background execution, cancellation, a distributed worker queue, or
+multi-process coordination.
 
 ## Done
 
@@ -199,21 +213,23 @@ app Technical Preview.
 
 ## Next Recommended Engineering Steps
 
-1. Keep generated artifacts out of version control.
-2. Keep hardening adapter interfaces before adding more non-visual data types.
-3. Integrate Stage 1 visual requests and reproducibility manifests around the
+1. Move Studio execution behind a bounded asynchronous worker with cancellation
+   and explicit recovery semantics.
+2. Keep generated artifacts out of version control.
+3. Keep hardening adapter interfaces before adding more non-visual data types.
+4. Integrate Stage 1 visual requests and reproducibility manifests around the
    existing statistical pipeline without changing its scoring behavior.
-4. Add explicit, offline-provisioned deep representation backends only after
+5. Add explicit, offline-provisioned deep representation backends only after
    capability and reproducibility conformance tests are defined.
-5. Evaluate useful multi-scale presets on controlled demo and private datasets.
-6. Connect explicitly provisioned representation backends only after
+6. Evaluate useful multi-scale presets on controlled demo and private datasets.
+7. Connect explicitly provisioned representation backends only after
    reproducibility conformance tests.
-7. Fit calibration from held-out validation data and establish public
+8. Fit calibration from held-out validation data and establish public
    benchmark/evaluation gates.
-8. Improve report review workflows with human annotations.
-9. Design reviewer dashboard and concept-memory flows around the local feedback JSONL contract.
-10. Add run comparison tools for candidate anomalies and candidate concepts across experiments.
-11. Continue documenting original decisions and experiments before public disclosure.
+9. Improve report review workflows with human annotations.
+10. Design reviewer dashboard and concept-memory flows around the local feedback JSONL contract.
+11. Add run comparison tools for candidate anomalies and candidate concepts across experiments.
+12. Continue documenting original decisions and experiments before public disclosure.
 
 ## Stage 5A temporal visual foundation
 

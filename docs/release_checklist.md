@@ -65,7 +65,8 @@ From `apps/studio/frontend`:
 - The lightweight default install does not enable optional DINOv2 or FAISS providers.
 - Temporal comparison does not perform geographic alignment or continuous ingestion.
 - Studio has no hosted accounts, authentication, billing, cloud storage, or multi-user review service.
-- Browser upload/import and persistent Studio job history are not implemented.
+- Browser upload/import is not implemented. Studio job history is a durable
+  single-process local file, not a database-backed or distributed job service.
 - No clinical, scientific, safety-critical, or operational decision should rely on ADE output without appropriate independent review.
 
 ## Not included in v0.1.0 Technical Preview

@@ -1,15 +1,24 @@
-"""In-memory job records for local ADE Studio runs."""
+"""Durable local job records for ADE Studio runs."""
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field
+import json
+import os
+from dataclasses import asdict, dataclass, field, fields
 from datetime import UTC, datetime
+from pathlib import Path
+from tempfile import NamedTemporaryFile
 from threading import RLock
 from typing import Literal
 from uuid import uuid4
 
 StudioJobType = Literal["image_folder_analysis", "temporal_analysis"]
 StudioJobStatus = Literal["queued", "running", "succeeded", "failed"]
+
+_STORE_SCHEMA_VERSION = "1.0"
+_JOB_TYPES = {"image_folder_analysis", "temporal_analysis"}
+_JOB_STATUSES = {"queued", "running", "succeeded", "failed"}
+_INTERRUPTED_MESSAGE = "ADE Studio restarted before this job completed."
 
 
 def _timestamp() -> str:
@@ -40,11 +49,110 @@ class StudioJob:
 
 
 class StudioJobStore:
-    """Thread-safe process-local Studio job storage."""
+    """Thread-safe Studio job storage with optional atomic persistence."""
 
-    def __init__(self) -> None:
+    def __init__(self, storage_path: Path | str | None = None) -> None:
         self._jobs: dict[str, StudioJob] = {}
         self._lock = RLock()
+        self._storage_path = Path(storage_path) if storage_path is not None else None
+        self._load()
+
+    @property
+    def storage_path(self) -> Path | None:
+        """Return the configured persistence path, if persistence is enabled."""
+
+        return self._storage_path
+
+    def _load(self) -> None:
+        if self._storage_path is None or not self._storage_path.exists():
+            return
+        try:
+            payload = json.loads(self._storage_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as error:
+            raise ValueError(
+                f"Studio job store is unreadable: {self._storage_path}"
+            ) from error
+        if (
+            not isinstance(payload, dict)
+            or payload.get("schema_version") != _STORE_SCHEMA_VERSION
+        ):
+            raise ValueError(
+                f"Studio job store has an unsupported schema: {self._storage_path}"
+            )
+        records = payload.get("jobs")
+        if not isinstance(records, list):
+            raise TypeError(f"Studio job store has invalid jobs: {self._storage_path}")
+
+        recovered = False
+        for record in records:
+            job = self._deserialize_job(record)
+            if job.job_id in self._jobs:
+                raise ValueError(
+                    f"Studio job store contains duplicate job_id {job.job_id}: "
+                    f"{self._storage_path}"
+                )
+            if job.status in {"queued", "running"}:
+                job.status = "failed"
+                job.finished_at = _timestamp()
+                job.error_message = _INTERRUPTED_MESSAGE
+                job.output_report_paths = []
+                job.output_artifact_paths = []
+                recovered = True
+            self._jobs[job.job_id] = job
+        if recovered:
+            self._persist()
+
+    def _deserialize_job(self, record: object) -> StudioJob:
+        if not isinstance(record, dict):
+            raise TypeError(
+                f"Studio job store contains an invalid record: {self._storage_path}"
+            )
+        expected_fields = {item.name for item in fields(StudioJob)}
+        if set(record) != expected_fields:
+            raise ValueError(
+                f"Studio job store record fields are invalid: {self._storage_path}"
+            )
+        if (
+            record.get("job_type") not in _JOB_TYPES
+            or record.get("status") not in _JOB_STATUSES
+        ):
+            raise ValueError(
+                f"Studio job store record values are invalid: {self._storage_path}"
+            )
+        try:
+            return StudioJob(**record)  # type: ignore[arg-type]
+        except TypeError as error:
+            raise ValueError(
+                f"Studio job store record is invalid: {self._storage_path}"
+            ) from error
+
+    def _persist(self) -> None:
+        if self._storage_path is None:
+            return
+        self._storage_path.parent.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "schema_version": _STORE_SCHEMA_VERSION,
+            "jobs": [job.to_dict() for job in self._jobs.values()],
+        }
+        temporary_path: Path | None = None
+        try:
+            with NamedTemporaryFile(
+                "w",
+                encoding="utf-8",
+                dir=self._storage_path.parent,
+                prefix=f".{self._storage_path.name}.",
+                suffix=".tmp",
+                delete=False,
+            ) as handle:
+                temporary_path = Path(handle.name)
+                json.dump(payload, handle, indent=2, sort_keys=True)
+                handle.write("\n")
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(temporary_path, self._storage_path)
+        finally:
+            if temporary_path is not None and temporary_path.exists():
+                temporary_path.unlink()
 
     def create(
         self, job_type: StudioJobType, input_summary: dict[str, object]
@@ -58,12 +166,14 @@ class StudioJobStore:
                 input_summary=dict(input_summary),
             )
             self._jobs[job.job_id] = job
+            self._persist()
             return job
 
     def start(self, job: StudioJob) -> None:
         with self._lock:
             job.status = "running"
             job.started_at = _timestamp()
+            self._persist()
 
     def succeed(
         self,
@@ -79,6 +189,7 @@ class StudioJobStore:
             job.output_report_paths = list(report_paths)
             job.output_artifact_paths = list(artifact_paths)
             job.warnings = list(warnings or [])
+            self._persist()
 
     def fail(self, job: StudioJob, error: Exception) -> None:
         with self._lock:
@@ -87,6 +198,7 @@ class StudioJobStore:
             job.error_message = str(error) or error.__class__.__name__
             job.output_report_paths = []
             job.output_artifact_paths = []
+            self._persist()
 
     def list(self) -> list[dict[str, object]]:
         with self._lock:
@@ -99,4 +211,4 @@ class StudioJobStore:
             return job.to_dict() if job is not None else None
 
 
-DEFAULT_STUDIO_JOB_STORE = StudioJobStore()
+DEFAULT_STUDIO_JOB_STORE = StudioJobStore(Path("data/reports/studio_jobs.json"))

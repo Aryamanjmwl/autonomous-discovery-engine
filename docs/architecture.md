@@ -305,10 +305,10 @@ sequences without changing runtime defaults or introducing external data.
 
 ## Studio Local Run Boundary
 
-Stage 7A adds a synchronous, process-local job boundary around the existing
-image-folder and temporal workflow functions. A thread-safe in-memory registry
-records queued, running, succeeded, and failed states; restarting the Studio
-backend clears this history. This is intentionally not a durable queue or worker
+Stage 7A adds a synchronous, local job boundary around the existing image-folder
+and temporal workflow functions. A thread-safe registry persists queued,
+running, succeeded, and failed states through atomic local file replacement.
+Interrupted jobs are marked failed on restart. This is not a background queue or worker
 system.
 
 Request validation has two layers. Schemas reject external URLs, traversal,
@@ -374,5 +374,5 @@ uptime, load, progress, and monitoring fields.
 The documented local app loop is: verify the backend, generate local demo
 inputs, start both services, submit a local run using a backend-machine path,
 open its validated report, inspect candidate findings, and append local review
-feedback. Browser import, durable job history, hosted identity, and managed
+feedback. Browser import, asynchronous execution, hosted identity, and managed
 service operation remain future boundaries.

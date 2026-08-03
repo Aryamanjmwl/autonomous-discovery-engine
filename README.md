@@ -133,9 +133,10 @@ a temporal local run, use
 candidate findings, then use Findings to save local review feedback.
 
 These are paths on the machine running the backend, not browser uploads. Studio
-job history is process-local; reviewer feedback is appended to the configured
-local JSONL store. All candidate anomalies, candidate concepts, and candidate
-temporal changes require human review.
+job history is stored locally in `data/reports/studio_jobs.json`; reviewer
+feedback is appended to the configured local JSONL store. All candidate
+anomalies, candidate concepts, and candidate temporal changes require human
+review.
 
 ## Demo Outputs
 

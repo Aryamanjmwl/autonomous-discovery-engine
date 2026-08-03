@@ -122,7 +122,11 @@ def create_app(
 
     custom_paths = paths is not None
     studio_paths = paths or StudioPaths()
-    jobs = job_store or DEFAULT_STUDIO_JOB_STORE
+    jobs = job_store or (
+        StudioJobStore(studio_paths.reports_dir / "studio_jobs.json")
+        if custom_paths
+        else DEFAULT_STUDIO_JOB_STORE
+    )
     app = FastAPI(
         title="ADE Studio Local API",
         version="0.1.0",

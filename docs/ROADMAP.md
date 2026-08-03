@@ -148,7 +148,7 @@ monitoring are out of scope.
 ## Stage 7A: Studio Local Run API
 
 - Local synchronous jobs for image-folder and temporal analysis
-- In-memory queued/running/succeeded/failed records with safe errors
+- Durable local queued/running/succeeded/failed records with safe errors
 - Workspace-confined inputs and report/artifact outputs
 - Reuse existing workflow and validation boundaries
 - Browser run UI delivered in Stage 7B
@@ -159,7 +159,7 @@ monitoring are out of scope.
 - Run screen for local image-folder and temporal paths
 - Exact temporal strategy controls aligned with the backend schema
 - Synchronous submitting/completed/failed behavior without estimated progress
-- Process-local job history with warnings, errors, and validated output paths
+- Durable local job history with warnings, errors, and validated output paths
 - Existing report discovery refresh and generated-report opening
 - No browser upload, remote filesystem picker, or fake report state
 
@@ -170,7 +170,7 @@ monitoring are out of scope.
 - Useful, not useful, and needs-review actions with optional notes
 - Saved state only after backend confirmation and honest error presentation
 - Open in Reports only from returned JSON report references
-- Newest-first process-local job history without invented progress or duration
+- Newest-first durable local job history without invented progress or duration
 - No cloud/SaaS backend, accounts, uploads, or continuous monitoring
 
 ## Stage 7D: Studio Local App Onboarding and Final Hardening
@@ -178,9 +178,18 @@ monitoring are out of scope.
 - PowerShell-friendly backend and frontend startup helpers
 - Exact new-user verification, demo generation, startup, run, report, and review steps
 - Documented localhost health/status check without invented runtime metrics
-- Explicit backend-machine path, in-memory job history, and local JSONL feedback limits
+- Explicit backend-machine path, durable local job history, and local JSONL feedback limits
 - Technical Preview local app loop complete
-- Later work: browser import, durable job history, and hosted identity only after local review
+- Later work: browser import, asynchronous execution, and hosted identity only after local review
+
+## Stage 8A: Durable Studio Job History
+
+- Versioned local job store under the report root
+- Atomic persistence after each job lifecycle transition
+- Completed and failed history restored after backend restart
+- Interrupted queued/running jobs retained as explicit failures with no output evidence
+- Fail-fast validation for corrupt or unsupported persisted state
+- No background worker, cancellation, multi-process coordination, or hosted queue
 
 ## Later Stage 7: Multi-Modal Expansion
 

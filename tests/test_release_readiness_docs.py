@@ -147,7 +147,8 @@ def test_stage_7d_local_app_onboarding_uses_supported_commands_and_limits() -> N
     assert "data/raw/temporal_demo/scene_revisit_shift/manifest.json" in combined
     assert "machine running the backend" in lowered or "backend machine" in lowered
     assert "browser upload" in lowered
-    assert "process-local" in lowered or "in memory" in lowered
+    assert "studio_jobs.json" in lowered
+    assert "durable local" in lowered or "stored locally" in lowered
     assert "local jsonl" in lowered
     assert "requires human review" in lowered or "require human review" in lowered
 

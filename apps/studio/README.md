@@ -80,8 +80,8 @@ The frontend uses `NEXT_PUBLIC_ADE_API_URL` and defaults to
   optionally add a local reviewer note.
 
 Paths refer to the backend machine. There is no browser upload or filesystem
-picker. Run history is stored in memory for the backend session. Feedback is
-persisted in the configured append-only local JSONL store. Candidate anomalies,
+picker. Run history is persisted in `data/reports/studio_jobs.json`. Feedback
+uses the configured append-only local JSONL store. Candidate anomalies,
 candidate concepts, and candidate temporal changes require human review.
 
 The existing frontend posts JSON to `POST /api/studio/analysis`. The `input_path` value
@@ -106,9 +106,10 @@ workflows:
 - `GET /api/studio/runs`
 - `GET /api/studio/runs/{job_id}`
 
-Job history is process-local and in memory. Each record includes its job type,
-status and timestamps, input summary, validated report/artifact paths, warnings,
-safe failure text, and `human_review_required`.
+Job history is a durable local, versioned JSON file. Each record includes its
+job type, status and timestamps, input summary, validated report/artifact paths,
+warnings, safe failure text, and `human_review_required`. Interrupted queued or
+running jobs are marked failed on restart and retain no output evidence paths.
 
 Input folders, config files, and temporal manifests must already exist inside
 the configured local workspace. External URLs, traversal, missing inputs, and
@@ -127,10 +128,10 @@ browser uploads.
 
 While a synchronous request is active, its submit controls are disabled. The UI
 shows backend validation failures without invented percentages or stages. The
-Runs screen displays exact in-memory job metadata, warnings, errors, and
+Runs screen displays exact persisted job metadata, warnings, errors, and
 validated output paths. A successful job refreshes report discovery and can open
-its returned JSON report through the existing Reports screen. Backend restart
-clears the job list.
+its returned JSON report through the existing Reports screen. Completed and
+failed records remain available after a backend restart.
 
 This remains a local-only Technical Preview without cloud/SaaS services,
 accounts, browser upload, continuous monitoring, satellite integration, or
@@ -157,8 +158,8 @@ without inventing a URL or report name. Failed jobs remain visually separate and
 show their recorded safe error.
 
 Feedback is review-oriented and does not scientifically confirm candidate
-findings. Job history remains process-local and clears when the backend restarts;
-feedback uses the existing append-only local JSONL store.
+findings. Job history and feedback remain separate durable local files; feedback
+uses the existing append-only local JSONL store.
 
 Generated report preview assets are served locally through
 `GET /api/studio/report-assets/{asset_name}` from `data/reports/assets/`. The
@@ -221,8 +222,8 @@ Not implemented here:
 - Auth, users, database, billing, cloud deployment, or hosted product behavior
 - Automated truth claims
 
-Future work may consider browser import and durable job history while preserving
-local execution and explicit human review.
+Future work may consider browser import and asynchronous job execution while
+preserving local execution and explicit human review.
 
 
 

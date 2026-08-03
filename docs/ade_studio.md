@@ -110,9 +110,10 @@ npm run dev
    appropriate.
 
 Input paths must exist on the machine running the ADE backend. Browser upload,
-drag-and-drop import, and server filesystem browsing are not implemented. Run
-history is in memory and clears when the backend process restarts. Feedback is
-append-only local JSONL at the configured feedback path. Outputs are
+drag-and-drop import, and server filesystem browsing are not implemented. Studio
+job history is stored locally in `data/reports/studio_jobs.json` using atomic
+file replacement. Feedback is append-only local JSONL at the configured feedback
+path. Outputs are
 review-prioritization signals and require human review.
 
 The frontend calls `NEXT_PUBLIC_ADE_API_URL` and defaults to
@@ -136,9 +137,11 @@ Stage 7A also exposes a job-oriented local run API:
 - `GET /api/studio/runs`
 - `GET /api/studio/runs/{job_id}`
 
-Jobs are stored in memory for the lifetime of the backend process and move
-through `queued`, `running`, `succeeded`, or `failed`. Execution is synchronous
-in this stage. Image-folder requests accept `input_path`, optional `output_name`,
+Jobs move through `queued`, `running`, `succeeded`, or `failed`, and their state
+is persisted after every transition. A queued or running job found when the
+backend restarts is retained and marked failed with an interruption message;
+ADE never presents an interrupted job as completed evidence. Execution remains
+synchronous in this stage. Image-folder requests accept `input_path`, optional `output_name`,
 optional `config_path`, and optional `run_label`. Temporal requests accept
 `manifest_path`, `strategy` (`adjacent_difference` or `baseline_difference`),
 optional existing patch/evidence limits, optional `output_name`, and optional
@@ -159,15 +162,15 @@ provide an optional label and patch size. Submit controls are disabled while the
 synchronous request is active, and validation or workflow failures show the real
 backend error.
 
-The Runs screen lists exact process-local job records with status, timestamps,
+The Runs screen lists exact local job records with status, timestamps,
 input summary, warnings, errors, report paths, artifact paths, and the
 human-review requirement. Successful jobs can refresh report discovery and open
 the generated JSON report through the existing report detail route when the job
-returns one.
+returns one. Completed and failed records remain available after a backend restart.
 
 Paths refer to the machine running the ADE backend. There is no browser upload,
-server filesystem picker, drag-and-drop transfer, or remote download. Restarting
-the backend clears its in-memory Studio job history.
+server filesystem picker, drag-and-drop transfer, or remote download. The local
+job store survives a normal backend restart; it is not a shared or remote store.
 
 Generated report preview assets are served locally through
 `GET /api/studio/report-assets/{asset_name}` from `data/reports/assets/`. The
@@ -275,6 +278,7 @@ storage errors remain visible to the reviewer.
 
 Feedback is local review state and may inform later review-prioritization
 signals. A reviewer action does not scientifically confirm a candidate finding.
-Run history remains in memory for the lifetime of the Studio backend session,
-while feedback is append-only local JSONL. Stage 7C adds no cloud/SaaS service,
-account system, browser upload, continuous monitoring, or remote data transfer.
+Run history and feedback are durable local files; feedback remains append-only
+JSONL. This does not provide a worker queue or distributed execution. Stage 7C
+adds no cloud/SaaS service, account system, browser upload, continuous
+monitoring, or remote data transfer.
