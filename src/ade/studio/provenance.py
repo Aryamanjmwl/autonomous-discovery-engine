@@ -83,7 +83,9 @@ def capture_temporal_provenance(
         raise ValueError("Temporal manifest path must identify a local file.")
     sequence = load_temporal_manifest(manifest, strict=True)
     root = resolve_temporal_dataset_root(sequence, manifest)
-    canonical_manifest = serialize_temporal_manifest(sequence).encode("utf-8")
+    manifest_identity = json.loads(serialize_temporal_manifest(sequence))
+    manifest_identity["dataset_root"] = "."
+    canonical_manifest = _canonical_json(manifest_identity).encode("utf-8")
     entries = [
         _file_entry(
             "manifest",
@@ -143,13 +145,16 @@ def _fingerprint_entries(kind: str, entries: list[dict[str, object]]) -> dict[st
         "kind": kind,
         "files": entries,
     }
+    sizes = [entry["size_bytes"] for entry in entries]
+    if not all(isinstance(size, int) for size in sizes):  # pragma: no cover
+        raise TypeError("Fingerprint entry sizes must be integers")
     return {
         "schema_version": _PROVENANCE_SCHEMA_VERSION,
         "kind": kind,
         "algorithm": "sha256",
         "digest": _sha256_json(identity),
         "file_count": len(entries),
-        "total_size_bytes": sum(int(entry["size_bytes"]) for entry in entries),
+        "total_size_bytes": sum(size for size in sizes if isinstance(size, int)),
     }
 
 
@@ -162,11 +167,14 @@ def _configuration_snapshot(config: dict[str, Any]) -> dict[str, object]:
 
 
 def _sha256_json(value: object) -> str:
-    payload = json.dumps(
+    return hashlib.sha256(_canonical_json(value).encode("utf-8")).hexdigest()
+
+
+def _canonical_json(value: object) -> str:
+    return json.dumps(
         value,
         sort_keys=True,
         separators=(",", ":"),
         ensure_ascii=False,
         allow_nan=False,
     )
-    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
