@@ -12,12 +12,15 @@ from threading import RLock
 from typing import Literal
 from uuid import uuid4
 
+from ade import __version__
+
 StudioJobType = Literal["image_folder_analysis", "temporal_analysis"]
 StudioJobStatus = Literal["queued", "running", "succeeded", "failed", "cancelled"]
 CancellationResult = Literal["cancelled", "requested", "terminal"]
 
-_STORE_SCHEMA_VERSION = "1.1"
-_SUPPORTED_STORE_SCHEMA_VERSIONS = {"1.0", _STORE_SCHEMA_VERSION}
+_STORE_SCHEMA_VERSION = "1.2"
+_SUPPORTED_STORE_SCHEMA_VERSIONS = {"1.0", "1.1", _STORE_SCHEMA_VERSION}
+_JOB_MANIFEST_VERSION = "1.0"
 _JOB_TYPES = {"image_folder_analysis", "temporal_analysis"}
 _JOB_STATUSES = {"queued", "running", "succeeded", "failed", "cancelled"}
 _INTERRUPTED_MESSAGE = "ADE Studio restarted before this job completed."
@@ -35,6 +38,9 @@ class StudioJob:
     job_type: StudioJobType
     status: StudioJobStatus
     created_at: str
+    manifest_version: str = _JOB_MANIFEST_VERSION
+    ade_version: str = __version__
+    request_parameters: dict[str, object] = field(default_factory=dict)
     started_at: str | None = None
     finished_at: str | None = None
     input_summary: dict[str, object] = field(default_factory=dict)
@@ -111,6 +117,13 @@ class StudioJobStore:
                 f"Studio job store contains an invalid record: {self._storage_path}"
             )
         normalized = dict(record)
+        if schema_version in {"1.0", "1.1"}:
+            input_summary = normalized.get("input_summary")
+            normalized["manifest_version"] = _JOB_MANIFEST_VERSION
+            normalized["ade_version"] = "unknown"
+            normalized["request_parameters"] = (
+                dict(input_summary) if isinstance(input_summary, dict) else {}
+            )
         if schema_version == "1.0":
             normalized["cancellation_requested"] = False
         expected_fields = {item.name for item in fields(StudioJob)}
@@ -121,6 +134,10 @@ class StudioJobStore:
         if (
             normalized.get("job_type") not in _JOB_TYPES
             or normalized.get("status") not in _JOB_STATUSES
+            or normalized.get("manifest_version") != _JOB_MANIFEST_VERSION
+            or not isinstance(normalized.get("ade_version"), str)
+            or not normalized.get("ade_version")
+            or not isinstance(normalized.get("request_parameters"), dict)
             or not isinstance(normalized.get("cancellation_requested"), bool)
         ):
             raise ValueError(
@@ -162,7 +179,11 @@ class StudioJobStore:
                 temporary_path.unlink()
 
     def create(
-        self, job_type: StudioJobType, input_summary: dict[str, object]
+        self,
+        job_type: StudioJobType,
+        input_summary: dict[str, object],
+        *,
+        request_parameters: dict[str, object] | None = None,
     ) -> StudioJob:
         with self._lock:
             job = StudioJob(
@@ -171,6 +192,9 @@ class StudioJobStore:
                 status="queued",
                 created_at=_timestamp(),
                 input_summary=dict(input_summary),
+                request_parameters=dict(
+                    input_summary if request_parameters is None else request_parameters
+                ),
             )
             self._jobs[job.job_id] = job
             self._persist()
