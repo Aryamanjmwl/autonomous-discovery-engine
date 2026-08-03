@@ -193,9 +193,11 @@ function JobDetail({
       </Panel>
 
       <Panel>
-        <PanelHeader title="Input summary" />
+        <PanelHeader title="Run manifest" />
         <dl className="grid gap-3 p-4 font-mono text-xs">
-          {Object.entries(job.input_summary).map(([key, value]) => (
+          <RunMeta label="Manifest" value={job.manifest_version} />
+          <RunMeta label="ADE version" value={job.ade_version} />
+          {Object.entries(job.request_parameters).map(([key, value]) => (
             <RunMeta key={key} label={key.replaceAll('_', ' ')} value={formatValue(value)} />
           ))}
         </dl>
