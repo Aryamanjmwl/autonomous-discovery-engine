@@ -18,9 +18,10 @@ StudioJobType = Literal["image_folder_analysis", "temporal_analysis"]
 StudioJobStatus = Literal["queued", "running", "succeeded", "failed", "cancelled"]
 CancellationResult = Literal["cancelled", "requested", "terminal"]
 
-_STORE_SCHEMA_VERSION = "1.2"
-_SUPPORTED_STORE_SCHEMA_VERSIONS = {"1.0", "1.1", _STORE_SCHEMA_VERSION}
-_JOB_MANIFEST_VERSION = "1.0"
+_STORE_SCHEMA_VERSION = "1.3"
+_SUPPORTED_STORE_SCHEMA_VERSIONS = {"1.0", "1.1", "1.2", _STORE_SCHEMA_VERSION}
+_JOB_MANIFEST_VERSION = "1.1"
+_SUPPORTED_JOB_MANIFEST_VERSIONS = {"1.0", _JOB_MANIFEST_VERSION}
 _JOB_TYPES = {"image_folder_analysis", "temporal_analysis"}
 _JOB_STATUSES = {"queued", "running", "succeeded", "failed", "cancelled"}
 _INTERRUPTED_MESSAGE = "ADE Studio restarted before this job completed."
@@ -41,6 +42,8 @@ class StudioJob:
     manifest_version: str = _JOB_MANIFEST_VERSION
     ade_version: str = __version__
     request_parameters: dict[str, object] = field(default_factory=dict)
+    input_fingerprint: dict[str, object] | None = None
+    effective_configuration: dict[str, object] | None = None
     started_at: str | None = None
     finished_at: str | None = None
     input_summary: dict[str, object] = field(default_factory=dict)
@@ -126,6 +129,9 @@ class StudioJobStore:
             )
         if schema_version == "1.0":
             normalized["cancellation_requested"] = False
+        if schema_version in {"1.0", "1.1", "1.2"}:
+            normalized["input_fingerprint"] = None
+            normalized["effective_configuration"] = None
         expected_fields = {item.name for item in fields(StudioJob)}
         if set(normalized) != expected_fields:
             raise ValueError(
@@ -134,10 +140,18 @@ class StudioJobStore:
         if (
             normalized.get("job_type") not in _JOB_TYPES
             or normalized.get("status") not in _JOB_STATUSES
-            or normalized.get("manifest_version") != _JOB_MANIFEST_VERSION
+            or normalized.get("manifest_version") not in _SUPPORTED_JOB_MANIFEST_VERSIONS
             or not isinstance(normalized.get("ade_version"), str)
             or not normalized.get("ade_version")
             or not isinstance(normalized.get("request_parameters"), dict)
+            or (
+                normalized.get("input_fingerprint") is not None
+                and not isinstance(normalized.get("input_fingerprint"), dict)
+            )
+            or (
+                normalized.get("effective_configuration") is not None
+                and not isinstance(normalized.get("effective_configuration"), dict)
+            )
             or not isinstance(normalized.get("cancellation_requested"), bool)
         ):
             raise ValueError(
@@ -199,6 +213,20 @@ class StudioJobStore:
             self._jobs[job.job_id] = job
             self._persist()
             return job
+
+    def record_provenance(
+        self,
+        job: StudioJob,
+        *,
+        input_fingerprint: dict[str, object],
+        effective_configuration: dict[str, object],
+    ) -> None:
+        with self._lock:
+            if job.status != "running":
+                raise ValueError("Run provenance can only be recorded for a running job")
+            job.input_fingerprint = dict(input_fingerprint)
+            job.effective_configuration = dict(effective_configuration)
+            self._persist()
 
     def start(self, job: StudioJob) -> bool:
         with self._lock:
