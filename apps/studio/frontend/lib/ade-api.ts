@@ -60,6 +60,9 @@ export interface StudioRunJob {
   job_type: StudioRunJobType
   status: StudioRunStatus
   created_at: string
+  manifest_version: string
+  ade_version: string
+  request_parameters: Record<string, unknown>
   started_at: string | null
   finished_at: string | null
   input_summary: Record<string, unknown>
