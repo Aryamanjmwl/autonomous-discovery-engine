@@ -213,8 +213,8 @@ multi-process coordination.
 
 ## Next Recommended Engineering Steps
 
-1. Move Studio execution behind a bounded asynchronous worker with cancellation
-   and explicit recovery semantics.
+1. Add finer-grained cooperative cancellation checkpoints inside long-running
+   visual and temporal pipeline stages.
 2. Keep generated artifacts out of version control.
 3. Keep hardening adapter interfaces before adding more non-visual data types.
 4. Integrate Stage 1 visual requests and reproducibility manifests around the
@@ -294,3 +294,12 @@ are aligned at version `0.1.0`. The canonical release note and changelog describ
 local-first, review-oriented scope, verification workflow, and known limitations. This stage
 prepares release materials only; hosted commercial capabilities remain future work and no
 release tag is created by the preparation workflow.
+
+## Stage 8B Bounded Asynchronous Studio Jobs
+
+Studio run submission now returns without holding the HTTP request open. A
+two-worker local thread pool provides bounded execution, durable queued, running,
+and cancelled states, queued-job cancellation, and cooperative running-job
+cancellation at workflow boundaries. Cancelled jobs expose no successful output
+references. This remains a single-process local executor without distributed
+workers, forceful thread termination, or continuous monitoring.

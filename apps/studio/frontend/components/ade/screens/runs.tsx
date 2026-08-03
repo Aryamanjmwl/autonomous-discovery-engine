@@ -6,6 +6,7 @@ import { ScreenHeader } from '@/components/ade/screen-header'
 import { Panel, PanelHeader, StatusBadge, TechButton } from '@/components/ade/primitives'
 import type { ScreenId } from '@/lib/ade-data'
 import {
+  cancelStudioRun,
   getStudioRun,
   type EngineMode,
   type StudioRunJob,
@@ -28,6 +29,7 @@ export function RunsScreen({
   const [selectedId, setSelectedId] = useState(runsFromApi[0]?.job_id ?? '')
   const [detail, setDetail] = useState<StudioRunJob | null>(null)
   const [detailError, setDetailError] = useState<string | null>(null)
+  const [cancelling, setCancelling] = useState(false)
   const selected = detail?.job_id === selectedId
     ? detail
     : runsFromApi.find((run) => run.job_id === selectedId) ?? runsFromApi[0]
@@ -35,6 +37,14 @@ export function RunsScreen({
   useEffect(() => {
     if (!selectedId && runsFromApi[0]) setSelectedId(runsFromApi[0].job_id)
   }, [runsFromApi, selectedId])
+
+  useEffect(() => {
+    if (!connected || !runsFromApi.some((run) => run.status === 'queued' || run.status === 'running')) {
+      return
+    }
+    const timer = window.setInterval(() => onRefresh(), 2000)
+    return () => window.clearInterval(timer)
+  }, [connected, onRefresh, runsFromApi])
 
   async function selectJob(jobId: string) {
     setSelectedId(jobId)
@@ -46,12 +56,25 @@ export function RunsScreen({
     }
   }
 
+  async function cancelJob(jobId: string) {
+    setCancelling(true)
+    setDetailError(null)
+    try {
+      setDetail(await cancelStudioRun(jobId))
+      onRefresh()
+    } catch (error) {
+      setDetailError(error instanceof Error ? error.message : 'Unable to cancel local job.')
+    } finally {
+      setCancelling(false)
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <ScreenHeader
         eyebrow="Execution"
         title="Local Run Jobs"
-        description="Review exact job state and validated outputs from this local ADE Studio backend session."
+        description="Review durable job state and validated outputs from this local ADE Studio backend."
         actions={
           <TechButton variant="secondary" onClick={onRefresh} disabled={!connected}>
             <RefreshCw className="size-3.5" />
@@ -61,7 +84,7 @@ export function RunsScreen({
       />
 
       <p className="text-sm text-muted-foreground">
-        Run history is local to this Studio backend session and is cleared when the backend process restarts.
+        Run history is stored locally and survives normal backend restarts.
       </p>
 
       {!connected ? (
@@ -103,7 +126,13 @@ export function RunsScreen({
           </Panel>
 
           {selected ? (
-            <JobDetail job={selected} onNavigate={onNavigate} onRefresh={onRefresh} />
+            <JobDetail
+              job={selected}
+              cancelling={cancelling}
+              onCancel={cancelJob}
+              onNavigate={onNavigate}
+              onRefresh={onRefresh}
+            />
           ) : null}
         </div>
       )}
@@ -119,10 +148,14 @@ export function RunsScreen({
 
 function JobDetail({
   job,
+  cancelling,
+  onCancel,
   onNavigate,
   onRefresh,
 }: {
   job: StudioRunJob
+  cancelling: boolean
+  onCancel: (jobId: string) => Promise<void>
   onNavigate: (id: ScreenId) => void
   onRefresh: (reportName?: string) => void
 }) {
@@ -137,6 +170,20 @@ function JobDetail({
           </div>
           <RunStatusBadge status={job.status} />
         </div>
+        {job.status === 'queued' || job.status === 'running' ? (
+          <TechButton
+            variant="secondary"
+            className="mt-4"
+            disabled={cancelling || job.cancellation_requested}
+            onClick={() => void onCancel(job.job_id)}
+          >
+            {job.cancellation_requested
+              ? 'Cancellation requested'
+              : cancelling
+                ? 'Cancelling…'
+                : 'Cancel job'}
+          </TechButton>
+        ) : null}
         <dl className="mt-5 grid gap-3 font-mono text-xs md:grid-cols-2">
           <RunMeta label="Created" value={formatTime(job.created_at)} />
           <RunMeta label="Started" value={formatTime(job.started_at)} />
@@ -231,6 +278,7 @@ function RunStatusBadge({ status }: { status: StudioRunStatus }) {
   if (status === 'succeeded') return <StatusBadge tone="operational" dot>Succeeded</StatusBadge>
   if (status === 'failed') return <StatusBadge tone="critical" dot>Failed</StatusBadge>
   if (status === 'running') return <StatusBadge tone="anomaly" dot>Running</StatusBadge>
+  if (status === 'cancelled') return <StatusBadge tone="muted" dot>Cancelled</StatusBadge>
   return <StatusBadge tone="muted" dot>Queued</StatusBadge>
 }
 
