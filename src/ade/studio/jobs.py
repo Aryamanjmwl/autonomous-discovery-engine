@@ -122,7 +122,7 @@ class StudioJobStore:
         normalized = dict(record)
         if schema_version in {"1.0", "1.1"}:
             input_summary = normalized.get("input_summary")
-            normalized["manifest_version"] = _JOB_MANIFEST_VERSION
+            normalized["manifest_version"] = "1.0"
             normalized["ade_version"] = "unknown"
             normalized["request_parameters"] = (
                 dict(input_summary) if isinstance(input_summary, dict) else {}
