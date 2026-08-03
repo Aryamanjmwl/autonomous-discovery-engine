@@ -9,9 +9,9 @@ anomalies, candidate concepts, or possible patterns that require human review.
 
 - Technical Preview foundation for local, adapter-based discovery workflows
 - Mature visual workflow for local image folders
-- ADE Studio localhost API integration for synchronous visual/image-folder and
-  temporal local runs, durable local job status, local report reads, and constrained
-  report asset/HTML serving
+- ADE Studio localhost API integration for bounded asynchronous visual/image-folder
+  and temporal local runs, durable versioned job manifests, cancellation, local
+  report reads, and constrained report asset/HTML serving
 - Schema-versioned visual-engine contracts, strict configuration validation,
   deterministic dataset fingerprints, and integrity-checked manifest codecs
 - Immutable, content-addressed visual reference memory with validated NumPy
@@ -51,8 +51,8 @@ anomalies, candidate concepts, or possible patterns that require human review.
 ## Stage 7A Studio Local Run API
 
 The local Studio backend can trigger the existing image-folder and temporal
-workflows through job-oriented endpoints. Jobs are synchronous and persisted
-locally after every state transition. Successful jobs reference validated
+workflows through job-oriented endpoints. Accepted jobs run on a bounded local
+executor and are persisted after every state transition. Successful jobs reference validated
 reports and immutable temporal artifacts already compatible with Studio
 discovery; failed jobs retain safe error text and no valid output references.
 
@@ -72,9 +72,9 @@ machine; no browser upload or filesystem picker is presented. Temporal controls
 match the supported adjacent and baseline difference strategies.
 
 The Runs screen reads exact backend job records and displays their status,
-timestamps, input summary, warnings, errors, validated report/artifact paths,
-and human-review requirement. Synchronous submissions use submitting,
-completed, and failed presentation without estimated progress. Successful jobs
+timestamps, versioned request manifest, warnings, errors, validated report/artifact
+paths, and human-review requirement. Active jobs are polled without invented
+progress, and queued or running work exposes cooperative cancellation. Successful jobs
 refresh existing report discovery and open returned JSON reports through the
 Reports screen.
 
@@ -119,9 +119,9 @@ history is stored in an atomic local file, and review feedback remains
 append-only local JSONL. Outputs are candidate anomalies, candidate concepts,
 or candidate temporal changes that require human review.
 
-Future work may consider browser import and asynchronous job execution. Authentication
-or hosted service capabilities remain later work and are not part of this local
-app Technical Preview.
+Future work may consider browser import and finer-grained pipeline cancellation
+checkpoints. Authentication or hosted service capabilities remain later work and
+are not part of this local app Technical Preview.
 
 ## Stage 8A Durable Studio Job History
 
@@ -133,9 +133,28 @@ discarding history.
 
 Queued or running records found at startup are retained and marked failed with
 an explicit restart interruption message. Their output paths are cleared, so an
-interrupted run cannot be presented as completed evidence. This stage does not
-claim background execution, cancellation, a distributed worker queue, or
-multi-process coordination.
+interrupted run cannot be presented as completed evidence. This stage established persistence only; bounded execution and cancellation were
+added subsequently. The store remains single-process and is not a distributed
+worker queue.
+
+## Stage 8B Bounded Asynchronous Studio Jobs
+
+Studio submission returns HTTP 202 and a durable job immediately. A two-thread
+local executor bounds concurrent work. Queued jobs cancel before execution;
+running jobs record a cancellation request and become cancelled after the current
+workflow call returns. Cancelled jobs expose no successful output references.
+Threads are not force-killed, and there is no distributed or multi-process queue.
+
+## Stage 8C Versioned Studio Run Manifests
+
+Every newly accepted job records manifest schema version 1.0, the ADE engine
+version, and the complete normalized API request including applied defaults.
+The evidence remains available for successful, failed, cancelled, and interrupted
+jobs. Existing v1.0 and v1.1 job-store files migrate to the v1.2 envelope without
+discarding history.
+
+This is request provenance. Dataset content fingerprints and resolved configuration
+snapshots remain pipeline-level work and are not inferred from local path strings.
 
 ## Done
 
