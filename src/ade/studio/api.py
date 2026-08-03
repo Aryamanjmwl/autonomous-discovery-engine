@@ -266,6 +266,7 @@ def create_app(
                 "config_path": payload.config_path,
                 "run_label": payload.run_label,
             },
+            request_parameters=payload.model_dump(mode="json"),
         )
 
         def execute() -> StudioJobOutput:
@@ -298,6 +299,7 @@ def create_app(
                 "strategy": payload.strategy,
                 "run_label": payload.run_label,
             },
+            request_parameters=payload.model_dump(mode="json"),
         )
 
         def execute() -> StudioJobOutput:

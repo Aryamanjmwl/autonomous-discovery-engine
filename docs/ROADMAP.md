@@ -191,6 +191,16 @@ monitoring are out of scope.
 - Fail-fast validation for corrupt or unsupported persisted state
 - No background worker, cancellation, multi-process coordination, or hosted queue
 
+## Stage 8C: Versioned Studio Run Manifests
+
+- Schema-versioned manifest fields on every local Studio job
+- ADE engine version recorded when the job is accepted
+- Complete normalized request parameters, including applied API defaults
+- Automatic migration of existing v1.0 and v1.1 local job stores
+- Manifest evidence retained for succeeded, failed, cancelled, and interrupted jobs
+- Request provenance only; dataset content fingerprints and resolved configuration
+  snapshots remain separate pipeline-level work
+
 ## Later Stage 7: Multi-Modal Expansion
 
 1. Tabular adapter
