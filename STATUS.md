@@ -10,8 +10,8 @@ anomalies, candidate concepts, or possible patterns that require human review.
 - Technical Preview foundation for local, adapter-based discovery workflows
 - Mature visual workflow for local image folders
 - ADE Studio localhost API integration for bounded asynchronous visual/image-folder
-  and temporal local runs, durable versioned job manifests, cancellation, local
-  report reads, and constrained report asset/HTML serving
+  and temporal local runs, durable versioned job manifests, input/configuration
+  provenance, cancellation, local report reads, and constrained report asset/HTML serving
 - Schema-versioned visual-engine contracts, strict configuration validation,
   deterministic dataset fingerprints, and integrity-checked manifest codecs
 - Immutable, content-addressed visual reference memory with validated NumPy
@@ -147,14 +147,22 @@ Threads are not force-killed, and there is no distributed or multi-process queue
 
 ## Stage 8C Versioned Studio Run Manifests
 
-Every newly accepted job records manifest schema version 1.0, the ADE engine
-version, and the complete normalized API request including applied defaults.
-The evidence remains available for successful, failed, cancelled, and interrupted
-jobs. Existing v1.0 and v1.1 job-store files migrate to the v1.2 envelope without
-discarding history.
+Every newly accepted job records its manifest schema, ADE engine version, and
+complete normalized API request including applied defaults. The evidence remains
+available for successful, failed, cancelled, and interrupted jobs. Earlier
+job-store files migrate without discarding history or inventing missing evidence.
 
-This is request provenance. Dataset content fingerprints and resolved configuration
-snapshots remain pipeline-level work and are not inferred from local path strings.
+## Stage 8D Studio Input and Configuration Provenance
+
+Immediately before execution, image-folder jobs record a SHA-256 identity for
+supported input files and retain the fully merged ADE configuration with a
+canonical fingerprint. Temporal jobs record a SHA-256 identity covering the
+canonical manifest and referenced images or masks, plus the applied temporal
+parameters. The evidence is durable and visible on the Runs screen.
+
+These are pre-execution snapshots. Studio does not lock source files during a
+run, and migrated historical records retain explicit missing provenance rather
+than fabricated hashes.
 
 ## Done
 
