@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import argparse
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, Literal
 
@@ -130,6 +132,14 @@ def create_app(
         else DEFAULT_STUDIO_JOB_STORE
     )
     worker = job_executor or StudioJobExecutor(jobs, max_workers=2)
+
+    @asynccontextmanager
+    async def lifespan(_: Any) -> AsyncIterator[None]:
+        try:
+            yield
+        finally:
+            worker.shutdown()
+
     app = FastAPI(
         title="ADE Studio Local API",
         version="0.1.0",
@@ -137,8 +147,8 @@ def create_app(
             "Local-only Technical Preview API for connecting ADE Studio to "
             "ADE visual/image-folder analysis."
         ),
+        lifespan=lifespan,
     )
-    app.add_event_handler("shutdown", worker.shutdown)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["http://127.0.0.1:3000", "http://localhost:3000"],
