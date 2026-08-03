@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from ade import __version__
 from ade.studio.jobs import StudioJobStore
 
 
@@ -26,10 +27,36 @@ def test_studio_job_store_persists_completed_jobs(tmp_path: Path) -> None:
 
     assert restored is not None
     assert restored["status"] == "succeeded"
+    assert restored["manifest_version"] == "1.0"
+    assert restored["ade_version"] == __version__
+    assert restored["request_parameters"] == {"input_path": "images"}
     assert restored["output_report_paths"] == ["reports/run.json"]
     assert restored["output_artifact_paths"] == ["artifacts/run"]
     assert restored["warnings"] == ["Candidate findings require human review."]
     assert restored["finished_at"] is not None
+
+
+def test_studio_job_store_migrates_v11_records(tmp_path: Path) -> None:
+    storage_path = tmp_path / "studio_jobs.json"
+    store = StudioJobStore(storage_path)
+    job = store.create("image_folder_analysis", {"input_path": "images"})
+
+    payload = json.loads(storage_path.read_text(encoding="utf-8"))
+    payload["schema_version"] = "1.1"
+    for record in payload["jobs"]:
+        record.pop("manifest_version")
+        record.pop("ade_version")
+        record.pop("request_parameters")
+    storage_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    restored = StudioJobStore(storage_path).get(job.job_id)
+    persisted = json.loads(storage_path.read_text(encoding="utf-8"))
+
+    assert restored is not None
+    assert restored["manifest_version"] == "1.0"
+    assert restored["ade_version"] == "unknown"
+    assert restored["request_parameters"] == {"input_path": "images"}
+    assert persisted["schema_version"] == "1.2"
 
 
 @pytest.mark.parametrize("status", ["queued", "running"])
