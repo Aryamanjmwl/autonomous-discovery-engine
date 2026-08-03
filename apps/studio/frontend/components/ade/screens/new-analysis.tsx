@@ -185,6 +185,15 @@ export function NewAnalysisScreen({
         </div>
       ) : null}
 
+      {job && (job.status === 'queued' || job.status === 'running') ? (
+        <div className="rounded-md border border-primary/40 bg-primary/10 p-4 text-sm text-primary">
+          <p>Local run accepted. ADE is processing it in the bounded background worker.</p>
+          <TechButton variant="secondary" className="mt-3" onClick={() => onNavigate('runs')}>
+            View job details
+          </TechButton>
+        </div>
+      ) : null}
+
       {job && job.status === 'succeeded' ? (
         <div className="rounded-md border border-operational/40 bg-operational/10 p-4 text-sm text-operational">
           <p>Local run completed. Generated outputs remain candidate findings and require human review.</p>

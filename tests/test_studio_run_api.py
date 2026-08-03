@@ -172,21 +172,28 @@ def test_studio_run_endpoints_expose_job_metadata_when_dependencies_available(
 
     paths = _paths(tmp_path)
     _images(tmp_path)
-    client = TestClient(create_app(paths=paths, job_store=StudioJobStore()))
 
-    created = client.post(
-        "/api/studio/runs/image-folder",
-        json={"input_path": "images", "output_name": "api_image.md", "run_label": "review"},
-    )
-    assert created.status_code == 200
-    job = created.json()
-    assert job["status"] == "succeeded"
-    assert job["job_type"] == "image_folder_analysis"
-    assert job["human_review_required"] is True
-    assert client.get(f"/api/studio/runs/{job['job_id']}").json() == job
-    assert client.get("/api/studio/runs").json()[0] == job
-    reports = client.get("/api/studio/reports").json()
-    assert reports[0]["name"] == "api_image.json"
+    with TestClient(create_app(paths=paths, job_store=StudioJobStore())) as client:
+        created = client.post(
+            "/api/studio/runs/image-folder",
+            json={
+                "input_path": "images",
+                "output_name": "api_image.md",
+                "run_label": "review",
+            },
+        )
+        assert created.status_code == 202
+        job = created.json()
+        assert job["job_type"] == "image_folder_analysis"
+        assert job["human_review_required"] is True
+        for _ in range(200):
+            job = client.get(f"/api/studio/runs/{job['job_id']}").json()
+            if job["status"] in {"succeeded", "failed", "cancelled"}:
+                break
+        assert job["status"] == "succeeded"
+        assert client.get("/api/studio/runs").json()[0] == job
+        reports = client.get("/api/studio/reports").json()
+        assert reports[0]["name"] == "api_image.json"
 
 
 def test_studio_failed_endpoint_job_is_retrievable_when_dependencies_available(
@@ -197,17 +204,25 @@ def test_studio_failed_endpoint_job_is_retrievable_when_dependencies_available(
 
     from ade.studio.api import create_app
 
-    client = TestClient(create_app(paths=_paths(tmp_path), job_store=StudioJobStore()))
-    response = client.post(
-        "/api/studio/runs/temporal",
-        json={"manifest_path": "missing.json", "strategy": "adjacent_difference"},
-    )
-    job = response.json()
-    assert response.status_code == 200
-    assert job["status"] == "failed"
-    assert "does not exist" in job["error_message"]
-    assert job["output_report_paths"] == []
-    assert client.get(f"/api/studio/runs/{job['job_id']}").json()["status"] == "failed"
+    with TestClient(
+        create_app(paths=_paths(tmp_path), job_store=StudioJobStore())
+    ) as client:
+        response = client.post(
+            "/api/studio/runs/temporal",
+            json={
+                "manifest_path": "missing.json",
+                "strategy": "adjacent_difference",
+            },
+        )
+        job = response.json()
+        assert response.status_code == 202
+        for _ in range(200):
+            job = client.get(f"/api/studio/runs/{job['job_id']}").json()
+            if job["status"] in {"succeeded", "failed", "cancelled"}:
+                break
+        assert job["status"] == "failed"
+        assert "does not exist" in job["error_message"]
+        assert job["output_report_paths"] == []
 
 
 def test_studio_run_request_schema_rejects_invalid_strategy_and_url(

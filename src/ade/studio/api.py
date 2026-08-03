@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import argparse
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from ade.studio.execution import StudioJobExecutor, StudioJobOutput
 from ade.studio.jobs import DEFAULT_STUDIO_JOB_STORE, StudioJobStore
 from ade.studio.service import (
     StudioPaths,
@@ -107,6 +110,7 @@ def create_app(
     *,
     paths: StudioPaths | None = None,
     job_store: StudioJobStore | None = None,
+    job_executor: StudioJobExecutor | None = None,
 ) -> Any:
     """Create the ADE Studio FastAPI app."""
 
@@ -127,6 +131,15 @@ def create_app(
         if custom_paths
         else DEFAULT_STUDIO_JOB_STORE
     )
+    worker = job_executor or StudioJobExecutor(jobs, max_workers=2)
+
+    @asynccontextmanager
+    async def lifespan(_: Any) -> AsyncIterator[None]:
+        try:
+            yield
+        finally:
+            worker.shutdown()
+
     app = FastAPI(
         title="ADE Studio Local API",
         version="0.1.0",
@@ -134,6 +147,7 @@ def create_app(
             "Local-only Technical Preview API for connecting ADE Studio to "
             "ADE visual/image-folder analysis."
         ),
+        lifespan=lifespan,
     )
     app.add_middleware(
         CORSMiddleware,
@@ -158,6 +172,16 @@ def create_app(
     def run(job_id: str) -> dict[str, object]:
         job = jobs.get(job_id)
         if job is None:
+            raise HTTPException(status_code=404, detail=f"Studio job was not found: {job_id}")
+        return job
+
+    @app.post("/api/studio/runs/{job_id}/cancel")
+    def cancel_run(job_id: str) -> dict[str, object]:
+        result = worker.cancel(job_id)
+        if result is None:
+            raise HTTPException(status_code=404, detail=f"Studio job was not found: {job_id}")
+        job = jobs.get(job_id)
+        if job is None:  # pragma: no cover
             raise HTTPException(status_code=404, detail=f"Studio job was not found: {job_id}")
         return job
 
@@ -233,7 +257,7 @@ def create_app(
         except ValueError as error:
             raise HTTPException(status_code=400, detail=str(error)) from error
 
-    @app.post("/api/studio/runs/image-folder")
+    @app.post("/api/studio/runs/image-folder", status_code=202)
     def image_folder_run(payload: ImageFolderRunRequest = Body(...)) -> dict[str, object]:
         job = jobs.create(
             "image_folder_analysis",
@@ -243,8 +267,8 @@ def create_app(
                 "run_label": payload.run_label,
             },
         )
-        jobs.start(job)
-        try:
+
+        def execute() -> StudioJobOutput:
             result = run_visual_analysis(
                 input_path=Path(payload.input_path),
                 output_name=payload.output_name,
@@ -260,12 +284,12 @@ def create_app(
                 )
                 if isinstance((value := result.get(key)), str)
             ]
-            jobs.succeed(job, report_paths=report_paths, artifact_paths=[])
-        except (FileNotFoundError, OSError, ValueError) as error:
-            jobs.fail(job, error)
+            return StudioJobOutput(report_paths=report_paths, artifact_paths=[])
+
+        worker.submit(job, execute)
         return job.to_dict()
 
-    @app.post("/api/studio/runs/temporal")
+    @app.post("/api/studio/runs/temporal", status_code=202)
     def temporal_run(payload: TemporalRunRequest = Body(...)) -> dict[str, object]:
         job = jobs.create(
             "temporal_analysis",
@@ -275,8 +299,8 @@ def create_app(
                 "run_label": payload.run_label,
             },
         )
-        jobs.start(job)
-        try:
+
+        def execute() -> StudioJobOutput:
             result = run_temporal_analysis(
                 manifest_path=Path(payload.manifest_path),
                 output_name=payload.output_name,
@@ -292,13 +316,12 @@ def create_app(
                 if isinstance((value := result.get(key)), str)
             ]
             artifact = result.get("artifact_path")
-            jobs.succeed(
-                job,
+            return StudioJobOutput(
                 report_paths=report_paths,
                 artifact_paths=[artifact] if isinstance(artifact, str) else [],
             )
-        except (FileNotFoundError, OSError, ValueError) as error:
-            jobs.fail(job, error)
+
+        worker.submit(job, execute)
         return job.to_dict()
 
     return app

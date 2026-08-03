@@ -104,7 +104,7 @@ workflows:
 - `POST /api/studio/runs/image-folder`
 - `POST /api/studio/runs/temporal`
 - `GET /api/studio/runs`
-- `GET /api/studio/runs/{job_id}`
+- `GET /api/studio/runs/{job_id}`\n- `POST /api/studio/runs/{job_id}/cancel`
 
 Job history is a durable local, versioned JSON file. Each record includes its
 job type, status and timestamps, input summary, validated report/artifact paths,
@@ -126,7 +126,7 @@ two supported temporal strategies and only backend-supported optional settings.
 Paths must exist on the machine running the local ADE backend; they are not
 browser uploads.
 
-While a synchronous request is active, its submit controls are disabled. The UI
+Submission returns immediately, and the Runs screen refreshes active jobs. The UI
 shows backend validation failures without invented percentages or stages. The
 Runs screen displays exact persisted job metadata, warnings, errors, and
 validated output paths. A successful job refreshes report discovery and can open
@@ -242,3 +242,13 @@ by the ADE CLI. Sequence ranges, candidate temporal changes, real patch coordina
 artifact fingerprints come directly from local report data. Temporal local runs use explicit
 manifest paths; no continuous ingestion, playback, map, or synthetic chart is provided.
 Candidate change events require human review.
+
+## Stage 8B Bounded Asynchronous Execution
+
+Studio runs execute outside HTTP request handlers on a local thread pool capped
+at two workers. Submission returns an accepted job record immediately. Queued
+jobs can be cancelled before execution; running jobs record a cancellation
+request and transition to cancelled at the next workflow boundary. Python worker
+threads are not force-killed, and cancelled jobs expose no report or artifact
+paths as successful evidence. This is a single-process local worker, not a
+distributed queue.
