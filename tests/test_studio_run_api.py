@@ -185,6 +185,13 @@ def test_studio_run_endpoints_expose_job_metadata_when_dependencies_available(
         assert created.status_code == 202
         job = created.json()
         assert job["job_type"] == "image_folder_analysis"
+        assert job["manifest_version"] == "1.0"
+        assert job["request_parameters"] == {
+            "input_path": "images",
+            "output_name": "api_image.md",
+            "run_label": "review",
+            "config_path": None,
+        }
         assert job["human_review_required"] is True
         for _ in range(200):
             job = client.get(f"/api/studio/runs/{job['job_id']}").json()
@@ -216,6 +223,15 @@ def test_studio_failed_endpoint_job_is_retrievable_when_dependencies_available(
         )
         job = response.json()
         assert response.status_code == 202
+        assert job["request_parameters"] == {
+            "output_name": None,
+            "run_label": None,
+            "manifest_path": "missing.json",
+            "strategy": "adjacent_difference",
+            "patch_size": None,
+            "top_k": 10,
+            "patch_top_k": 5,
+        }
         for _ in range(200):
             job = client.get(f"/api/studio/runs/{job['job_id']}").json()
             if job["status"] in {"succeeded", "failed", "cancelled"}:
