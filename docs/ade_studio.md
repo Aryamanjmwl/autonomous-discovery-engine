@@ -6,7 +6,7 @@ API under `ade.studio`.
 
 The current connected workflow supports visual/image-folder and manifest-driven
 temporal analysis through the local ADE engine. ADE Studio can read local
-run/report artifacts and the Stage 7A backend can accept synchronous local runs.
+run/report artifacts and the Studio backend can accept bounded asynchronous local runs.
 Stage 7B connects those endpoints to the browser Run screen. If the backend is unavailable,
 the frontend falls back to mock preview data for demos. It does not add cloud
 hosting, auth, database storage, billing, production streaming, browser upload,
@@ -148,11 +148,14 @@ call returns. A queued or running job found when the backend restarts is retaine
 and marked failed with an interruption message. ADE never presents interrupted
 or cancelled work as completed evidence.
 
-Every new job also records a versioned run manifest containing the ADE version
-and the complete normalized request after API defaults are applied. Existing
-v1.0 and v1.1 job files migrate automatically. These fields record request
-provenance; they do not claim to fingerprint dataset contents or snapshot the
-resolved configuration file. Image-folder requests accept `input_path`, optional
+Every new job records a versioned run manifest containing the ADE version and
+the complete normalized request after API defaults are applied. Immediately
+before workflow execution, ADE also records a SHA-256 content fingerprint and
+the effective configuration with its own SHA-256 fingerprint. Image runs include
+supported files from the resolved folder and the fully merged ADE configuration.
+Temporal runs include the canonical manifest, referenced images and masks, and
+the applied temporal parameters. Existing job files migrate without fabricated
+historical provenance. Image-folder requests accept `input_path`, optional
 `output_name`, optional `config_path`, and optional `run_label`. Temporal requests accept
 `manifest_path`, `strategy` (`adjacent_difference` or `baseline_difference`),
 optional existing patch/evidence limits, optional `output_name`, and optional
@@ -174,10 +177,15 @@ queued and running jobs expose a cancellation control. Validation or workflow
 failures show the real backend error.
 
 The Runs screen lists exact local job records with status, timestamps, manifest
-version, ADE version, normalized request parameters, warnings, errors, report
-paths, artifact paths, and the human-review requirement. Successful jobs can refresh report discovery and open
+version, ADE version, normalized request parameters, input fingerprint,
+effective configuration snapshot, warnings, errors, report paths, artifact paths,
+and the human-review requirement. Successful jobs can refresh report discovery and open
 the generated JSON report through the existing report detail route when the job
 returns one. Completed and failed records remain available after a backend restart.
+
+Fingerprints describe the inputs read immediately before execution. Studio does
+not lock files against concurrent modification, so operators must avoid changing
+a dataset while its run is active.
 
 Paths refer to the machine running the ADE backend. There is no browser upload,
 server filesystem picker, drag-and-drop transfer, or remote download. The local
