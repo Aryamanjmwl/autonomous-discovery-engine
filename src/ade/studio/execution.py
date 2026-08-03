@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass, field
+from functools import partial
 from threading import RLock
 
 from ade.studio.jobs import CancellationResult, StudioJob, StudioJobStore
@@ -39,9 +40,7 @@ class StudioJobExecutor:
         future = self._executor.submit(self._run, job, operation)
         with self._lock:
             self._futures[job.job_id] = future
-        future.add_done_callback(
-            lambda completed, job_id=job.job_id: self._forget(job_id, completed)
-        )
+        future.add_done_callback(partial(self._forget, job.job_id))
 
     def cancel(self, job_id: str) -> CancellationResult | None:
         result = self._jobs.request_cancel(job_id)
