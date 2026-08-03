@@ -172,7 +172,6 @@ def test_studio_run_endpoints_expose_job_metadata_when_dependencies_available(
 
     paths = _paths(tmp_path)
     _images(tmp_path)
-    client = TestClient(create_app(paths=paths, job_store=StudioJobStore()))
 
     with TestClient(create_app(paths=paths, job_store=StudioJobStore())) as client:
         created = client.post(
