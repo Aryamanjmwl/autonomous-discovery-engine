@@ -31,7 +31,8 @@ Qualify one category at a time. For example, the `bottle` category must contain:
 ```
 
 The qualifier accepts only the 15 official classic category names and requires
-anomaly directory, and one matching mask for every anomaly image. It rejects
+at least one reference image, one normal test image, one anomaly directory, and
+one matching mask for every anomaly image. It rejects
 unsafe category paths, missing directories, missing masks, duplicate manifest
 content, and attempts to replace a different existing manifest.
 

@@ -101,6 +101,8 @@ def qualify_mvtec_ad_category(
     )
     if not reference_images:
         raise VisualIntegrityError("MVTec AD train/good contains no PNG reference images")
+    for reference_image in reference_images:
+        _relative_file(category_root, reference_image)
     if not normal_images:
         raise VisualIntegrityError("MVTec AD test/good contains no PNG images")
     if not defect_directories:

@@ -156,3 +156,25 @@ def test_cli_qualifies_category_without_analysis_inputs(
     assert "Anomalous test images: 1" in terminal
     assert "commercial use is not allowed" in terminal
     assert output.is_file()
+
+
+def test_qualification_rejects_reference_directory_outside_category(
+    tmp_path: Path,
+) -> None:
+    root = _dataset(tmp_path)
+    reference_directory = root / "bottle" / "train" / "good"
+    (reference_directory / "000.png").unlink()
+    reference_directory.rmdir()
+    outside = tmp_path / "outside"
+    _write_image(outside / "000.png")
+    try:
+        reference_directory.symlink_to(outside, target_is_directory=True)
+    except OSError:
+        pytest.skip("Directory symlinks are unavailable on this platform")
+
+    with pytest.raises(VisualIntegrityError, match="outside the category root"):
+        qualify_mvtec_ad_category(
+            root,
+            category="bottle",
+            benchmark_manifest_path=tmp_path / "bottle.json",
+        )
