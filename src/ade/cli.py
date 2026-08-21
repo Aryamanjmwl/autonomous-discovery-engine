@@ -54,6 +54,7 @@ from ade.visual import (
     validate_temporal_change_artifact,
 )
 from ade.visual.config import VisualEngineConfig
+from ade.visual.mvtec_ad import qualify_mvtec_ad_category
 from ade.visual.reference_builder import (
     ReferenceMemoryBuildSummary,
     build_reference_memory_from_images,
@@ -132,6 +133,28 @@ def build_parser() -> argparse.ArgumentParser:
             "Reference-memory storage root. Defaults to "
             "visual_engine.reference_memory.storage_root."
         ),
+    )
+    parser.add_argument(
+        "--qualify-mvtec-ad",
+        type=Path,
+        metavar="DATASET_ROOT",
+        help="Validate one locally provisioned MVTec AD category.",
+    )
+    parser.add_argument(
+        "--mvtec-category",
+        default=None,
+        help="Category directory to qualify with --qualify-mvtec-ad.",
+    )
+    parser.add_argument(
+        "--mvtec-dataset-version",
+        default="classic",
+        help="Local MVTec AD dataset version recorded in the benchmark manifest.",
+    )
+    parser.add_argument(
+        "--benchmark-manifest-output",
+        type=Path,
+        default=None,
+        help="Canonical benchmark manifest output for --qualify-mvtec-ad.",
     )
     parser.add_argument(
         "--list-runs",
@@ -1095,9 +1118,36 @@ def main() -> None:
 
     parser = build_parser()
     args = parser.parse_args()
+    if args.qualify_mvtec_ad is not None:
+        if args.mvtec_category is None:
+            parser.error("--mvtec-category is required with --qualify-mvtec-ad.")
+        if args.benchmark_manifest_output is None:
+            parser.error(
+                "--benchmark-manifest-output is required with --qualify-mvtec-ad."
+            )
+        try:
+            mvtec_summary = qualify_mvtec_ad_category(
+                args.qualify_mvtec_ad,
+                category=args.mvtec_category,
+                benchmark_manifest_path=args.benchmark_manifest_output,
+                dataset_version=args.mvtec_dataset_version,
+            )
+        except (OSError, ValueError) as error:
+            parser.error(str(error))
+        print("ADE MVTec AD category qualified.")
+        print(f"Category: {mvtec_summary.category}")
+        print(f"Reference directory: {mvtec_summary.reference_directory}")
+        print(f"Reference images: {mvtec_summary.reference_image_count}")
+        print(f"Normal test images: {mvtec_summary.test_normal_count}")
+        print(f"Anomalous test images: {mvtec_summary.test_anomaly_count}")
+        print(f"Dataset fingerprint: {mvtec_summary.dataset_sha256}")
+        print(f"Benchmark manifest: {mvtec_summary.benchmark_manifest_path}")
+        print("License: CC BY-NC-SA 4.0; commercial use is not allowed.")
+        return
+
     if args.build_reference_memory is not None:
         try:
-            summary = run_reference_memory_build(
+            memory_summary = run_reference_memory_build(
                 args.build_reference_memory,
                 config_path=args.config,
                 storage_root=args.reference_memory_output,
@@ -1114,11 +1164,11 @@ def main() -> None:
         except (FileNotFoundError, NotADirectoryError, ValueError) as error:
             parser.error(str(error))
         print("ADE reference memory ready.")
-        print(f"Reference images: {summary.image_count}")
-        print(f"Extracted patches: {summary.patch_count}")
-        print(f"Stored vectors: {summary.vector_count}")
-        print(f"Memory ID: {summary.memory_id}")
-        print(f"Manifest: {summary.manifest_path}")
+        print(f"Reference images: {memory_summary.image_count}")
+        print(f"Extracted patches: {memory_summary.patch_count}")
+        print(f"Stored vectors: {memory_summary.vector_count}")
+        print(f"Memory ID: {memory_summary.memory_id}")
+        print(f"Manifest: {memory_summary.manifest_path}")
         return
 
     if args.validate_temporal_manifest is not None:
@@ -1303,7 +1353,8 @@ def main() -> None:
 
     if args.input is None or args.output is None:
         parser.error(
-            "--input and --output are required unless --build-reference-memory, "
+            "--input and --output are required unless --qualify-mvtec-ad, "
+            "--build-reference-memory, "
             "--list-runs, "
             "--validate-report, --export-html-report, --export-local-dashboard, "
             "--validate-temporal-manifest, --temporal-manifest, "

@@ -114,6 +114,13 @@ from ade.visual.reference_contracts import (
     ReferenceVectorRecord,
     validate_reference_records,
 )
+from ade.visual.mvtec_ad import (
+    MVTEC_AD_CATEGORIES,
+    MVTEC_AD_LICENSE,
+    MVTEC_AD_SOURCE_URL,
+    MVTecADQualificationSummary,
+    qualify_mvtec_ad_category,
+)
 from ade.visual.reference_benchmark import (
     ReferenceBenchmarkExecution,
     run_reference_benchmark,
@@ -209,6 +216,10 @@ __all__ = [
     "VISUAL_ENGINE_SCHEMA_VERSION",
     "REFERENCE_MEMORY_SCHEMA_VERSION",
     "ReferenceMemoryBuildSummary",
+    "MVTEC_AD_CATEGORIES",
+    "MVTEC_AD_LICENSE",
+    "MVTEC_AD_SOURCE_URL",
+    "MVTecADQualificationSummary",
     "ReferenceBenchmarkExecution",
     "LoadedReferenceMemory",
     "ExactNumpySearch",
@@ -264,6 +275,7 @@ __all__ = [
     "deserialize_reference_memory_manifest",
     "build_reference_memory",
     "build_reference_memory_from_images",
+    "qualify_mvtec_ad_category",
     "run_reference_benchmark",
     "derive_reference_memory_id",
     "fingerprint_configuration",

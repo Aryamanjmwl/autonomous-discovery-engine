@@ -358,6 +358,10 @@ pip install -r requirements.txt
 pip install -e .
 ```
 
+For a reproducible external image benchmark, see the
+[MVTec AD local qualification workflow](docs/mvtec_ad_benchmark.md). ADE does
+not download or redistribute the non-commercial dataset.
+
 ## Documentation
 
 Start with `docs/README.md` for architecture, CLI reference, report schema,
