@@ -112,6 +112,10 @@ class VisualReferenceMemoryConfig:
             )
         if not isinstance(self.memory_map, bool):
             raise VisualConfigurationError("reference_memory.memory_map must be a boolean")
+        if self.manifest_path is not None and not self.manifest_path.strip():
+            raise VisualConfigurationError(
+                "reference_memory.manifest_path must be non-empty when provided"
+            )
         if not self.enabled and self.manifest_path is not None:
             raise VisualConfigurationError(
                 "reference_memory.manifest_path requires reference_memory.enabled"
@@ -337,6 +341,10 @@ class VisualEngineConfig:
             if "reference" not in self.dataset_roles or not self.reference_memory.enabled:
                 raise VisualConfigurationError(
                     "reference_anomaly execution requires reference role and reference memory"
+                )
+            if self.reference_scoring.enabled and not self.reference_memory.manifest_path:
+                raise VisualConfigurationError(
+                    "enabled reference scoring requires reference_memory.manifest_path"
                 )
             if (
                 self.reference_scoring.enabled
