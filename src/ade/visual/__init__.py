@@ -1,5 +1,11 @@
 """Versioned contracts and reproducibility foundations for ADE visual workflows."""
 
+from ade.visual.benchmark_acceptance import (
+    VisualBenchmarkAcceptancePolicy,
+    VisualBenchmarkAcceptanceResult,
+    VisualBenchmarkOperatingPointRequirement,
+    evaluate_visual_benchmark_acceptance,
+)
 from ade.visual.benchmark_artifacts import (
     publish_visual_benchmark_artifact,
     validate_visual_benchmark_artifact,
@@ -108,6 +114,10 @@ from ade.visual.reference_contracts import (
     ReferenceVectorRecord,
     validate_reference_records,
 )
+from ade.visual.reference_benchmark import (
+    ReferenceBenchmarkExecution,
+    run_reference_benchmark,
+)
 from ade.visual.reference_memory import (
     build_reference_memory,
     derive_reference_memory_id,
@@ -174,6 +184,9 @@ from ade.visual.temporal_manifests import (
 )
 
 __all__ = [
+    "VisualBenchmarkAcceptancePolicy",
+    "VisualBenchmarkAcceptanceResult",
+    "VisualBenchmarkOperatingPointRequirement",
     "VisualBenchmarkDatasetManifest",
     "VisualBenchmarkLabel",
     "VisualBenchmarkMetricSummary",
@@ -196,6 +209,7 @@ __all__ = [
     "VISUAL_ENGINE_SCHEMA_VERSION",
     "REFERENCE_MEMORY_SCHEMA_VERSION",
     "ReferenceMemoryBuildSummary",
+    "ReferenceBenchmarkExecution",
     "LoadedReferenceMemory",
     "ExactNumpySearch",
     "CoresetSelection",
@@ -250,6 +264,7 @@ __all__ = [
     "deserialize_reference_memory_manifest",
     "build_reference_memory",
     "build_reference_memory_from_images",
+    "run_reference_benchmark",
     "derive_reference_memory_id",
     "fingerprint_configuration",
     "fingerprint_visual_content",
@@ -284,6 +299,7 @@ __all__ = [
     "summarize_scores",
     "validate_calibration_artifact",
     "deserialize_visual_benchmark_manifest",
+    "evaluate_visual_benchmark_acceptance",
     "evaluate_visual_benchmark",
     "load_visual_benchmark_manifest",
     "publish_visual_benchmark_artifact",
