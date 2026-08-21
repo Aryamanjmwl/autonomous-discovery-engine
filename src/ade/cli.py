@@ -48,9 +48,15 @@ from ade.representation.embedding_engine import EmbeddingEngine, PatchEmbedding
 from ade.representation.tabular_engine import TabularFeatureEngine
 from ade.representation.timeseries_engine import TimeSeriesFeatureEngine
 from ade.visual import (
+    ReferenceBenchmarkBaseline,
     analyze_temporal_change,
+    benchmark_run_config_from_policy,
+    build_reference_benchmark_baseline,
     load_temporal_manifest,
+    load_visual_benchmark_acceptance_policy,
+    publish_reference_benchmark_baseline,
     publish_temporal_change_artifact,
+    run_reference_benchmark,
     validate_temporal_change_artifact,
 )
 from ade.visual.config import VisualEngineConfig
@@ -139,6 +145,24 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         metavar="DATASET_ROOT",
         help="Validate one locally provisioned MVTec AD category.",
+    )
+    parser.add_argument(
+        "--run-reference-benchmark",
+        type=Path,
+        metavar="MANIFEST",
+        help="Run reference scoring against a qualified benchmark manifest.",
+    )
+    parser.add_argument(
+        "--benchmark-policy",
+        type=Path,
+        default=None,
+        help="Predeclared benchmark acceptance policy JSON.",
+    )
+    parser.add_argument(
+        "--benchmark-output-root",
+        type=Path,
+        default=None,
+        help="Storage root for immutable reference benchmark baselines.",
     )
     parser.add_argument(
         "--mvtec-category",
@@ -1113,11 +1137,74 @@ def _review_memory_labels(
     return [str(label) for label in labels]
 
 
+def run_reference_baseline(
+    manifest_path: Path,
+    *,
+    config_path: Path,
+    policy_path: Path,
+    output_root: Path,
+) -> tuple[ReferenceBenchmarkBaseline, Path]:
+    """Execute one predeclared reference benchmark and publish its evidence."""
+
+    if not config_path.is_file():
+        raise FileNotFoundError(f"Config file does not exist: {config_path}")
+    policy = load_visual_benchmark_acceptance_policy(policy_path)
+    execution = run_reference_benchmark(
+        manifest_path,
+        config_path=config_path,
+        run_config=benchmark_run_config_from_policy(policy),
+    )
+    baseline = build_reference_benchmark_baseline(execution, policy)
+    artifact_path = publish_reference_benchmark_baseline(baseline, output_root)
+    return baseline, artifact_path
+
+
 def main() -> None:
     """Run ADE from command-line arguments."""
 
     parser = build_parser()
     args = parser.parse_args()
+    if args.run_reference_benchmark is not None:
+        if args.config is None:
+            parser.error("--config is required with --run-reference-benchmark.")
+        if args.benchmark_policy is None:
+            parser.error("--benchmark-policy is required with --run-reference-benchmark.")
+        if args.benchmark_output_root is None:
+            parser.error(
+                "--benchmark-output-root is required with --run-reference-benchmark."
+            )
+        try:
+            baseline, artifact_path = run_reference_baseline(
+                args.run_reference_benchmark,
+                config_path=args.config,
+                policy_path=args.benchmark_policy,
+                output_root=args.benchmark_output_root,
+            )
+        except (OSError, ValueError) as error:
+            parser.error(str(error))
+        metrics = baseline.benchmark.metrics
+        acceptance = baseline.acceptance_result
+        print("ADE reference benchmark complete.")
+        print(
+            "Dataset: "
+            f"{baseline.benchmark.provenance.dataset_name} "
+            f"{baseline.benchmark.provenance.dataset_version} "
+            f"({baseline.benchmark.provenance.split_name})"
+        )
+        print(f"Scoring ID: {baseline.reference_scoring.scoring_id}")
+        print(f"Reference memory ID: {baseline.reference_scoring.reference_memory_id}")
+        print(f"AUROC: {metrics.auroc}")
+        print(f"Average precision: {metrics.average_precision}")
+        print(f"Acceptance: {'passed' if acceptance.passed else 'failed'}")
+        print(f"Baseline artifact: {artifact_path}")
+        print("Human review remains required.")
+        if not acceptance.passed:
+            print("Failed checks:")
+            for failure in acceptance.failures:
+                print(f"- {failure}")
+            raise SystemExit(2)
+        return
+
     if args.qualify_mvtec_ad is not None:
         if args.mvtec_category is None:
             parser.error("--mvtec-category is required with --qualify-mvtec-ad.")
@@ -1353,8 +1440,8 @@ def main() -> None:
 
     if args.input is None or args.output is None:
         parser.error(
-            "--input and --output are required unless --qualify-mvtec-ad, "
-            "--build-reference-memory, "
+            "--input and --output are required unless --run-reference-benchmark, "
+            "--qualify-mvtec-ad, --build-reference-memory, "
             "--list-runs, "
             "--validate-report, --export-html-report, --export-local-dashboard, "
             "--validate-temporal-manifest, --temporal-manifest, "
