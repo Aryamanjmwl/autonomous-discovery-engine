@@ -7,7 +7,7 @@ import json
 import math
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from ade.visual.benchmark_contracts import (
     BenchmarkOperatingPointStrategy,
@@ -117,22 +117,28 @@ def deserialize_visual_benchmark_acceptance_policy(
             )
         requirements.append(
             VisualBenchmarkOperatingPointRequirement(
-                strategy=item["strategy"],
-                value=item["value"],
-                min_precision=item["min_precision"],
-                min_recall=item["min_recall"],
-                max_selected_fraction=item["max_selected_fraction"],
+                strategy=cast(BenchmarkOperatingPointStrategy, item["strategy"]),
+                value=cast(float, item["value"]),
+                min_precision=cast(float | None, item["min_precision"]),
+                min_recall=cast(float | None, item["min_recall"]),
+                max_selected_fraction=cast(
+                    float | None,
+                    item["max_selected_fraction"],
+                ),
             )
         )
     try:
         policy = VisualBenchmarkAcceptancePolicy(
-            dataset_name=data["dataset_name"],
-            dataset_version=data["dataset_version"],
-            split_name=data["split_name"],
-            schema_version=data["schema_version"],
-            min_auroc=data["min_auroc"],
-            min_average_precision=data["min_average_precision"],
-            max_missing_predictions=data["max_missing_predictions"],
+            dataset_name=cast(str, data["dataset_name"]),
+            dataset_version=cast(str, data["dataset_version"]),
+            split_name=cast(str, data["split_name"]),
+            schema_version=cast(int, data["schema_version"]),
+            min_auroc=cast(float | None, data["min_auroc"]),
+            min_average_precision=cast(
+                float | None,
+                data["min_average_precision"],
+            ),
+            max_missing_predictions=cast(int, data["max_missing_predictions"]),
             operating_points=tuple(requirements),
         )
     except TypeError as error:

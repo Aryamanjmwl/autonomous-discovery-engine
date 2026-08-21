@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import shutil
 import tempfile
@@ -363,7 +364,10 @@ def _integer(value: object, name: str) -> int:
 def _number(value: object, name: str) -> float:
     if isinstance(value, bool) or not isinstance(value, int | float):
         raise VisualManifestError(f"{name} must be numeric")
-    return float(value)
+    result = float(value)
+    if not math.isfinite(result):
+        raise VisualManifestError(f"{name} must be finite")
+    return result
 
 
 def _canonical(value: object) -> str:
