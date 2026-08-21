@@ -28,8 +28,11 @@ class VisualBenchmarkOperatingPointRequirement:
 
 @dataclass(frozen=True)
 class VisualBenchmarkAcceptancePolicy:
-    """Minimum evidence required before a benchmark result is accepted."""
+    """Minimum evidence required for one declared dataset and split."""
 
+    dataset_name: str
+    dataset_version: str
+    split_name: str
     min_auroc: float | None = None
     min_average_precision: float | None = None
     max_missing_predictions: int = 0
@@ -61,8 +64,22 @@ def evaluate_visual_benchmark_acceptance(
     """Apply explicit quality and workload requirements without selecting them."""
 
     _validate_policy(policy)
-    checks: list[str] = []
+    checks: list[str] = ["dataset identity", "dataset split"]
     failures: list[str] = []
+    provenance = result.provenance
+    if (
+        provenance.dataset_name != policy.dataset_name
+        or provenance.dataset_version != policy.dataset_version
+    ):
+        failures.append(
+            "Benchmark dataset identity does not match the acceptance policy."
+        )
+    if provenance.split_name != policy.split_name:
+        failures.append(
+            "Benchmark split "
+            f"{provenance.split_name!r} does not match required split "
+            f"{policy.split_name!r}."
+        )
 
     if policy.min_auroc is not None:
         checks.append("minimum AUROC")
@@ -157,6 +174,14 @@ def _minimum_metric(
 
 
 def _validate_policy(policy: VisualBenchmarkAcceptancePolicy) -> None:
+    if not (
+        policy.dataset_name.strip()
+        and policy.dataset_version.strip()
+        and policy.split_name.strip()
+    ):
+        raise VisualIntegrityError(
+            "Acceptance dataset name, version, and split must be non-empty"
+        )
     if (
         isinstance(policy.max_missing_predictions, bool)
         or not isinstance(policy.max_missing_predictions, int)

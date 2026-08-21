@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 from ade.cancellation import CancellationToken
@@ -24,6 +24,15 @@ from ade.visual.config import VisualEngineConfig
 from ade.visual.errors import VisualConfigurationError, VisualIntegrityError
 from ade.visual.fingerprints import fingerprint_visual_content
 from ade.visual.reference_pipeline import score_configured_reference_memory
+from ade.visual.scoring_contracts import ReferenceScoringSummary
+
+
+@dataclass(frozen=True)
+class ReferenceBenchmarkExecution:
+    """Benchmark metrics paired with the exact reference-scoring provenance."""
+
+    benchmark: VisualBenchmarkResult
+    reference_scoring: ReferenceScoringSummary
 
 
 def run_reference_benchmark(
@@ -33,7 +42,7 @@ def run_reference_benchmark(
     run_config: VisualBenchmarkRunConfig,
     cancellation_token: CancellationToken | None = None,
     generated_at: str | None = None,
-) -> VisualBenchmarkResult:
+) -> ReferenceBenchmarkExecution:
     """Score one labeled benchmark split with the configured reference memory."""
 
     config = load_config(config_path)
@@ -135,10 +144,14 @@ def run_reference_benchmark(
         )
         for item in scoring.image_scores
     )
-    return evaluate_visual_benchmark(
+    benchmark = evaluate_visual_benchmark(
         manifest,
         predictions,
         run_config,
         benchmark_manifest_path=str(manifest_path.resolve()),
         generated_at=generated_at,
+    )
+    return ReferenceBenchmarkExecution(
+        benchmark=benchmark,
+        reference_scoring=scoring.summary,
     )

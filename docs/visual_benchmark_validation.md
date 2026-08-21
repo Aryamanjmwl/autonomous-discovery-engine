@@ -65,7 +65,7 @@ from pathlib import Path
 
 from ade.visual import VisualBenchmarkRunConfig, run_reference_benchmark
 
-result = run_reference_benchmark(
+execution = run_reference_benchmark(
     Path("benchmarks/example/benchmark.json"),
     config_path=Path("configs/reference_scoring.yaml"),
     run_config=VisualBenchmarkRunConfig(
@@ -74,7 +74,12 @@ result = run_reference_benchmark(
         top_k=(10,),
     ),
 )
+result = execution.benchmark
 ```
+
+The returned execution also retains the exact reference-memory ID, scoring
+configuration fingerprint, backend identity, metric, and scoring ID through
+`execution.reference_scoring`.
 
 The manifest is loaded in strict mode. ADE validates declared paths and resource
 bounds before image decoding, preserves manifest sample IDs through patch
@@ -101,6 +106,9 @@ from ade.visual import (
 )
 
 policy = VisualBenchmarkAcceptancePolicy(
+    dataset_name="qualified-dataset",
+    dataset_version="2026-08",
+    split_name="test",
     min_auroc=0.85,
     min_average_precision=0.75,
     max_missing_predictions=0,

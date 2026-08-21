@@ -95,7 +95,7 @@ def test_reference_benchmark_runs_real_scoring_with_stable_sample_ids(
 ) -> None:
     manifest_path, config_path = _benchmark(tmp_path)
 
-    result = run_reference_benchmark(
+    execution = run_reference_benchmark(
         manifest_path,
         config_path=config_path,
         run_config=VisualBenchmarkRunConfig(
@@ -105,6 +105,8 @@ def test_reference_benchmark_runs_real_scoring_with_stable_sample_ids(
         ),
         generated_at="2026-01-01T00:00:00+00:00",
     )
+
+    result = execution.benchmark
 
     assert result.metrics.scored_count == 4
     assert result.metrics.auroc == 1.0
@@ -118,6 +120,7 @@ def test_reference_benchmark_runs_real_scoring_with_stable_sample_ids(
         "anomaly-1",
         "anomaly-2",
     }
+    assert execution.reference_scoring.reference_memory_id
     assert all(
         item.score_source is not None
         and item.score_source.startswith("reference_scoring:")
@@ -129,13 +132,17 @@ def test_acceptance_policy_checks_ranking_and_declared_operating_point(
     tmp_path: Path,
 ) -> None:
     manifest_path, config_path = _benchmark(tmp_path)
-    result = run_reference_benchmark(
+    execution = run_reference_benchmark(
         manifest_path,
         config_path=config_path,
         run_config=VisualBenchmarkRunConfig("test", top_k=(2,)),
         generated_at="2026-01-01T00:00:00+00:00",
     )
+    result = execution.benchmark
     policy = VisualBenchmarkAcceptancePolicy(
+        dataset_name="controlled-reference-fixture",
+        dataset_version="1",
+        split_name="test",
         min_auroc=0.9,
         min_average_precision=0.9,
         operating_points=(
@@ -167,16 +174,22 @@ def test_acceptance_fails_closed_when_required_metric_is_unavailable(
     tmp_path: Path,
 ) -> None:
     manifest_path, config_path = _benchmark(tmp_path)
-    result = run_reference_benchmark(
+    execution = run_reference_benchmark(
         manifest_path,
         config_path=config_path,
         run_config=VisualBenchmarkRunConfig("test"),
     )
+    result = execution.benchmark
     unavailable = replace(result, metrics=replace(result.metrics, auroc=None))
 
     outcome = evaluate_visual_benchmark_acceptance(
         unavailable,
-        VisualBenchmarkAcceptancePolicy(min_auroc=0.8),
+        VisualBenchmarkAcceptancePolicy(
+            "controlled-reference-fixture",
+            "1",
+            "test",
+            min_auroc=0.8,
+        ),
     )
 
     assert outcome.passed is False
@@ -189,11 +202,14 @@ def test_acceptance_rejects_invalid_or_duplicate_requirements() -> None:
         evaluate_visual_benchmark_acceptance(
             pytest.importorskip("types").SimpleNamespace(),  # type: ignore[arg-type]
             VisualBenchmarkAcceptancePolicy(
+                "fixture",
+                "1",
+                "test",
                 operating_points=(duplicate, duplicate),
             ),
         )
     with pytest.raises(VisualIntegrityError, match="between 0 and 1"):
         evaluate_visual_benchmark_acceptance(
             pytest.importorskip("types").SimpleNamespace(),  # type: ignore[arg-type]
-            VisualBenchmarkAcceptancePolicy(min_auroc=1.1),
+            VisualBenchmarkAcceptancePolicy("fixture", "1", "test", min_auroc=1.1),
         )

@@ -114,7 +114,10 @@ from ade.visual.reference_contracts import (
     ReferenceVectorRecord,
     validate_reference_records,
 )
-from ade.visual.reference_benchmark import run_reference_benchmark
+from ade.visual.reference_benchmark import (
+    ReferenceBenchmarkExecution,
+    run_reference_benchmark,
+)
 from ade.visual.reference_memory import (
     build_reference_memory,
     derive_reference_memory_id,
@@ -206,6 +209,7 @@ __all__ = [
     "VISUAL_ENGINE_SCHEMA_VERSION",
     "REFERENCE_MEMORY_SCHEMA_VERSION",
     "ReferenceMemoryBuildSummary",
+    "ReferenceBenchmarkExecution",
     "LoadedReferenceMemory",
     "ExactNumpySearch",
     "CoresetSelection",
