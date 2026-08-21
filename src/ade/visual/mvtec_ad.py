@@ -25,6 +25,23 @@ from ade.visual.fingerprints import normalize_relative_path, sha256_file
 
 MVTEC_AD_SOURCE_URL = "https://www.mvtec.com/research-teaching/datasets/mvtec-ad"
 MVTEC_AD_LICENSE = "CC BY-NC-SA 4.0"
+MVTEC_AD_CATEGORIES = (
+    "bottle",
+    "cable",
+    "capsule",
+    "carpet",
+    "grid",
+    "hazelnut",
+    "leather",
+    "metal_nut",
+    "pill",
+    "screw",
+    "tile",
+    "toothbrush",
+    "transistor",
+    "wood",
+    "zipper",
+)
 
 
 @dataclass(frozen=True)
@@ -47,13 +64,18 @@ def qualify_mvtec_ad_category(
     *,
     category: str,
     benchmark_manifest_path: Path,
-    dataset_version: str = "official-download",
+    dataset_version: str = "classic",
 ) -> MVTecADQualificationSummary:
     """Validate an official local category layout and publish a canonical manifest."""
 
     normalized_category = normalize_relative_path(category)
     if normalized_category != category or "/" in normalized_category:
         raise VisualIntegrityError("MVTec AD category must be one canonical directory name")
+    if category not in MVTEC_AD_CATEGORIES:
+        raise VisualIntegrityError(
+            "MVTec AD category is not part of the official classic category set",
+            context={"category": category},
+        )
     if not dataset_version.strip():
         raise VisualIntegrityError("MVTec AD dataset version must be non-empty")
 

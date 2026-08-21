@@ -109,7 +109,10 @@ def test_qualification_requires_anomaly_masks(tmp_path: Path) -> None:
         )
 
 
-@pytest.mark.parametrize("category", ["../bottle", "objects/bottle", "/bottle"])
+@pytest.mark.parametrize(
+    "category",
+    ["../bottle", "objects/bottle", "/bottle", "not_an_official_category"],
+)
 def test_qualification_rejects_unsafe_category_paths(
     tmp_path: Path,
     category: str,

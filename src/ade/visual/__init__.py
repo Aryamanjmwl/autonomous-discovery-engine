@@ -115,6 +115,7 @@ from ade.visual.reference_contracts import (
     validate_reference_records,
 )
 from ade.visual.mvtec_ad import (
+    MVTEC_AD_CATEGORIES,
     MVTEC_AD_LICENSE,
     MVTEC_AD_SOURCE_URL,
     MVTecADQualificationSummary,
@@ -215,6 +216,7 @@ __all__ = [
     "VISUAL_ENGINE_SCHEMA_VERSION",
     "REFERENCE_MEMORY_SCHEMA_VERSION",
     "ReferenceMemoryBuildSummary",
+    "MVTEC_AD_CATEGORIES",
     "MVTEC_AD_LICENSE",
     "MVTEC_AD_SOURCE_URL",
     "MVTecADQualificationSummary",

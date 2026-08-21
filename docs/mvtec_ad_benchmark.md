@@ -30,7 +30,7 @@ Qualify one category at a time. For example, the `bottle` category must contain:
         <test-image-stem>_mask.png
 ```
 
-The qualifier requires at least one reference image, one normal test image, one
+The qualifier accepts only the 15 official classic category names and requires
 anomaly directory, and one matching mask for every anomaly image. It rejects
 unsafe category paths, missing directories, missing masks, duplicate manifest
 content, and attempts to replace a different existing manifest.
@@ -55,6 +55,10 @@ The manifest stores absolute local paths, per-file SHA-256 values, labels,
 anomaly types, mask paths, source URL, and license metadata. Repeating the
 command with unchanged data is idempotent. If files change, write a new manifest
 path or intentionally archive the earlier manifest before replacement.
+
+Qualification proves that the selected local files follow the expected layout
+and fixes their content identity. It does not prove that the files came from the
+official archive; retain your original download record separately.
 
 ## 2. Build reference memory
 
