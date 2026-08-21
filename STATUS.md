@@ -237,6 +237,21 @@ different content at the same path. Controlled tests reproduce the layout only
 to validate adapter behavior; no MVTec images, measured baseline, commercial
 permission, or performance claim is included.
 
+## Stage 8J Reproducible Reference Benchmark Baselines
+
+ADE can now load strict versioned benchmark policies, derive the required
+evaluation operating points directly from those policies, execute configured
+reference scoring, and publish the complete outcome as an immutable,
+content-addressed baseline. Each artifact binds measured image-level metrics,
+reference-scoring provenance, the exact policy, acceptance checks and failures,
+limitations, and the human-review requirement.
+
+The CLI publishes failed gates before returning status code `2`, preserving
+negative evidence for audit and automation. No dataset files, acceptance
+thresholds, or measured public-dataset results are committed by this stage.
+A baseline remains Technical Preview validation evidence, not a product
+guarantee or automated inspection decision.
+
 ## Done
 
 - Python package scaffold with `src/` layout
@@ -313,8 +328,8 @@ permission, or performance claim is included.
 
 ## Next Recommended Engineering Steps
 
-1. Locally provision one official MVTec AD category, declare its dataset-bound acceptance policy before test evaluation, and publish the first reproducible baseline artifact.
-2. Keep generated artifacts out of version control.
+1. Locally provision one official MVTec AD category and justify its dataset-bound acceptance policy before test evaluation.
+2. Run the gated reference benchmark locally and preserve the generated immutable baseline outside version control.
 3. Keep hardening adapter interfaces before adding more non-visual data types.
 4. Integrate Stage 1 visual requests and reproducibility manifests around the
    existing statistical pipeline without changing its scoring behavior.
