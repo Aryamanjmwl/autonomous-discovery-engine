@@ -67,6 +67,10 @@ def run_reference_benchmark(
     preprocessing = config["preprocessing"]
     patch_sizes = [int(value) for value in preprocessing["patch_sizes"]]
     patch_strides = [int(value) for value in preprocessing["patch_strides"]]
+    if not patch_sizes or len(patch_sizes) != len(patch_strides):
+        raise VisualConfigurationError(
+            "Benchmark patch sizes and strides must be non-empty and aligned"
+        )
     extractor = PatchExtractor(
         patch_size=patch_sizes[0],
         stride=patch_strides[0],
