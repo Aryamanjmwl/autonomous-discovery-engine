@@ -78,21 +78,65 @@ must match between memory construction and benchmark execution.
 
 ## 3. Declare evaluation policy before test evaluation
 
-Before running the held-out `test` split, choose and record minimum AUROC and
-average precision, required precision and recall at a declared operating point,
-maximum review fraction, maximum missing predictions, and the exact dataset
-name, version, and split.
+Before running the held-out `test` split, create a versioned JSON policy with
+the exact dataset name, version, and split. Choose minimum ranking metrics,
+required precision and recall at declared operating points, maximum review
+fraction, and maximum missing predictions before inspecting test labels or
+scores.
 
-Do not choose thresholds after inspecting test labels or scores. The repository's
-controlled synthetic fixture checks software behavior only and is not a
-performance baseline.
+This example is illustrative configuration, not an ADE performance claim or a
+recommended production threshold:
+
+```json
+{
+  "schema_version": 1,
+  "dataset_name": "mvtec-ad-bottle",
+  "dataset_version": "classic",
+  "split_name": "test",
+  "min_auroc": 0.8,
+  "min_average_precision": 0.8,
+  "max_missing_predictions": 0,
+  "operating_points": [
+    {
+      "strategy": "top_k",
+      "value": 10,
+      "min_precision": 0.5,
+      "min_recall": null,
+      "max_selected_fraction": 0.2
+    }
+  ]
+}
+```
+
+Save the policy outside generated artifact directories, review it, and commit it
+only if its dataset-bound requirements are justified for the experiment. ADE
+derives the benchmark run configuration from these operating points, preventing
+the command from measuring a different set of gates than the policy declares.
+The repository's controlled synthetic fixture checks software behavior only and
+is not a performance baseline.
 
 ## 4. Execute and preserve the baseline
 
-Use `run_reference_benchmark` with the qualified manifest, the compatible
-reference-scoring configuration, and a `VisualBenchmarkRunConfig`. Apply
-`evaluate_visual_benchmark_acceptance` with the predeclared policy, then publish
-the benchmark result through `publish_visual_benchmark_artifact`.
+Run the qualified manifest with the compatible reference-scoring configuration
+and the predeclared policy:
+
+```powershell
+python -m ade.cli `
+  --run-reference-benchmark "data\benchmarks\mvtec_ad\bottle.json" `
+  --config "configs\mvtec_ad_bottle_reference.yaml" `
+  --benchmark-policy "configs\benchmarks\mvtec_ad_bottle_policy.json" `
+  --benchmark-output-root "data\benchmarks\reference_baselines"
+```
+
+The command prints the dataset identity, scoring ID, reference-memory ID,
+image-level AUROC and average precision, acceptance decision, and immutable
+artifact path. The content-addressed artifact contains the full benchmark
+result, scorer provenance, exact policy, checks, failures, limitations, and
+human-review requirement.
+
+A failed gate is still published as evidence and then exits with status code
+`2`, making the command suitable for a CI or experiment gate without discarding
+the failed result. Invalid inputs or artifacts use the normal CLI error path.
 
 Run categories independently. Do not combine category scores into one claim
 without a separately justified aggregation method. Image-level AUROC and
