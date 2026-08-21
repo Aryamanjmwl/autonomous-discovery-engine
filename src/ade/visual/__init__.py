@@ -4,7 +4,11 @@ from ade.visual.benchmark_acceptance import (
     VisualBenchmarkAcceptancePolicy,
     VisualBenchmarkAcceptanceResult,
     VisualBenchmarkOperatingPointRequirement,
+    benchmark_run_config_from_policy,
+    deserialize_visual_benchmark_acceptance_policy,
     evaluate_visual_benchmark_acceptance,
+    load_visual_benchmark_acceptance_policy,
+    serialize_visual_benchmark_acceptance_policy,
 )
 from ade.visual.benchmark_artifacts import (
     publish_visual_benchmark_artifact,
@@ -311,6 +315,10 @@ __all__ = [
     "summarize_scores",
     "validate_calibration_artifact",
     "deserialize_visual_benchmark_manifest",
+    "benchmark_run_config_from_policy",
+    "deserialize_visual_benchmark_acceptance_policy",
+    "load_visual_benchmark_acceptance_policy",
+    "serialize_visual_benchmark_acceptance_policy",
     "evaluate_visual_benchmark_acceptance",
     "evaluate_visual_benchmark",
     "load_visual_benchmark_manifest",

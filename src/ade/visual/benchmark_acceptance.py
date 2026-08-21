@@ -6,13 +6,16 @@ import hashlib
 import json
 import math
 from dataclasses import asdict, dataclass
+from pathlib import Path
 from typing import Any
 
 from ade.visual.benchmark_contracts import (
     BenchmarkOperatingPointStrategy,
     VisualBenchmarkResult,
+    VisualBenchmarkRunConfig,
 )
-from ade.visual.errors import VisualIntegrityError
+from ade.visual.config import VISUAL_ENGINE_SCHEMA_VERSION
+from ade.visual.errors import VisualIntegrityError, VisualManifestError
 
 
 @dataclass(frozen=True)
@@ -33,6 +36,7 @@ class VisualBenchmarkAcceptancePolicy:
     dataset_name: str
     dataset_version: str
     split_name: str
+    schema_version: int = VISUAL_ENGINE_SCHEMA_VERSION
     min_auroc: float | None = None
     min_average_precision: float | None = None
     max_missing_predictions: int = 0
@@ -55,6 +59,135 @@ class VisualBenchmarkAcceptanceResult:
             "checks": list(self.checks),
             "failures": list(self.failures),
         }
+
+
+def serialize_visual_benchmark_acceptance_policy(
+    policy: VisualBenchmarkAcceptancePolicy,
+) -> str:
+    """Return canonical versioned JSON for a predeclared acceptance policy."""
+
+    _validate_policy(policy)
+    return json.dumps(
+        asdict(policy),
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+        allow_nan=False,
+    )
+
+
+def deserialize_visual_benchmark_acceptance_policy(
+    payload: str | bytes,
+) -> VisualBenchmarkAcceptancePolicy:
+    """Load a strict acceptance policy without applying it to any result."""
+
+    try:
+        data = json.loads(payload)
+    except (json.JSONDecodeError, UnicodeDecodeError) as error:
+        raise VisualManifestError("Benchmark acceptance policy is not valid JSON") from error
+    if not isinstance(data, dict):
+        raise VisualManifestError("Benchmark acceptance policy root must be an object")
+    expected = {
+        "dataset_name",
+        "dataset_version",
+        "split_name",
+        "schema_version",
+        "min_auroc",
+        "min_average_precision",
+        "max_missing_predictions",
+        "operating_points",
+    }
+    if set(data) != expected:
+        raise VisualManifestError("Benchmark acceptance policy fields do not match its schema")
+    operating_raw = data["operating_points"]
+    if not isinstance(operating_raw, list):
+        raise VisualManifestError("Benchmark operating-point requirements must be a list")
+    requirements: list[VisualBenchmarkOperatingPointRequirement] = []
+    requirement_fields = {
+        "strategy",
+        "value",
+        "min_precision",
+        "min_recall",
+        "max_selected_fraction",
+    }
+    for item in operating_raw:
+        if not isinstance(item, dict) or set(item) != requirement_fields:
+            raise VisualManifestError(
+                "Benchmark operating-point requirement fields do not match its schema"
+            )
+        requirements.append(
+            VisualBenchmarkOperatingPointRequirement(
+                strategy=item["strategy"],
+                value=item["value"],
+                min_precision=item["min_precision"],
+                min_recall=item["min_recall"],
+                max_selected_fraction=item["max_selected_fraction"],
+            )
+        )
+    try:
+        policy = VisualBenchmarkAcceptancePolicy(
+            dataset_name=data["dataset_name"],
+            dataset_version=data["dataset_version"],
+            split_name=data["split_name"],
+            schema_version=data["schema_version"],
+            min_auroc=data["min_auroc"],
+            min_average_precision=data["min_average_precision"],
+            max_missing_predictions=data["max_missing_predictions"],
+            operating_points=tuple(requirements),
+        )
+    except TypeError as error:
+        raise VisualManifestError(
+            "Benchmark acceptance policy values do not match its schema"
+        ) from error
+    _validate_policy(policy)
+    return policy
+
+
+def load_visual_benchmark_acceptance_policy(
+    path: Path,
+) -> VisualBenchmarkAcceptancePolicy:
+    """Read one predeclared acceptance policy from disk."""
+
+    try:
+        payload = path.read_bytes()
+    except OSError as error:
+        raise VisualManifestError("Benchmark acceptance policy could not be read") from error
+    return deserialize_visual_benchmark_acceptance_policy(payload)
+
+
+def benchmark_run_config_from_policy(
+    policy: VisualBenchmarkAcceptancePolicy,
+) -> VisualBenchmarkRunConfig:
+    """Derive every required benchmark operating point from the declared policy."""
+
+    _validate_policy(policy)
+    explicit = tuple(
+        requirement.value
+        for requirement in policy.operating_points
+        if requirement.strategy == "explicit"
+    )
+    percentiles = tuple(
+        requirement.value
+        for requirement in policy.operating_points
+        if requirement.strategy == "percentile"
+    )
+    top_k = tuple(
+        int(requirement.value)
+        for requirement in policy.operating_points
+        if requirement.strategy == "top_k"
+    )
+    top_fractions = tuple(
+        requirement.value
+        for requirement in policy.operating_points
+        if requirement.strategy == "top_fraction"
+    )
+    return VisualBenchmarkRunConfig(
+        split_name=policy.split_name,
+        explicit_thresholds=explicit,
+        percentile_thresholds=percentiles,
+        top_k=top_k,
+        top_fractions=top_fractions,
+    )
 
 
 def evaluate_visual_benchmark_acceptance(
@@ -174,6 +307,15 @@ def _minimum_metric(
 
 
 def _validate_policy(policy: VisualBenchmarkAcceptancePolicy) -> None:
+    if policy.schema_version != VISUAL_ENGINE_SCHEMA_VERSION:
+        raise VisualManifestError("Benchmark acceptance policy schema version is unsupported")
+    if not all(
+        isinstance(value, str)
+        for value in (policy.dataset_name, policy.dataset_version, policy.split_name)
+    ):
+        raise VisualManifestError(
+            "Acceptance dataset name, version, and split must be strings"
+        )
     if not (
         policy.dataset_name.strip()
         and policy.dataset_version.strip()
@@ -208,7 +350,20 @@ def _validate_policy(policy: VisualBenchmarkAcceptancePolicy) -> None:
             or not math.isfinite(requirement.value)
         ):
             raise VisualIntegrityError("Acceptance operating-point value must be finite")
-        identity = (requirement.strategy, float(requirement.value))
+        numeric_value = float(requirement.value)
+        if requirement.strategy == "top_k" and (
+            numeric_value <= 0 or not numeric_value.is_integer()
+        ):
+            raise VisualIntegrityError("top_k acceptance values must be positive integers")
+        if requirement.strategy == "percentile" and not 0 <= numeric_value <= 100:
+            raise VisualIntegrityError(
+                "percentile acceptance values must be between 0 and 100"
+            )
+        if requirement.strategy == "top_fraction" and not 0 < numeric_value <= 1:
+            raise VisualIntegrityError(
+                "top_fraction acceptance values must be greater than 0 and at most 1"
+            )
+        identity = (requirement.strategy, numeric_value)
         if identity in identities:
             raise VisualIntegrityError(
                 "Acceptance operating-point requirements must be unique"
