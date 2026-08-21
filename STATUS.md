@@ -194,6 +194,20 @@ separate from the existing exploratory novelty ranking in this stage; they are
 not probabilities, calibrated decisions, or scientific conclusions. The current
 pipeline integration accepts only the deterministic lightweight representation.
 
+## Stage 8G Reference Memory Build CLI
+
+ADE can now build immutable reference memory directly from an explicit local
+image folder. The command reuses configured patch scales, deterministic
+lightweight representations, resource limits, metric, coreset policy, and seed.
+It prints the content-addressed memory ID and exact manifest path required by
+reference scoring.
+
+Dataset-role isolation now uses a configuration-independent content identity.
+The existing configuration-bound dataset fingerprint remains available for run
+reproducibility, while identical files cannot evade query/reference leakage
+checks merely because execution settings differ. Builds validate before atomic
+publication and resolve identical inputs to the existing immutable memory.
+
 ## Done
 
 - Python package scaffold with `src/` layout
@@ -270,7 +284,7 @@ pipeline integration accepts only the deterministic lightweight representation.
 
 ## Next Recommended Engineering Steps
 
-1. Add a supported reference-memory build command so users do not need the typed Python API.
+1. Establish labeled reference-mode benchmark fixtures and explicit acceptance thresholds before reference scores can influence primary candidate ranking.
 2. Keep generated artifacts out of version control.
 3. Keep hardening adapter interfaces before adding more non-visual data types.
 4. Integrate Stage 1 visual requests and reproducibility manifests around the

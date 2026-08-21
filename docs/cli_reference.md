@@ -24,6 +24,34 @@ These create synthetic local demo files under `data/raw/demo_images/`,
 `data/raw/demo_tabular/`, and `data/raw/demo_timeseries/`. They are local test
 data only.
 
+## Build Visual Reference Memory
+
+Build an immutable comparison memory from a folder containing expected or
+normal reference images:
+
+```powershell
+python -m ade.cli --build-reference-memory data/reference/normal_images --reference-memory-output data/reference_memory
+```
+
+The command uses the configured patch scales, reference metric, coreset policy,
+vector bound, and deterministic seed. It prints the content-addressed memory ID
+and the exact `manifest.json` path. Repeating the command with identical files
+and settings reuses the same validated immutable memory.
+
+Use `--config` to supply non-default build settings and `--patch-size` or
+`--stride` for explicit single-scale overrides:
+
+```powershell
+python -m ade.cli --build-reference-memory data/reference/normal_images `
+  --reference-memory-output data/reference_memory `
+  --config configs/reference_build.yaml
+```
+
+This command does not analyze a query dataset or produce candidate findings.
+The reference folder must remain separate from query and validation data. See
+[Opt-in visual reference scoring](reference_scoring_workflow.md) for the build,
+configuration, scoring, and artifact workflow.
+
 ## Run Analysis
 
 ```powershell
