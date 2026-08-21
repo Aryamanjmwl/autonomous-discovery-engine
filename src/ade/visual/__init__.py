@@ -11,7 +11,9 @@ from ade.visual.benchmark_acceptance import (
     serialize_visual_benchmark_acceptance_policy,
 )
 from ade.visual.benchmark_artifacts import (
+    deserialize_visual_benchmark_result,
     publish_visual_benchmark_artifact,
+    serialize_visual_benchmark_result,
     validate_visual_benchmark_artifact,
 )
 from ade.visual.benchmark_contracts import (
@@ -104,6 +106,15 @@ from ade.visual.manifests import (
     serialize_reproducibility_manifest,
     validate_artifact_integrity,
     write_manifest,
+)
+from ade.visual.reference_benchmark_artifacts import (
+    REFERENCE_BASELINE_ARTIFACT_TYPE,
+    ReferenceBenchmarkBaseline,
+    build_reference_benchmark_baseline,
+    deserialize_reference_benchmark_baseline,
+    publish_reference_benchmark_baseline,
+    serialize_reference_benchmark_baseline,
+    validate_reference_benchmark_baseline,
 )
 from ade.visual.reference_builder import (
     ReferenceMemoryBuildSummary,
@@ -224,6 +235,8 @@ __all__ = [
     "MVTEC_AD_LICENSE",
     "MVTEC_AD_SOURCE_URL",
     "MVTecADQualificationSummary",
+    "REFERENCE_BASELINE_ARTIFACT_TYPE",
+    "ReferenceBenchmarkBaseline",
     "ReferenceBenchmarkExecution",
     "LoadedReferenceMemory",
     "ExactNumpySearch",
@@ -322,9 +335,16 @@ __all__ = [
     "evaluate_visual_benchmark_acceptance",
     "evaluate_visual_benchmark",
     "load_visual_benchmark_manifest",
+    "build_reference_benchmark_baseline",
+    "deserialize_reference_benchmark_baseline",
+    "deserialize_visual_benchmark_result",
+    "publish_reference_benchmark_baseline",
     "publish_visual_benchmark_artifact",
     "resolve_visual_benchmark_root",
     "serialize_visual_benchmark_manifest",
+    "serialize_reference_benchmark_baseline",
+    "serialize_visual_benchmark_result",
+    "validate_reference_benchmark_baseline",
     "validate_visual_benchmark_artifact",
     "validate_visual_benchmark_manifest",
     "TemporalObservation",
