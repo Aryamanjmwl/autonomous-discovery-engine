@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from ade import __version__
+from ade.cancellation import CancellationToken
 from ade.cli import add_feedback_from_report, run_pipeline, run_temporal_pipeline
 from ade.feedback import FeedbackStore, ReviewFeedback
 from ade.reporting.html_report import write_html_report
@@ -239,6 +240,7 @@ def run_visual_analysis(
     output_name: str | None = None,
     config_path: Path | str | None = None,
     paths: StudioPaths = StudioPaths(),
+    cancellation_token: CancellationToken | None = None,
 ) -> dict[str, object]:
     """Run ADE's existing visual workflow for a local image folder."""
 
@@ -263,6 +265,7 @@ def run_visual_analysis(
         output_path=output_path,
         config_path=config,
         modality="image",
+        cancellation_token=cancellation_token,
     )
     json_path = markdown_path.with_suffix(".json")
     validation = validate_report_file(json_path)
@@ -306,6 +309,7 @@ def run_temporal_analysis(
     top_k: int = 10,
     patch_top_k: int = 5,
     paths: StudioPaths = StudioPaths(),
+    cancellation_token: CancellationToken | None = None,
 ) -> dict[str, object]:
     """Run ADE's existing manifest-driven temporal workflow locally."""
 
@@ -325,6 +329,7 @@ def run_temporal_analysis(
         top_k=top_k,
         patch_top_k=patch_top_k,
         artifact_root=artifact_root,
+        cancellation_token=cancellation_token,
     )
     return {
         "status": "ok",

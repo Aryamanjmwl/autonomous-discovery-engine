@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from threading import Event
 
+from ade.cancellation import CancellationToken
 from ade.studio.execution import StudioJobExecutor, StudioJobOutput
 from ade.studio.jobs import StudioJobStore
 
@@ -15,7 +16,7 @@ def test_executor_limits_work_and_cancels_queued_job() -> None:
     release = Event()
     calls: list[str] = []
 
-    def blocking_operation() -> StudioJobOutput:
+    def blocking_operation(_: CancellationToken) -> StudioJobOutput:
         calls.append("first")
         started.set()
         assert release.wait(timeout=5)
@@ -25,7 +26,10 @@ def test_executor_limits_work_and_cancels_queued_job() -> None:
     second = store.create("image_folder_analysis", {"input_path": "second"})
     executor.submit(first, blocking_operation)
     assert started.wait(timeout=5)
-    executor.submit(second, lambda: StudioJobOutput(["reports/second.json"], []))
+    executor.submit(
+        second,
+        lambda _: StudioJobOutput(["reports/second.json"], []),
+    )
 
     assert executor.cancel(second.job_id) == "cancelled"
     release.set()
@@ -45,10 +49,11 @@ def test_running_cancellation_discards_success_references() -> None:
     started = Event()
     release = Event()
 
-    def operation() -> StudioJobOutput:
+    def operation(cancellation: CancellationToken) -> StudioJobOutput:
         started.set()
         assert release.wait(timeout=5)
-        return StudioJobOutput(["reports/cancelled.json"], ["artifacts/cancelled"])
+        cancellation.checkpoint()
+        raise AssertionError("cancelled operation continued past its checkpoint")
 
     job = store.create("temporal_analysis", {"manifest_path": "manifest.json"})
     executor.submit(job, operation)
@@ -68,3 +73,34 @@ def test_running_cancellation_discards_success_references() -> None:
     assert cancelled["status"] == "cancelled"
     assert cancelled["output_report_paths"] == []
     assert cancelled["output_artifact_paths"] == []
+
+
+def test_finalization_rejects_late_cancellation_and_publishes_success() -> None:
+    store = StudioJobStore()
+    executor = StudioJobExecutor(store, max_workers=1)
+    finalizing = Event()
+    release = Event()
+
+    def operation(cancellation: CancellationToken) -> StudioJobOutput:
+        cancellation.begin_finalization()
+        finalizing.set()
+        assert release.wait(timeout=5)
+        return StudioJobOutput(["reports/finalized.json"], [])
+
+    job = store.create("image_folder_analysis", {"input_path": "images"})
+    executor.submit(job, operation)
+    assert finalizing.wait(timeout=5)
+
+    assert executor.cancel(job.job_id) == "terminal"
+    active = store.get(job.job_id)
+    assert active is not None
+    assert active["status"] == "running"
+    assert active["cancellation_requested"] is False
+
+    release.set()
+    executor.shutdown()
+
+    completed = store.get(job.job_id)
+    assert completed is not None
+    assert completed["status"] == "succeeded"
+    assert completed["output_report_paths"] == ["reports/finalized.json"]

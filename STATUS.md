@@ -119,9 +119,9 @@ history is stored in an atomic local file, and review feedback remains
 append-only local JSONL. Outputs are candidate anomalies, candidate concepts,
 or candidate temporal changes that require human review.
 
-Future work may consider browser import and finer-grained pipeline cancellation
-checkpoints. Authentication or hosted service capabilities remain later work and
-are not part of this local app Technical Preview.
+Future work may consider browser import and managed local storage. Authentication
+or hosted service capabilities remain later work and are not part of this local
+app Technical Preview.
 
 ## Stage 8A Durable Studio Job History
 
@@ -163,6 +163,19 @@ parameters. The evidence is durable and visible on the Runs screen.
 These are pre-execution snapshots. Studio does not lock source files during a
 run, and migrated historical records retain explicit missing provenance rather
 than fabricated hashes.
+
+## Stage 8E Cooperative Workflow Cancellation
+
+Studio passes a typed cancellation token through input provenance, image-folder
+analysis, temporal observation processing, and temporal patch evidence. Long-running
+work checks the token at safe boundaries and stops without force-killing worker
+threads.
+
+Output publication is protected by a locked finalization boundary. Cancellation
+requested before finalization prevents report and artifact publication. Requests
+arriving after finalization begins are rejected, allowing the short publication
+step to finish consistently instead of creating a cancelled job with discoverable
+completed outputs.
 
 ## Done
 
@@ -240,8 +253,8 @@ than fabricated hashes.
 
 ## Next Recommended Engineering Steps
 
-1. Add finer-grained cooperative cancellation checkpoints inside long-running
-   visual and temporal pipeline stages.
+1. Connect the immutable reference-memory and PatchCore-style scoring APIs to
+   the default visual pipeline behind explicit configuration and unchanged defaults.
 2. Keep generated artifacts out of version control.
 3. Keep hardening adapter interfaces before adding more non-visual data types.
 4. Integrate Stage 1 visual requests and reproducibility manifests around the

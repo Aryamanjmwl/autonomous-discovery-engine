@@ -65,6 +65,7 @@ class StudioJobStore:
 
     def __init__(self, storage_path: Path | str | None = None) -> None:
         self._jobs: dict[str, StudioJob] = {}
+        self._finalizing_job_ids: set[str] = set()
         self._lock = RLock()
         self._storage_path = Path(storage_path) if storage_path is not None else None
         self._load()
@@ -237,6 +238,20 @@ class StudioJobStore:
             self._persist()
             return True
 
+    def is_cancellation_requested(self, job_id: str) -> bool:
+        with self._lock:
+            job = self._jobs.get(job_id)
+            return job is not None and job.cancellation_requested
+
+    def begin_finalization(self, job: StudioJob) -> bool:
+        """Reserve the non-interruptible output-publication boundary."""
+
+        with self._lock:
+            if job.status != "running" or job.cancellation_requested:
+                return False
+            self._finalizing_job_ids.add(job.job_id)
+            return True
+
     def request_cancel(self, job_id: str) -> CancellationResult | None:
         with self._lock:
             job = self._jobs.get(job_id)
@@ -248,10 +263,18 @@ class StudioJobStore:
                 self._persist()
                 return "cancelled"
             if job.status == "running":
+                if job_id in self._finalizing_job_ids:
+                    return "terminal"
                 job.cancellation_requested = True
                 self._persist()
                 return "requested"
             return "terminal"
+
+    def complete_cancellation(self, job: StudioJob) -> None:
+        with self._lock:
+            if job.status == "running" and job.cancellation_requested:
+                self._cancel(job)
+                self._persist()
 
     def succeed(
         self,
@@ -262,6 +285,7 @@ class StudioJobStore:
         warnings: list[str] | None = None,
     ) -> None:
         with self._lock:
+            self._finalizing_job_ids.discard(job.job_id)
             if job.cancellation_requested:
                 self._cancel(job)
             else:
@@ -274,6 +298,7 @@ class StudioJobStore:
 
     def fail(self, job: StudioJob, error: Exception) -> None:
         with self._lock:
+            self._finalizing_job_ids.discard(job.job_id)
             if job.cancellation_requested:
                 self._cancel(job)
             else:

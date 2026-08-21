@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from ade.cancellation import CancellationToken
 from ade.config import load_config
 from ade.studio.service import StudioPaths, resolve_workspace_input
 from ade.visual.fingerprints import normalize_relative_path, sha256_file
@@ -33,6 +34,7 @@ def capture_image_folder_provenance(
     config_path: Path | str | None,
     *,
     paths: StudioPaths,
+    cancellation_token: CancellationToken | None = None,
 ) -> StudioRunProvenance:
     """Fingerprint image candidates and snapshot the fully merged ADE configuration."""
 
@@ -58,7 +60,12 @@ def capture_image_folder_provenance(
         if candidate.is_file() and candidate.suffix.lower() in extensions
     ]
     return StudioRunProvenance(
-        input_fingerprint=_fingerprint_files("image_folder", source, files),
+        input_fingerprint=_fingerprint_files(
+            "image_folder",
+            source,
+            files,
+            cancellation_token=cancellation_token,
+        ),
         effective_configuration=_configuration_snapshot(config),
     )
 
@@ -71,6 +78,7 @@ def capture_temporal_provenance(
     top_k: int,
     patch_top_k: int,
     paths: StudioPaths,
+    cancellation_token: CancellationToken | None = None,
 ) -> StudioRunProvenance:
     """Fingerprint a temporal manifest and its referenced local files."""
 
@@ -98,10 +106,10 @@ def capture_temporal_provenance(
         referenced[f"image:{observation.source_path}"] = root / observation.source_path
         if observation.mask_path is not None:
             referenced[f"mask:{observation.mask_path}"] = root / observation.mask_path
-    entries.extend(
-        _file_entry(label, sha256_file(path), path.stat().st_size)
-        for label, path in sorted(referenced.items())
-    )
+    for label, path in sorted(referenced.items()):
+        if cancellation_token is not None:
+            cancellation_token.checkpoint()
+        entries.append(_file_entry(label, sha256_file(path), path.stat().st_size))
     return StudioRunProvenance(
         input_fingerprint=_fingerprint_entries("temporal_sequence", entries),
         effective_configuration=_configuration_snapshot(
@@ -115,7 +123,13 @@ def capture_temporal_provenance(
     )
 
 
-def _fingerprint_files(kind: str, root: Path, files: list[Path]) -> dict[str, object]:
+def _fingerprint_files(
+    kind: str,
+    root: Path,
+    files: list[Path],
+    *,
+    cancellation_token: CancellationToken | None,
+) -> dict[str, object]:
     resolved_root = root.resolve()
     normalized = sorted(
         (
@@ -124,10 +138,13 @@ def _fingerprint_files(kind: str, root: Path, files: list[Path]) -> dict[str, ob
         )
         for path in files
     )
-    entries = [
-        _file_entry(relative_path, sha256_file(path), path.stat().st_size)
-        for relative_path, path in normalized
-    ]
+    entries: list[dict[str, object]] = []
+    for relative_path, path in normalized:
+        if cancellation_token is not None:
+            cancellation_token.checkpoint()
+        entries.append(
+            _file_entry(relative_path, sha256_file(path), path.stat().st_size)
+        )
     return _fingerprint_entries(kind, entries)
 
 

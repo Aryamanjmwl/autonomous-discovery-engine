@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from functools import partial
 from threading import RLock
 
+from ade.cancellation import CancellationRequested, CancellationToken
 from ade.studio.jobs import CancellationResult, StudioJob, StudioJobStore
 
 
@@ -35,7 +36,7 @@ class StudioJobExecutor:
     def submit(
         self,
         job: StudioJob,
-        operation: Callable[[], StudioJobOutput],
+        operation: Callable[[CancellationToken], StudioJobOutput],
     ) -> None:
         future = self._executor.submit(self._run, job, operation)
         with self._lock:
@@ -57,12 +58,18 @@ class StudioJobExecutor:
     def _run(
         self,
         job: StudioJob,
-        operation: Callable[[], StudioJobOutput],
+        operation: Callable[[CancellationToken], StudioJobOutput],
     ) -> None:
         if not self._jobs.start(job):
             return
+        cancellation = CancellationToken(
+            partial(self._jobs.is_cancellation_requested, job.job_id),
+            partial(self._jobs.begin_finalization, job),
+        )
         try:
-            output = operation()
+            output = operation(cancellation)
+        except CancellationRequested:
+            self._jobs.complete_cancellation(job)
         except Exception as error:
             self._jobs.fail(job, error)
         else:
