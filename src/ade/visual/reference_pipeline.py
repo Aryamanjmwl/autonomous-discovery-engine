@@ -8,7 +8,7 @@ from ade.cancellation import CancellationToken
 from ade.models import EmbeddingRecord, ImageRecord
 from ade.visual.config import VisualEngineConfig, VisualReferenceScoringConfig
 from ade.visual.errors import VisualConfigurationError
-from ade.visual.fingerprints import fingerprint_visual_dataset
+from ade.visual.fingerprints import fingerprint_visual_content
 from ade.visual.reference_memory import load_reference_memory
 from ade.visual.reference_scoring import score_reference_anomalies
 from ade.visual.representation import LightweightVisualRepresentationProvider
@@ -61,7 +61,7 @@ def score_configured_reference_memory(
 
     if cancellation_token is not None:
         cancellation_token.checkpoint()
-    query_fingerprint = fingerprint_visual_dataset(
+    query_fingerprint = fingerprint_visual_content(
         input_dir,
         (record.path for record in image_records),
         visual_config,
@@ -90,7 +90,7 @@ def score_configured_reference_memory(
         expected_configuration_fingerprint=metadata.configuration_fingerprint,
     ) as memory:
         provenance = ReferenceScoringProvenance(
-            query_dataset_fingerprint=query_fingerprint.fingerprint,
+            query_dataset_fingerprint=query_fingerprint,
             reference_dataset_fingerprint=memory.manifest.reference_dataset_fingerprint,
             configuration_fingerprint=metadata.configuration_fingerprint,
             backend_id=metadata.provider_name,

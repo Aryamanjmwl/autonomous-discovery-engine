@@ -107,6 +107,23 @@ def fingerprint_configuration(config: VisualEngineConfig | Mapping[str, Any]) ->
     return hashlib.sha256(payload).hexdigest()
 
 
+def fingerprint_visual_content(
+    root: Path,
+    files: Iterable[Path],
+    config: VisualEngineConfig,
+    *,
+    chunk_size: int = DEFAULT_HASH_CHUNK_SIZE,
+) -> str:
+    """Return a configuration-independent identity for dataset-role isolation."""
+
+    entries = _fingerprint_visual_files(root, files, config, chunk_size=chunk_size)
+    identity = {
+        "schema_version": VISUAL_ENGINE_SCHEMA_VERSION,
+        "files": [entry.to_dict() for entry in entries],
+    }
+    return hashlib.sha256(_canonical_json(identity).encode("utf-8")).hexdigest()
+
+
 def fingerprint_visual_dataset(
     root: Path,
     files: Iterable[Path],
@@ -115,6 +132,35 @@ def fingerprint_visual_dataset(
     chunk_size: int = DEFAULT_HASH_CHUNK_SIZE,
 ) -> VisualDatasetFingerprint:
     """Fingerprint selected dataset files using paths, content, config, and backend identity."""
+
+    entries = _fingerprint_visual_files(root, files, config, chunk_size=chunk_size)
+    config_fingerprint = fingerprint_configuration(config)
+    identity = {
+        "schema_version": VISUAL_ENGINE_SCHEMA_VERSION,
+        "configuration_fingerprint": config_fingerprint,
+        "backend_id": config.backend_id,
+        "backend_version": config.backend_version,
+        "files": [entry.to_dict() for entry in entries],
+    }
+    fingerprint = hashlib.sha256(_canonical_json(identity).encode("utf-8")).hexdigest()
+    return VisualDatasetFingerprint(
+        schema_version=VISUAL_ENGINE_SCHEMA_VERSION,
+        fingerprint=fingerprint,
+        configuration_fingerprint=config_fingerprint,
+        backend_id=config.backend_id,
+        backend_version=config.backend_version,
+        files=entries,
+    )
+
+
+def _fingerprint_visual_files(
+    root: Path,
+    files: Iterable[Path],
+    config: VisualEngineConfig,
+    *,
+    chunk_size: int,
+) -> tuple[VisualFileFingerprint, ...]:
+    """Validate and hash a bounded visual file set once in canonical order."""
 
     config.validate()
     resolved_root = root.resolve()
@@ -166,24 +212,7 @@ def fingerprint_visual_dataset(
                 size_bytes=size,
             )
         )
-
-    config_fingerprint = fingerprint_configuration(config)
-    identity = {
-        "schema_version": VISUAL_ENGINE_SCHEMA_VERSION,
-        "configuration_fingerprint": config_fingerprint,
-        "backend_id": config.backend_id,
-        "backend_version": config.backend_version,
-        "files": [entry.to_dict() for entry in entries],
-    }
-    fingerprint = hashlib.sha256(_canonical_json(identity).encode("utf-8")).hexdigest()
-    return VisualDatasetFingerprint(
-        schema_version=VISUAL_ENGINE_SCHEMA_VERSION,
-        fingerprint=fingerprint,
-        configuration_fingerprint=config_fingerprint,
-        backend_id=config.backend_id,
-        backend_version=config.backend_version,
-        files=tuple(entries),
-    )
+    return tuple(entries)
 
 
 def fingerprint_visual_directory(
