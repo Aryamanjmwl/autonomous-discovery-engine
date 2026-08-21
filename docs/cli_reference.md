@@ -222,3 +222,28 @@ containing the measured result, reference-scoring provenance, exact policy, and
 acceptance decision. Passing gates exit with status code `0`. Failed gates are
 published first and then exit with status code `2`. Results remain benchmark
 evidence that requires human review, not production guarantees.
+
+
+## Compare reference benchmark baselines
+
+Compare an established baseline with a candidate produced under the same exact
+dataset manifest, split, policy, prediction sample set, and operating points:
+
+```powershell
+python -m ade.cli `
+  --compare-reference-baselines `
+    "data\benchmarks\reference_baselines\<baseline-id>" `
+    "data\benchmarks\reference_baselines\<candidate-id>" `
+  --comparison-output-root "data\benchmarks\reference_comparisons"
+```
+
+ADE validates both source artifacts before comparison. Incompatible inputs fail
+without reporting misleading deltas. Compatible runs produce a content-addressed
+comparison containing AUROC, average-precision, operating-point and missing-
+prediction deltas, scoring-provenance changes, and the acceptance transition.
+A `pass_to_fail` transition is published and then exits with status code `3`.
+Other transitions exit with status code `0`.
+
+Deltas are descriptive. They do not establish statistical significance or turn
+benchmark evidence into a production guarantee. Generated comparison artifacts
+should remain outside version control.

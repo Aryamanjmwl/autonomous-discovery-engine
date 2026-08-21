@@ -19,14 +19,17 @@ from ade.visual import (
     benchmark_run_config_from_policy,
     build_reference_benchmark_baseline,
     build_reference_memory_from_images,
+    compare_reference_benchmark_baselines,
     deserialize_visual_benchmark_acceptance_policy,
     evaluate_visual_benchmark_acceptance,
     load_visual_benchmark_acceptance_policy,
     publish_reference_benchmark_baseline,
+    publish_reference_benchmark_comparison,
     run_reference_benchmark,
     serialize_visual_benchmark_acceptance_policy,
     serialize_visual_benchmark_manifest,
     validate_reference_benchmark_baseline,
+    validate_reference_benchmark_comparison,
 )
 
 
@@ -336,3 +339,108 @@ def test_failed_acceptance_remains_publishable_evidence(tmp_path: Path) -> None:
 
     assert validated.acceptance_result.passed is False
     assert "above required maximum" in validated.acceptance_result.failures[0]
+
+
+def _comparison_artifacts(tmp_path: Path) -> tuple[Path, Path]:
+    manifest_path, config_path = _benchmark(tmp_path)
+    policy = _acceptance_policy()
+    execution = run_reference_benchmark(
+        manifest_path,
+        config_path=config_path,
+        run_config=benchmark_run_config_from_policy(policy),
+        generated_at="2026-01-01T00:00:00+00:00",
+    )
+    baseline = build_reference_benchmark_baseline(execution, policy)
+    candidate_metrics = replace(
+        execution.benchmark.metrics,
+        auroc=0.8,
+        average_precision=0.8,
+    )
+    candidate_points = tuple(
+        replace(item, precision=0.5, recall=0.5, f1=0.5)
+        for item in execution.benchmark.operating_points
+    )
+    candidate_execution = replace(
+        execution,
+        benchmark=replace(
+            execution.benchmark,
+            metrics=candidate_metrics,
+            operating_points=candidate_points,
+            provenance=replace(
+                execution.benchmark.provenance,
+                generated_at="2026-01-02T00:00:00+00:00",
+            ),
+        ),
+        reference_scoring=replace(
+            execution.reference_scoring,
+            device="comparison-fixture",
+        ),
+    )
+    candidate = build_reference_benchmark_baseline(candidate_execution, policy)
+    root = tmp_path / "baselines"
+    return (
+        publish_reference_benchmark_baseline(baseline, root),
+        publish_reference_benchmark_baseline(candidate, root),
+    )
+
+
+def test_reference_baseline_comparison_reports_gate_regression(
+    tmp_path: Path,
+) -> None:
+    baseline_path, candidate_path = _comparison_artifacts(tmp_path)
+
+    comparison = compare_reference_benchmark_baselines(
+        baseline_path,
+        candidate_path,
+    )
+    artifact_path = publish_reference_benchmark_comparison(
+        comparison,
+        tmp_path / "comparisons",
+    )
+
+    assert comparison.acceptance_transition == "pass_to_fail"
+    assert comparison.gate_regression is True
+    assert comparison.auroc.delta == pytest.approx(-0.2)
+    assert comparison.average_precision.delta == pytest.approx(-0.2)
+    assert comparison.changed_provenance_fields == ("device",)
+    assert comparison.operating_points[0].precision.delta == pytest.approx(-0.5)
+    assert validate_reference_benchmark_comparison(artifact_path) == comparison
+    assert publish_reference_benchmark_comparison(
+        comparison,
+        tmp_path / "comparisons",
+    ) == artifact_path
+
+
+def test_reference_baseline_comparison_rejects_different_policy(
+    tmp_path: Path,
+) -> None:
+    baseline_path, _ = _comparison_artifacts(tmp_path)
+    baseline = validate_reference_benchmark_baseline(baseline_path)
+    policy = _acceptance_policy(max_selected_fraction=0.25)
+    candidate = replace(
+        baseline,
+        acceptance_policy=policy,
+        acceptance_result=evaluate_visual_benchmark_acceptance(
+            baseline.benchmark,
+            policy,
+        ),
+    )
+    candidate_path = publish_reference_benchmark_baseline(
+        candidate,
+        tmp_path / "other-baselines",
+    )
+
+    with pytest.raises(VisualIntegrityError, match="policy fingerprint"):
+        compare_reference_benchmark_baselines(baseline_path, candidate_path)
+
+
+def test_reference_comparison_detects_content_tampering(tmp_path: Path) -> None:
+    baseline_path, candidate_path = _comparison_artifacts(tmp_path)
+    artifact_path = publish_reference_benchmark_comparison(
+        compare_reference_benchmark_baselines(baseline_path, candidate_path),
+        tmp_path / "comparisons",
+    )
+    (artifact_path / "comparison.json").write_text("{}\n", encoding="utf-8")
+
+    with pytest.raises(VisualIntegrityError, match="does not match its manifest"):
+        validate_reference_benchmark_comparison(artifact_path)

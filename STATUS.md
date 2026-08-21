@@ -252,6 +252,20 @@ thresholds, or measured public-dataset results are committed by this stage.
 A baseline remains Technical Preview validation evidence, not a product
 guarantee or automated inspection decision.
 
+## Stage 8K Reference Baseline Comparison
+
+ADE can now compare two validated immutable reference-baseline artifacts only
+when their dataset manifest, split, acceptance policy, prediction sample IDs,
+and operating points are compatible. The comparison records descriptive AUROC,
+average-precision, workload, operating-point, and missing-prediction deltas,
+along with changed scorer provenance and the acceptance transition.
+
+Comparison output is immutable and content-addressed. A passing baseline that
+becomes a failing candidate is recorded as a gate regression and published
+before the CLI exits with status code `3`. Metric decreases that remain within
+the predeclared policy are reported without invented significance thresholds.
+All comparisons remain Technical Preview evidence requiring human review.
+
 ## Done
 
 - Python package scaffold with `src/` layout
@@ -330,20 +344,21 @@ guarantee or automated inspection decision.
 
 1. Locally provision one official MVTec AD category and justify its dataset-bound acceptance policy before test evaluation.
 2. Run the gated reference benchmark locally and preserve the generated immutable baseline outside version control.
-3. Keep hardening adapter interfaces before adding more non-visual data types.
-4. Integrate Stage 1 visual requests and reproducibility manifests around the
+3. Add dataset-bound statistical uncertainty or repeated-run methodology before treating small metric deltas as meaningful regressions.
+4. Keep hardening adapter interfaces before adding more non-visual data types.
+5. Integrate Stage 1 visual requests and reproducibility manifests around the
    existing statistical pipeline without changing its scoring behavior.
-5. Add explicit, offline-provisioned deep representation backends only after
+6. Add explicit, offline-provisioned deep representation backends only after
    capability and reproducibility conformance tests are defined.
-6. Evaluate useful multi-scale presets on controlled demo and private datasets.
-7. Connect explicitly provisioned representation backends only after
+7. Evaluate useful multi-scale presets on controlled demo and private datasets.
+8. Connect explicitly provisioned representation backends only after
    reproducibility conformance tests.
-8. Fit calibration from held-out validation data and establish public
+9. Fit calibration from held-out validation data and establish public
    benchmark/evaluation gates.
-9. Improve report review workflows with human annotations.
-10. Design reviewer dashboard and concept-memory flows around the local feedback JSONL contract.
-11. Add run comparison tools for candidate anomalies and candidate concepts across experiments.
-12. Continue documenting original decisions and experiments before public disclosure.
+10. Improve report review workflows with human annotations.
+11. Design reviewer dashboard and concept-memory flows around the local feedback JSONL contract.
+12. Add run comparison tools for candidate anomalies and candidate concepts across experiments.
+13. Continue documenting original decisions and experiments before public disclosure.
 
 ## Stage 5A temporal visual foundation
 

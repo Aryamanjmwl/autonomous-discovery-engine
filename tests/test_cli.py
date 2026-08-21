@@ -363,3 +363,84 @@ def test_cli_reference_benchmark_publishes_failure_before_nonzero_exit(
     assert "Acceptance: failed" in output
     assert f"Baseline artifact: {artifact_path}" in output
     assert "AUROC is below the declared minimum." in output
+
+
+def _reference_comparison_result(*, gate_regression: bool):
+    return SimpleNamespace(
+        baseline_artifact_id="a" * 64,
+        candidate_artifact_id="b" * 64,
+        acceptance_transition=(
+            "pass_to_fail" if gate_regression else "unchanged_pass"
+        ),
+        auroc=SimpleNamespace(delta=-0.05),
+        average_precision=SimpleNamespace(delta=-0.02),
+        changed_provenance_fields=("configuration_fingerprint",),
+        gate_regression=gate_regression,
+    )
+
+
+def test_cli_reference_comparison_reports_published_evidence(
+    tmp_path: Path,
+    monkeypatch,
+    capsys,
+) -> None:
+    artifact_path = tmp_path / "comparisons" / ("c" * 64)
+    monkeypatch.setattr(
+        "ade.cli.run_reference_baseline_comparison",
+        lambda *args, **kwargs: (
+            _reference_comparison_result(gate_regression=False),
+            artifact_path,
+        ),
+    )
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "ade",
+            "--compare-reference-baselines",
+            "baseline",
+            "candidate",
+            "--comparison-output-root",
+            "comparisons",
+        ],
+    )
+
+    main()
+
+    output = capsys.readouterr().out
+    assert "Acceptance transition: unchanged_pass" in output
+    assert "Changed scoring provenance: configuration_fingerprint" in output
+    assert f"Comparison artifact: {artifact_path}" in output
+
+
+def test_cli_reference_comparison_exits_after_publishing_gate_regression(
+    tmp_path: Path,
+    monkeypatch,
+    capsys,
+) -> None:
+    artifact_path = tmp_path / "comparisons" / ("d" * 64)
+    monkeypatch.setattr(
+        "ade.cli.run_reference_baseline_comparison",
+        lambda *args, **kwargs: (
+            _reference_comparison_result(gate_regression=True),
+            artifact_path,
+        ),
+    )
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "ade",
+            "--compare-reference-baselines",
+            "baseline",
+            "candidate",
+            "--comparison-output-root",
+            "comparisons",
+        ],
+    )
+
+    with pytest.raises(SystemExit) as error:
+        main()
+
+    output = capsys.readouterr().out
+    assert error.value.code == 3
+    assert f"Comparison artifact: {artifact_path}" in output
+    assert "a passing baseline became a failing candidate" in output
