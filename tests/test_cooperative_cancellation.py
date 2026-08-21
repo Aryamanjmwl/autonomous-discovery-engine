@@ -55,6 +55,8 @@ def test_temporal_pipeline_stops_before_publishing_artifacts(tmp_path: Path) -> 
             TemporalObservation("o2", "second.png", sequence_index=1),
         ),
     )
+    (tmp_path / "first.png").write_bytes(b"first")
+    (tmp_path / "second.png").write_bytes(b"second")
     manifest = tmp_path / "manifest.json"
     manifest.write_text(serialize_temporal_manifest(sequence), encoding="utf-8")
     output = tmp_path / "reports" / "cancelled.md"
