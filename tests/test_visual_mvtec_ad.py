@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from ade.cli import main
 from ade.visual import (
     MVTEC_AD_LICENSE,
     VisualBenchmarkLabel,
@@ -121,3 +122,34 @@ def test_qualification_rejects_unsafe_category_paths(
             category=category,
             benchmark_manifest_path=tmp_path / "bottle.json",
         )
+
+
+def test_cli_qualifies_category_without_analysis_inputs(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    root = _dataset(tmp_path)
+    output = tmp_path / "bottle.json"
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "ade",
+            "--qualify-mvtec-ad",
+            str(root),
+            "--mvtec-category",
+            "bottle",
+            "--benchmark-manifest-output",
+            str(output),
+        ],
+    )
+
+    main()
+
+    terminal = capsys.readouterr().out
+    assert "ADE MVTec AD category qualified." in terminal
+    assert "Reference images: 1" in terminal
+    assert "Normal test images: 1" in terminal
+    assert "Anomalous test images: 1" in terminal
+    assert "commercial use is not allowed" in terminal
+    assert output.is_file()
