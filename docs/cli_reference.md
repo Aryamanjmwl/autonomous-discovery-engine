@@ -184,3 +184,20 @@ listing in sequence. It fails fast on the first unsuccessful command.
 This branch includes local static dashboard exports and dashboard planning docs,
 but it does not implement a hosted dashboard application, dashboard server,
 authentication, billing, or database-backed review workflow.
+
+## Qualify a local MVTec AD category
+
+```powershell
+python -m ade.cli `
+  --qualify-mvtec-ad "D:\Datasets\mvtec_anomaly_detection" `
+  --mvtec-category bottle `
+  --mvtec-dataset-version classic `
+  --benchmark-manifest-output "data\benchmarks\mvtec_ad\bottle.json"
+```
+
+This command validates a manually downloaded category, hashes declared test
+images and masks, and writes an immutable canonical benchmark manifest. It does
+not download or redistribute the dataset. MVTec AD is CC BY-NC-SA 4.0 and is not
+permitted for commercial use. See
+[`docs/mvtec_ad_benchmark.md`](mvtec_ad_benchmark.md) for the complete
+reference-memory and benchmark workflow.

@@ -223,6 +223,20 @@ points fail closed. The controlled synthetic regression fixture validates
 plumbing only; no real-world benchmark quality or production threshold is
 claimed.
 
+## Stage 8I MVTec AD Local Qualification
+
+ADE can now qualify one locally provisioned classic MVTec AD category without
+downloading or redistributing third-party data. The strict adapter validates
+the official train/good, test/good, anomaly, and ground-truth mask layout,
+hashes every declared test image and mask, records source and CC BY-NC-SA 4.0
+license metadata, and publishes a canonical benchmark manifest.
+
+The command returns the separate defect-free reference directory for immutable
+memory construction. Manifest publication is idempotent and refuses to replace
+different content at the same path. Controlled tests reproduce the layout only
+to validate adapter behavior; no MVTec images, measured baseline, commercial
+permission, or performance claim is included.
+
 ## Done
 
 - Python package scaffold with `src/` layout
@@ -299,7 +313,7 @@ claimed.
 
 ## Next Recommended Engineering Steps
 
-1. Provision and qualify an external labeled reference-mode dataset, declare its acceptance policy before test evaluation, and record the first reproducible baseline.
+1. Locally provision one official MVTec AD category, declare its dataset-bound acceptance policy before test evaluation, and publish the first reproducible baseline artifact.
 2. Keep generated artifacts out of version control.
 3. Keep hardening adapter interfaces before adding more non-visual data types.
 4. Integrate Stage 1 visual requests and reproducibility manifests around the
