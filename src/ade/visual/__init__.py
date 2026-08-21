@@ -1,5 +1,11 @@
 """Versioned contracts and reproducibility foundations for ADE visual workflows."""
 
+from ade.visual.benchmark_acceptance import (
+    VisualBenchmarkAcceptancePolicy,
+    VisualBenchmarkAcceptanceResult,
+    VisualBenchmarkOperatingPointRequirement,
+    evaluate_visual_benchmark_acceptance,
+)
 from ade.visual.benchmark_artifacts import (
     publish_visual_benchmark_artifact,
     validate_visual_benchmark_artifact,
@@ -175,6 +181,9 @@ from ade.visual.temporal_manifests import (
 )
 
 __all__ = [
+    "VisualBenchmarkAcceptancePolicy",
+    "VisualBenchmarkAcceptanceResult",
+    "VisualBenchmarkOperatingPointRequirement",
     "VisualBenchmarkDatasetManifest",
     "VisualBenchmarkLabel",
     "VisualBenchmarkMetricSummary",
@@ -286,6 +295,7 @@ __all__ = [
     "summarize_scores",
     "validate_calibration_artifact",
     "deserialize_visual_benchmark_manifest",
+    "evaluate_visual_benchmark_acceptance",
     "evaluate_visual_benchmark",
     "load_visual_benchmark_manifest",
     "publish_visual_benchmark_artifact",
