@@ -10,7 +10,7 @@ import shutil
 import tempfile
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Literal
+from typing import Literal, cast
 
 from ade.visual.config import VISUAL_ENGINE_SCHEMA_VERSION
 from ade.visual.errors import VisualIntegrityError, VisualManifestError
@@ -147,7 +147,7 @@ def compare_reference_benchmark_baselines(
         ),
         operating_points=point_deltas,
         changed_provenance_fields=_changed_provenance_fields(baseline, candidate),
-        acceptance_transition=transition,
+        acceptance_transition=cast(AcceptanceTransition, transition),
         gate_regression=transition == "pass_to_fail",
     )
     _validate_comparison(comparison)
@@ -447,8 +447,7 @@ def _metric_delta(
 
 
 def _artifact_id(path: Path) -> str:
-    artifact_id = path.resolve().name
-    return _digest(artifact_id, "baseline artifact ID")
+    return sha256_file(path.resolve() / "baseline.json")
 
 
 def _validate_comparison(comparison: ReferenceBenchmarkComparison) -> None:
