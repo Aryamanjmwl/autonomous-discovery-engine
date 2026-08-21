@@ -16,10 +16,17 @@ from ade.visual import (
     VisualBenchmarkSplit,
     VisualEngineConfig,
     VisualIntegrityError,
+    benchmark_run_config_from_policy,
+    build_reference_benchmark_baseline,
     build_reference_memory_from_images,
+    deserialize_visual_benchmark_acceptance_policy,
     evaluate_visual_benchmark_acceptance,
+    load_visual_benchmark_acceptance_policy,
+    publish_reference_benchmark_baseline,
     run_reference_benchmark,
+    serialize_visual_benchmark_acceptance_policy,
     serialize_visual_benchmark_manifest,
+    validate_reference_benchmark_baseline,
 )
 
 
@@ -213,3 +220,119 @@ def test_acceptance_rejects_invalid_or_duplicate_requirements() -> None:
             pytest.importorskip("types").SimpleNamespace(),  # type: ignore[arg-type]
             VisualBenchmarkAcceptancePolicy("fixture", "1", "test", min_auroc=1.1),
         )
+
+
+def _acceptance_policy(
+    *,
+    max_selected_fraction: float = 0.5,
+) -> VisualBenchmarkAcceptancePolicy:
+    return VisualBenchmarkAcceptancePolicy(
+        dataset_name="controlled-reference-fixture",
+        dataset_version="1",
+        split_name="test",
+        min_auroc=0.9,
+        min_average_precision=0.9,
+        operating_points=(
+            VisualBenchmarkOperatingPointRequirement(
+                "top_k",
+                2,
+                min_precision=0.9,
+                min_recall=0.9,
+                max_selected_fraction=max_selected_fraction,
+            ),
+        ),
+    )
+
+
+def test_acceptance_policy_round_trip_derives_required_run_config(
+    tmp_path: Path,
+) -> None:
+    policy = _acceptance_policy()
+    payload = serialize_visual_benchmark_acceptance_policy(policy)
+    policy_path = tmp_path / "policy.json"
+    policy_path.write_text(payload, encoding="utf-8")
+
+    assert deserialize_visual_benchmark_acceptance_policy(payload) == policy
+    assert load_visual_benchmark_acceptance_policy(policy_path) == policy
+    assert benchmark_run_config_from_policy(policy) == VisualBenchmarkRunConfig(
+        "test",
+        top_k=(2,),
+    )
+
+
+def test_acceptance_policy_rejects_strategy_specific_invalid_values() -> None:
+    with pytest.raises(VisualIntegrityError, match="positive integers"):
+        serialize_visual_benchmark_acceptance_policy(
+            VisualBenchmarkAcceptancePolicy(
+                "fixture",
+                "1",
+                "test",
+                operating_points=(
+                    VisualBenchmarkOperatingPointRequirement("top_k", 1.5),
+                ),
+            )
+        )
+
+
+def test_reference_baseline_publishes_idempotent_validated_evidence(
+    tmp_path: Path,
+) -> None:
+    manifest_path, config_path = _benchmark(tmp_path)
+    policy = _acceptance_policy()
+    execution = run_reference_benchmark(
+        manifest_path,
+        config_path=config_path,
+        run_config=benchmark_run_config_from_policy(policy),
+        generated_at="2026-01-01T00:00:00+00:00",
+    )
+    baseline = build_reference_benchmark_baseline(execution, policy)
+
+    artifact_path = publish_reference_benchmark_baseline(
+        baseline,
+        tmp_path / "baselines",
+    )
+
+    assert baseline.acceptance_result.passed is True
+    assert validate_reference_benchmark_baseline(artifact_path) == baseline
+    assert publish_reference_benchmark_baseline(
+        baseline,
+        tmp_path / "baselines",
+    ) == artifact_path
+
+
+def test_reference_baseline_detects_content_tampering(tmp_path: Path) -> None:
+    manifest_path, config_path = _benchmark(tmp_path)
+    policy = _acceptance_policy()
+    execution = run_reference_benchmark(
+        manifest_path,
+        config_path=config_path,
+        run_config=benchmark_run_config_from_policy(policy),
+    )
+    artifact_path = publish_reference_benchmark_baseline(
+        build_reference_benchmark_baseline(execution, policy),
+        tmp_path / "baselines",
+    )
+    (artifact_path / "baseline.json").write_text("{}\n", encoding="utf-8")
+
+    with pytest.raises(VisualIntegrityError, match="does not match its manifest"):
+        validate_reference_benchmark_baseline(artifact_path)
+
+
+def test_failed_acceptance_remains_publishable_evidence(tmp_path: Path) -> None:
+    manifest_path, config_path = _benchmark(tmp_path)
+    policy = _acceptance_policy(max_selected_fraction=0.25)
+    execution = run_reference_benchmark(
+        manifest_path,
+        config_path=config_path,
+        run_config=benchmark_run_config_from_policy(policy),
+    )
+    baseline = build_reference_benchmark_baseline(execution, policy)
+
+    artifact_path = publish_reference_benchmark_baseline(
+        baseline,
+        tmp_path / "baselines",
+    )
+    validated = validate_reference_benchmark_baseline(artifact_path)
+
+    assert validated.acceptance_result.passed is False
+    assert "above required maximum" in validated.acceptance_result.failures[0]

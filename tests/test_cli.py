@@ -1,6 +1,7 @@
 import importlib.util
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -269,3 +270,96 @@ preprocessing:
             output_path=tmp_path / "report.md",
             config_path=config_path,
         )
+
+
+def _reference_baseline_result(*, passed: bool):
+    failures = () if passed else ("AUROC is below the declared minimum.",)
+    return SimpleNamespace(
+        benchmark=SimpleNamespace(
+            provenance=SimpleNamespace(
+                dataset_name="fixture",
+                dataset_version="1",
+                split_name="test",
+            ),
+            metrics=SimpleNamespace(auroc=0.95, average_precision=0.94),
+        ),
+        reference_scoring=SimpleNamespace(
+            scoring_id="a" * 64,
+            reference_memory_id="b" * 64,
+        ),
+        acceptance_result=SimpleNamespace(passed=passed, failures=failures),
+    )
+
+
+def test_cli_reference_benchmark_reports_published_baseline(
+    tmp_path: Path,
+    monkeypatch,
+    capsys,
+) -> None:
+    artifact_path = tmp_path / "baselines" / ("c" * 64)
+    monkeypatch.setattr(
+        "ade.cli.run_reference_baseline",
+        lambda *args, **kwargs: (
+            _reference_baseline_result(passed=True),
+            artifact_path,
+        ),
+    )
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "ade",
+            "--run-reference-benchmark",
+            "benchmark.json",
+            "--config",
+            "reference.yaml",
+            "--benchmark-policy",
+            "policy.json",
+            "--benchmark-output-root",
+            "baselines",
+        ],
+    )
+
+    main()
+
+    output = capsys.readouterr().out
+    assert "Acceptance: passed" in output
+    assert f"Baseline artifact: {artifact_path}" in output
+    assert "Human review remains required." in output
+
+
+def test_cli_reference_benchmark_publishes_failure_before_nonzero_exit(
+    tmp_path: Path,
+    monkeypatch,
+    capsys,
+) -> None:
+    artifact_path = tmp_path / "baselines" / ("d" * 64)
+    monkeypatch.setattr(
+        "ade.cli.run_reference_baseline",
+        lambda *args, **kwargs: (
+            _reference_baseline_result(passed=False),
+            artifact_path,
+        ),
+    )
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "ade",
+            "--run-reference-benchmark",
+            "benchmark.json",
+            "--config",
+            "reference.yaml",
+            "--benchmark-policy",
+            "policy.json",
+            "--benchmark-output-root",
+            "baselines",
+        ],
+    )
+
+    with pytest.raises(SystemExit) as error:
+        main()
+
+    output = capsys.readouterr().out
+    assert error.value.code == 2
+    assert "Acceptance: failed" in output
+    assert f"Baseline artifact: {artifact_path}" in output
+    assert "AUROC is below the declared minimum." in output

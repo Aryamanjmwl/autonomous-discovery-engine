@@ -26,12 +26,30 @@ from ade.visual.fingerprints import normalize_relative_path, sha256_file
 BENCHMARK_ARTIFACT_TYPE = "visual-benchmark-evaluation"
 
 
+def serialize_visual_benchmark_result(result: VisualBenchmarkResult) -> str:
+    """Return canonical JSON for one typed benchmark result."""
+
+    return _canonical(asdict(result))
+
+
+def deserialize_visual_benchmark_result(
+    payload: str | bytes,
+) -> VisualBenchmarkResult:
+    """Load and validate one typed benchmark result."""
+
+    try:
+        data = json.loads(payload)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise VisualManifestError("Benchmark result is malformed") from error
+    return _result(data)
+
+
 def publish_visual_benchmark_artifact(result: VisualBenchmarkResult, output_root: Path) -> Path:
     """Publish one immutable content-addressed evaluation artifact directory."""
 
     root = output_root.resolve()
     root.mkdir(parents=True, exist_ok=True)
-    payload = _canonical(asdict(result)) + "\n"
+    payload = serialize_visual_benchmark_result(result) + "\n"
     artifact_id = hashlib.sha256(payload.encode()).hexdigest()
     destination = root / artifact_id
     if destination.exists():
@@ -111,11 +129,7 @@ def validate_visual_benchmark_artifact(root: Path) -> VisualBenchmarkResult:
     raw = result_path.read_bytes()
     if hashlib.sha256(raw).hexdigest() != _string(manifest["artifact_id"], "artifact_id"):
         raise VisualIntegrityError("Benchmark artifact identity does not match its content")
-    try:
-        data = json.loads(raw)
-    except (UnicodeDecodeError, json.JSONDecodeError) as error:
-        raise VisualManifestError("Benchmark result is malformed") from error
-    return _result(data)
+    return deserialize_visual_benchmark_result(raw)
 
 
 def _result(value: object) -> VisualBenchmarkResult:
