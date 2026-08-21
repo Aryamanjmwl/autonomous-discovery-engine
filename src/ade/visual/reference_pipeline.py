@@ -26,7 +26,6 @@ def score_configured_reference_memory(
     image_records: list[ImageRecord],
     embeddings: list[EmbeddingRecord],
     visual_config: VisualEngineConfig,
-    supported_extensions: list[str],
     cancellation_token: CancellationToken | None = None,
 ) -> ReferenceScoringResult | None:
     """Score query embeddings against an explicitly configured reference memory."""

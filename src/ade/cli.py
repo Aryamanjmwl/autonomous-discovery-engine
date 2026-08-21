@@ -416,7 +416,6 @@ def run_pipeline(
         image_records=image_records,
         embeddings=embeddings,
         visual_config=visual_config,
-        supported_extensions=supported_extensions,
         cancellation_token=cancellation_token,
     )
     if cancellation_token is not None:
