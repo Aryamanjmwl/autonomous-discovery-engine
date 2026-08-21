@@ -46,7 +46,10 @@ def test_builds_valid_traceable_reference_memory(tmp_path: Path) -> None:
         assert {record.source_identity for record in memory.records} == {
             "nested/normal.png"
         }
-        assert all(record.vector_id.startswith("nested/normal.png::") for record in memory.records)
+        assert all(
+            record.vector_id.startswith("nested/normal.png::")
+            for record in memory.records
+        )
     assert summary.manifest_path.is_file()
     assert summary.image_count == 1
     assert summary.patch_count == 4
@@ -150,6 +153,21 @@ def test_cli_builds_reference_memory_without_analysis_output(
     assert "Reference images: 1" in output
     manifest_line = next(line for line in output.splitlines() if line.startswith("Manifest: "))
     assert Path(manifest_line.removeprefix("Manifest: ")).is_file()
+
+
+def test_builder_rejects_mismatched_patch_scales(tmp_path: Path) -> None:
+    reference_dir = tmp_path / "reference"
+    _write_image(reference_dir / "normal.png")
+
+    with pytest.raises(ValueError, match="non-empty and have matching lengths"):
+        build_reference_memory_from_images(
+            reference_dir=reference_dir,
+            storage_root=tmp_path / "memory",
+            visual_config=VisualEngineConfig(),
+            patch_sizes=[],
+            patch_strides=[4],
+            supported_extensions=[".png"],
+        )
 
 
 def test_builder_rejects_empty_reference_folder(tmp_path: Path) -> None:

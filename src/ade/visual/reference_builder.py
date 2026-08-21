@@ -49,6 +49,10 @@ def build_reference_memory_from_images(
     """Build or resolve a compatible immutable memory from explicit reference images."""
 
     visual_config.validate()
+    if not patch_sizes or len(patch_sizes) != len(patch_strides):
+        raise VisualConfigurationError(
+            "Patch sizes and strides must be non-empty and have matching lengths"
+        )
     if visual_config.representation.provider != "lightweight":
         raise VisualConfigurationError(
             "Reference-memory CLI builds currently support only "
