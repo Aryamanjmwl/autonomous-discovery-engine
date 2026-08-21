@@ -142,11 +142,17 @@ Stage 7A also exposes a job-oriented local run API:
 Jobs move through `queued`, `running`, `succeeded`, `failed`, or `cancelled`,
 and their state is persisted after every transition. Submission returns HTTP 202
 without holding the request handler open; a bounded two-thread local executor
-runs accepted work. Queued jobs cancel before execution. Running jobs record a
-cooperative cancellation request and become cancelled when the current workflow
-call returns. A queued or running job found when the backend restarts is retained
-and marked failed with an interruption message. ADE never presents interrupted
-or cancelled work as completed evidence.
+runs accepted work. Queued jobs cancel before execution. Running jobs check
+for cancellation while fingerprinting inputs, processing image batches, building
+representations, scoring candidates, and comparing temporal observations and
+patch evidence. Python threads are not force-killed.
+
+Report and artifact publication is a short non-interruptible finalization boundary.
+A cancellation already requested before that boundary prevents publication and
+the job becomes cancelled. A late request made after finalization begins is not
+accepted, so Studio cannot mark a job cancelled while leaving its completed
+outputs available for review. A queued or running job found when the backend
+restarts is retained and marked failed with an interruption message.
 
 Every new job records a versioned run manifest containing the ADE version and
 the complete normalized request after API defaults are applied. Immediately

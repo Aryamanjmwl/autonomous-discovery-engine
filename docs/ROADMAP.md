@@ -212,6 +212,15 @@ monitoring are out of scope.
 - Provenance visible through the Studio API and Runs screen
 - Pre-execution snapshot only; inputs are not locked against concurrent changes
 
+## Stage 8E: Cooperative Workflow Cancellation
+
+- Typed cancellation token shared by Studio execution and long-running workflows
+- Checkpoints during provenance hashing, visual stages, temporal observations, and patch evidence
+- Queued and pre-publication running work can stop without force-killing threads
+- Locked finalization boundary prevents cancelled jobs from exposing completed outputs
+- Late cancellation is rejected once report or artifact publication begins
+- CLI callers remain unchanged unless they explicitly provide a cancellation token
+
 ## Later Stage 7: Multi-Modal Expansion
 
 1. Tabular adapter
