@@ -49,12 +49,15 @@ from ade.representation.tabular_engine import TabularFeatureEngine
 from ade.representation.timeseries_engine import TimeSeriesFeatureEngine
 from ade.visual import (
     ReferenceBenchmarkBaseline,
+    ReferenceBenchmarkComparison,
     analyze_temporal_change,
     benchmark_run_config_from_policy,
     build_reference_benchmark_baseline,
+    compare_reference_benchmark_baselines,
     load_temporal_manifest,
     load_visual_benchmark_acceptance_policy,
     publish_reference_benchmark_baseline,
+    publish_reference_benchmark_comparison,
     publish_temporal_change_artifact,
     run_reference_benchmark,
     validate_temporal_change_artifact,
@@ -151,6 +154,19 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         metavar="MANIFEST",
         help="Run reference scoring against a qualified benchmark manifest.",
+    )
+    parser.add_argument(
+        "--compare-reference-baselines",
+        nargs=2,
+        type=Path,
+        metavar=("BASELINE", "CANDIDATE"),
+        help="Compare two compatible immutable reference benchmark baselines.",
+    )
+    parser.add_argument(
+        "--comparison-output-root",
+        type=Path,
+        default=None,
+        help="Storage root for immutable reference benchmark comparisons.",
     )
     parser.add_argument(
         "--benchmark-policy",
@@ -1137,6 +1153,25 @@ def _review_memory_labels(
     return [str(label) for label in labels]
 
 
+def run_reference_baseline_comparison(
+    baseline_artifact: Path,
+    candidate_artifact: Path,
+    *,
+    output_root: Path,
+) -> tuple[ReferenceBenchmarkComparison, Path]:
+    """Compare compatible baselines and publish deterministic evidence."""
+
+    comparison = compare_reference_benchmark_baselines(
+        baseline_artifact,
+        candidate_artifact,
+    )
+    artifact_path = publish_reference_benchmark_comparison(
+        comparison,
+        output_root,
+    )
+    return comparison, artifact_path
+
+
 def run_reference_baseline(
     manifest_path: Path,
     *,
@@ -1164,6 +1199,44 @@ def main() -> None:
 
     parser = build_parser()
     args = parser.parse_args()
+    if args.compare_reference_baselines is not None:
+        if args.comparison_output_root is None:
+            parser.error(
+                "--comparison-output-root is required with "
+                "--compare-reference-baselines."
+            )
+        baseline_artifact, candidate_artifact = args.compare_reference_baselines
+        try:
+            comparison, artifact_path = run_reference_baseline_comparison(
+                baseline_artifact,
+                candidate_artifact,
+                output_root=args.comparison_output_root,
+            )
+        except (OSError, ValueError) as error:
+            parser.error(str(error))
+        print("ADE reference baseline comparison complete.")
+        print(f"Baseline artifact ID: {comparison.baseline_artifact_id}")
+        print(f"Candidate artifact ID: {comparison.candidate_artifact_id}")
+        print(f"Acceptance transition: {comparison.acceptance_transition}")
+        print(f"AUROC delta: {comparison.auroc.delta}")
+        print(
+            "Average-precision delta: "
+            f"{comparison.average_precision.delta}"
+        )
+        if comparison.changed_provenance_fields:
+            print(
+                "Changed scoring provenance: "
+                + ", ".join(comparison.changed_provenance_fields)
+            )
+        else:
+            print("Changed scoring provenance: none")
+        print(f"Comparison artifact: {artifact_path}")
+        print("Human review remains required.")
+        if comparison.gate_regression:
+            print("Gate regression: a passing baseline became a failing candidate.")
+            raise SystemExit(3)
+        return
+
     if args.run_reference_benchmark is not None:
         if args.config is None:
             parser.error("--config is required with --run-reference-benchmark.")
@@ -1440,7 +1513,8 @@ def main() -> None:
 
     if args.input is None or args.output is None:
         parser.error(
-            "--input and --output are required unless --run-reference-benchmark, "
+            "--input and --output are required unless --compare-reference-baselines, "
+            "--run-reference-benchmark, "
             "--qualify-mvtec-ad, --build-reference-memory, "
             "--list-runs, "
             "--validate-report, --export-html-report, --export-local-dashboard, "
