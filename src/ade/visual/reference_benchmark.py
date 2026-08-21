@@ -6,7 +6,6 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 
 from ade.cancellation import CancellationToken
-from ade.config import load_config
 from ade.models import EmbeddingRecord, ImageRecord
 from ade.preprocessing.patch_extractor import PatchExtractor
 from ade.representation.embedding_engine import EmbeddingEngine
@@ -44,6 +43,9 @@ def run_reference_benchmark(
     generated_at: str | None = None,
 ) -> ReferenceBenchmarkExecution:
     """Score one labeled benchmark split with the configured reference memory."""
+
+    # Imported lazily because ade.config validates through ade.visual.config.
+    from ade.config import load_config
 
     config = load_config(config_path)
     visual_config = VisualEngineConfig.from_mapping(config["visual_engine"])
