@@ -53,6 +53,11 @@ from ade.visual import (
     publish_temporal_change_artifact,
     validate_temporal_change_artifact,
 )
+from ade.visual.config import VisualEngineConfig
+from ade.visual.reference_pipeline import (
+    publish_reference_scoring_evidence,
+    score_configured_reference_memory,
+)
 from ade.visual.temporal_contracts import TemporalChangeStrategy
 
 DEFAULT_RUN_INDEX_PATH = Path("data/reports/runs/index.json")
@@ -326,6 +331,7 @@ def run_pipeline(
     memory_config = config["memory"]
     review_memory_config = config.get("review_memory", {})
     scoring_config = discovery["memory_aware_scoring"]
+    visual_config = VisualEngineConfig.from_mapping(config["visual_engine"])
     review_memory_summary = None
     if isinstance(review_memory_config, dict) and bool(review_memory_config.get("enabled", True)):
         feedback_records = FeedbackStore(_review_memory_store_path(config)).read_all()
@@ -405,6 +411,15 @@ def run_pipeline(
     embeddings = EmbeddingEngine().embed_patches(patches)
     if cancellation_token is not None:
         cancellation_token.checkpoint()
+    reference_scoring = score_configured_reference_memory(
+        input_dir=input_dir,
+        image_records=image_records,
+        embeddings=embeddings,
+        visual_config=visual_config,
+        cancellation_token=cancellation_token,
+    )
+    if cancellation_token is not None:
+        cancellation_token.checkpoint()
     memory = (
         _build_vector_memory(
             embeddings=embeddings,
@@ -481,6 +496,11 @@ def run_pipeline(
     )
     if cancellation_token is not None:
         cancellation_token.begin_finalization()
+    advanced_evidence = publish_reference_scoring_evidence(
+        reference_scoring,
+        output_path=output_path,
+        config=visual_config.reference_scoring,
+    )
     return ReportGenerator(
         project_name=str(project["name"]),
         pipeline_version=str(project["pipeline_version"]),
@@ -513,6 +533,7 @@ def run_pipeline(
             **novelty_scorer.last_metadata.to_dict(),
         },
         review_memory_summary=review_memory_summary,
+        advanced_evidence=advanced_evidence,
     )
 
 

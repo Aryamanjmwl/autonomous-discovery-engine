@@ -18,8 +18,10 @@ anomalies, candidate concepts, or possible patterns that require human review.
   vector payloads, canonical JSONL provenance, deterministic coreset selection,
   and exact batched NumPy Euclidean/cosine search
 - Deterministic PatchCore-style reference scoring, raw image aggregation,
-  spatial maps, coverage evidence, and immutable map artifacts. Scores remain
-  uncalibrated review-prioritization signals that require human review.
+  spatial maps, coverage evidence, and immutable map artifacts. Explicit
+  image-folder runs can now load a compatible immutable reference memory and
+  attach artifact-backed evidence to reports without changing default rankings.
+  Scores remain uncalibrated review-prioritization signals that require human review.
 - Backend-neutral visual representation provider contracts and an exact-output
   compatibility adapter for the existing lightweight deterministic features.
   Deep providers remain optional and disabled; CLIP/custom execution is
@@ -177,6 +179,21 @@ arriving after finalization begins are rejected, allowing the short publication
 step to finish consistently instead of creating a cancelled job with discoverable
 completed outputs.
 
+## Stage 8F Opt-in Reference Scoring Integration
+
+Image-folder runs can explicitly select reference-anomaly execution, name a
+prebuilt immutable reference-memory manifest, and enable raw reference scoring.
+ADE fingerprints the query files, verifies the reference memory's payload,
+representation identity, dimension, metric, and representation configuration,
+then publishes scoring and spatial-map artifacts during the protected finalization
+phase. Markdown, JSON, HTML, and Studio consume the existing artifact-backed
+evidence contract.
+
+The default exploratory configuration is unchanged. Reference scores are kept
+separate from the existing exploratory novelty ranking in this stage; they are
+not probabilities, calibrated decisions, or scientific conclusions. The current
+pipeline integration accepts only the deterministic lightweight representation.
+
 ## Done
 
 - Python package scaffold with `src/` layout
@@ -218,9 +235,9 @@ completed outputs.
 - Internal dataclasses exist, but adapter contracts still need more hardening before broader external plugin use.
 - Dataset profiling is implemented for image folders, tabular CSV, and time-series CSV; other modalities remain planned.
 - Multi-scale extraction is supported, but the default config intentionally uses one conservative scale.
-- The exploratory pipeline still uses its existing in-process memory. Persistent
-  reference memory and scoring are separate typed APIs and are not wired into
-  the legacy exploratory execution path.
+- The exploratory pipeline still uses its existing in-process memory and ranking.
+  Explicit reference scoring is report evidence only and does not yet drive the
+  candidate selector or concept grouping.
 - Memory-aware scoring uses the current run's local patch memory, not a validated normal-reference memory bank.
 - Reporting is useful for the visual MVP, and local feedback capture can inform
   future ranking annotations, but dashboard review queues and richer
@@ -253,8 +270,7 @@ completed outputs.
 
 ## Next Recommended Engineering Steps
 
-1. Connect the immutable reference-memory and PatchCore-style scoring APIs to
-   the default visual pipeline behind explicit configuration and unchanged defaults.
+1. Add a supported reference-memory build command so users do not need the typed Python API.
 2. Keep generated artifacts out of version control.
 3. Keep hardening adapter interfaces before adding more non-visual data types.
 4. Integrate Stage 1 visual requests and reproducibility manifests around the
