@@ -415,19 +415,22 @@ def test_reference_baseline_comparison_rejects_different_policy(
     tmp_path: Path,
 ) -> None:
     baseline_path, _ = _comparison_artifacts(tmp_path)
-    manifest_path, config_path = _benchmark(tmp_path / "other")
+    baseline = validate_reference_benchmark_baseline(baseline_path)
     policy = _acceptance_policy(max_selected_fraction=0.25)
-    execution = run_reference_benchmark(
-        manifest_path,
-        config_path=config_path,
-        run_config=benchmark_run_config_from_policy(policy),
+    candidate = replace(
+        baseline,
+        acceptance_policy=policy,
+        acceptance_result=evaluate_visual_benchmark_acceptance(
+            baseline.benchmark,
+            policy,
+        ),
     )
     candidate_path = publish_reference_benchmark_baseline(
-        build_reference_benchmark_baseline(execution, policy),
+        candidate,
         tmp_path / "other-baselines",
     )
 
-    with pytest.raises(VisualIntegrityError, match="not comparable"):
+    with pytest.raises(VisualIntegrityError, match="policy fingerprint"):
         compare_reference_benchmark_baselines(baseline_path, candidate_path)
 
 
