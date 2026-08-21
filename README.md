@@ -56,6 +56,12 @@ Run the full local verification workflow:
 python scripts/verify_local.py
 ```
 
+Build immutable reference memory from an explicit reference image folder:
+
+```bash
+python -m ade.cli --build-reference-memory data/reference/normal_images --reference-memory-output data/reference_memory
+```
+
 Run the visual demo workflow:
 
 ```bash

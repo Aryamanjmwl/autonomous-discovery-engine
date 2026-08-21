@@ -54,6 +54,10 @@ from ade.visual import (
     validate_temporal_change_artifact,
 )
 from ade.visual.config import VisualEngineConfig
+from ade.visual.reference_builder import (
+    ReferenceMemoryBuildSummary,
+    build_reference_memory_from_images,
+)
 from ade.visual.reference_pipeline import (
     publish_reference_scoring_evidence,
     score_configured_reference_memory,
@@ -113,6 +117,21 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         type=Path,
         help="ADE configuration path. Defaults to configs/default.yaml.",
+    )
+    parser.add_argument(
+        "--build-reference-memory",
+        type=Path,
+        metavar="REFERENCE_DIR",
+        help="Build immutable visual reference memory from a separate image folder.",
+    )
+    parser.add_argument(
+        "--reference-memory-output",
+        type=Path,
+        default=None,
+        help=(
+            "Reference-memory storage root. Defaults to "
+            "visual_engine.reference_memory.storage_root."
+        ),
     )
     parser.add_argument(
         "--list-runs",
@@ -233,6 +252,43 @@ def build_parser() -> argparse.ArgumentParser:
         help="Output directory for `ade dashboard` static HTML files.",
     )
     return parser
+
+
+def run_reference_memory_build(
+    reference_dir: Path,
+    *,
+    config_path: Path | None = None,
+    storage_root: Path | None = None,
+    patch_size: int | None = None,
+    stride: int | None = None,
+    cancellation_token: CancellationToken | None = None,
+) -> ReferenceMemoryBuildSummary:
+    """Build immutable reference memory using the effective image configuration."""
+
+    if config_path is not None and not config_path.exists():
+        raise FileNotFoundError(f"Config file does not exist: {config_path}")
+    if config_path is not None and not config_path.is_file():
+        raise ValueError(f"Config path is not a file: {config_path}")
+    config = load_config(config_path)
+    visual_config = VisualEngineConfig.from_mapping(config["visual_engine"])
+    patch_sizes, patch_strides = _resolve_patch_scales(
+        preprocessing=config["preprocessing"],
+        patch_size=patch_size,
+        stride=stride,
+    )
+    supported_extensions = [
+        str(extension) for extension in config["validation"]["supported_image_extensions"]
+    ]
+    target_root = storage_root or Path(visual_config.reference_memory.storage_root)
+    return build_reference_memory_from_images(
+        reference_dir=reference_dir,
+        storage_root=target_root,
+        visual_config=visual_config,
+        patch_sizes=patch_sizes,
+        patch_strides=patch_strides,
+        supported_extensions=supported_extensions,
+        cancellation_token=cancellation_token,
+    )
 
 
 def run_temporal_pipeline(
@@ -1039,6 +1095,32 @@ def main() -> None:
 
     parser = build_parser()
     args = parser.parse_args()
+    if args.build_reference_memory is not None:
+        try:
+            summary = run_reference_memory_build(
+                args.build_reference_memory,
+                config_path=args.config,
+                storage_root=args.reference_memory_output,
+                patch_size=args.patch_size,
+                stride=args.stride,
+            )
+        except ModuleNotFoundError as error:
+            if error.name == "PIL":
+                parser.error(
+                    "Pillow is required for image loading. "
+                    "Install dependencies with `pip install -e .[dev]`."
+                )
+            raise
+        except (FileNotFoundError, NotADirectoryError, ValueError) as error:
+            parser.error(str(error))
+        print("ADE reference memory ready.")
+        print(f"Reference images: {summary.image_count}")
+        print(f"Extracted patches: {summary.patch_count}")
+        print(f"Stored vectors: {summary.vector_count}")
+        print(f"Memory ID: {summary.memory_id}")
+        print(f"Manifest: {summary.manifest_path}")
+        return
+
     if args.validate_temporal_manifest is not None:
         try:
             sequence = load_temporal_manifest(args.validate_temporal_manifest, strict=True)
@@ -1221,7 +1303,8 @@ def main() -> None:
 
     if args.input is None or args.output is None:
         parser.error(
-            "--input and --output are required unless --list-runs, "
+            "--input and --output are required unless --build-reference-memory, "
+            "--list-runs, "
             "--validate-report, --export-html-report, --export-local-dashboard, "
             "--validate-temporal-manifest, --temporal-manifest, "
             "--validate-temporal-artifact, --validate-temporal-report, "

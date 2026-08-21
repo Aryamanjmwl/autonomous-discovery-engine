@@ -18,6 +18,7 @@ from ade.visual import (
     VisualReproducibilityManifest,
     deserialize_artifact_manifest,
     deserialize_reproducibility_manifest,
+    fingerprint_visual_content,
     fingerprint_visual_dataset,
     normalize_relative_path,
     serialize_artifact_manifest,
@@ -79,6 +80,26 @@ def test_fingerprint_changes_with_relevant_configuration(tmp_path: Path) -> None
 
     assert changed.configuration_fingerprint != initial.configuration_fingerprint
     assert changed.fingerprint != initial.fingerprint
+
+
+def test_content_identity_ignores_execution_configuration(tmp_path: Path) -> None:
+    files = _dataset(tmp_path)
+    initial = fingerprint_visual_content(tmp_path, files, VisualEngineConfig())
+    changed_config = VisualEngineConfig.from_mapping({"random_seed": 7})
+
+    changed = fingerprint_visual_content(tmp_path, files, changed_config)
+
+    assert changed == initial
+
+
+def test_content_identity_changes_with_file_content(tmp_path: Path) -> None:
+    files = _dataset(tmp_path)
+    initial = fingerprint_visual_content(tmp_path, files, VisualEngineConfig())
+
+    files[0].write_bytes(b"changed")
+    changed = fingerprint_visual_content(tmp_path, files, VisualEngineConfig())
+
+    assert changed != initial
 
 
 @pytest.mark.parametrize(

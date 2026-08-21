@@ -78,6 +78,7 @@ from ade.visual.fingerprints import (
     VisualDatasetFingerprint,
     VisualFileFingerprint,
     fingerprint_configuration,
+    fingerprint_visual_content,
     fingerprint_visual_dataset,
     fingerprint_visual_directory,
     normalize_relative_path,
@@ -93,6 +94,10 @@ from ade.visual.manifests import (
     serialize_reproducibility_manifest,
     validate_artifact_integrity,
     write_manifest,
+)
+from ade.visual.reference_builder import (
+    ReferenceMemoryBuildSummary,
+    build_reference_memory_from_images,
 )
 from ade.visual.reference_contracts import (
     REFERENCE_MEMORY_SCHEMA_VERSION,
@@ -190,6 +195,7 @@ __all__ = [
     "ThresholdEvaluationResult",
     "VISUAL_ENGINE_SCHEMA_VERSION",
     "REFERENCE_MEMORY_SCHEMA_VERSION",
+    "ReferenceMemoryBuildSummary",
     "LoadedReferenceMemory",
     "ExactNumpySearch",
     "CoresetSelection",
@@ -243,8 +249,10 @@ __all__ = [
     "deserialize_reproducibility_manifest",
     "deserialize_reference_memory_manifest",
     "build_reference_memory",
+    "build_reference_memory_from_images",
     "derive_reference_memory_id",
     "fingerprint_configuration",
+    "fingerprint_visual_content",
     "fingerprint_visual_dataset",
     "fingerprint_visual_directory",
     "normalize_relative_path",
