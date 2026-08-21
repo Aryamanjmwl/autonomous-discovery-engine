@@ -201,3 +201,24 @@ not download or redistribute the dataset. MVTec AD is CC BY-NC-SA 4.0 and is not
 permitted for commercial use. See
 [`docs/mvtec_ad_benchmark.md`](mvtec_ad_benchmark.md) for the complete
 reference-memory and benchmark workflow.
+
+
+## Run a gated reference benchmark
+
+After qualifying a local benchmark, building compatible reference memory, and
+writing a predeclared acceptance policy:
+
+```powershell
+python -m ade.cli `
+  --run-reference-benchmark "data\benchmarks\mvtec_ad\bottle.json" `
+  --config "configs\mvtec_ad_bottle_reference.yaml" `
+  --benchmark-policy "configs\benchmarks\mvtec_ad_bottle_policy.json" `
+  --benchmark-output-root "data\benchmarks\reference_baselines"
+```
+
+The policy supplies the split and required operating points; ADE derives the run
+configuration from it. The command publishes one content-addressed baseline
+containing the measured result, reference-scoring provenance, exact policy, and
+acceptance decision. Passing gates exit with status code `0`. Failed gates are
+published first and then exit with status code `2`. Results remain benchmark
+evidence that requires human review, not production guarantees.
