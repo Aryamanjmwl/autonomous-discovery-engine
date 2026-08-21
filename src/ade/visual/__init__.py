@@ -108,6 +108,7 @@ from ade.visual.reference_contracts import (
     ReferenceVectorRecord,
     validate_reference_records,
 )
+from ade.visual.reference_benchmark import run_reference_benchmark
 from ade.visual.reference_memory import (
     build_reference_memory,
     derive_reference_memory_id,
@@ -250,6 +251,7 @@ __all__ = [
     "deserialize_reference_memory_manifest",
     "build_reference_memory",
     "build_reference_memory_from_images",
+    "run_reference_benchmark",
     "derive_reference_memory_id",
     "fingerprint_configuration",
     "fingerprint_visual_content",
