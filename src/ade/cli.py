@@ -10,6 +10,7 @@ from typing import Any
 from ade.adapters.image_adapter import ImageAdapter
 from ade.adapters.tabular_adapter import TabularAdapter
 from ade.adapters.timeseries_adapter import TimeSeriesAdapter
+from ade.cancellation import CancellationToken
 from ade.config import load_config
 from ade.dashboard import export_local_dashboard, generate_dashboard
 from ade.dashboard.service import DEFAULT_DASHBOARD_DIR
@@ -238,10 +239,13 @@ def run_temporal_pipeline(
     top_k: int = 10,
     patch_top_k: int = 5,
     artifact_root: Path | None = None,
+    cancellation_token: CancellationToken | None = None,
 ) -> tuple[Path, Path, Path]:
     """Run the explicit manifest-driven temporal workflow and publish reports."""
 
     sequence = load_temporal_manifest(manifest_path, strict=True)
+    if cancellation_token is not None:
+        cancellation_token.checkpoint()
     result = analyze_temporal_change(
         sequence,
         manifest_path=manifest_path,
@@ -249,7 +253,11 @@ def run_temporal_pipeline(
         patch_size=patch_size,
         top_k=top_k,
         patch_top_k=patch_top_k,
+        cancellation_token=cancellation_token,
     )
+    if cancellation_token is not None:
+        cancellation_token.checkpoint()
+        cancellation_token.begin_finalization()
     root = artifact_root or output_path.parent / f"{output_path.stem}_artifacts"
     artifact_path = publish_temporal_change_artifact(result, root)
     artifact = validate_temporal_change_artifact(artifact_path)
@@ -280,6 +288,7 @@ def run_pipeline(
     modality: str | None = None,
     timestamp_column: str | None = None,
     entity_column: str | None = None,
+    cancellation_token: CancellationToken | None = None,
 ) -> Path:
     """Run an ADE discovery pipeline and write a Markdown report."""
 
@@ -354,6 +363,8 @@ def run_pipeline(
     supported_extensions = [
         str(extension) for extension in validation["supported_image_extensions"]
     ]
+    if cancellation_token is not None:
+        cancellation_token.checkpoint()
     dataset_profile = profile_image_folder(
         input_path=input_dir,
         config=config,
@@ -364,6 +375,8 @@ def run_pipeline(
         patch_strides=patch_strides,
     )
     _raise_for_invalid_profile(dataset_profile)
+    if cancellation_token is not None:
+        cancellation_token.checkpoint()
 
     image_records = ImageAdapter(
         input_dir,
@@ -381,11 +394,17 @@ def run_pipeline(
         patch_sizes=patch_sizes,
         patch_strides=patch_strides,
     )
-    patches = [
-        patch for record in image_records for patch in extractor.extract_from_path(record.path)
-    ]
+    patches = []
+    for record in image_records:
+        if cancellation_token is not None:
+            cancellation_token.checkpoint()
+        patches.extend(extractor.extract_from_path(record.path))
 
+    if cancellation_token is not None:
+        cancellation_token.checkpoint()
     embeddings = EmbeddingEngine().embed_patches(patches)
+    if cancellation_token is not None:
+        cancellation_token.checkpoint()
     memory = (
         _build_vector_memory(
             embeddings=embeddings,
@@ -407,6 +426,8 @@ def run_pipeline(
         weight_neighbor_distance=float(scoring_config["weight_neighbor_distance"]),
     )
     scored_candidates = novelty_scorer.score(embeddings, memory=memory)
+    if cancellation_token is not None:
+        cancellation_token.checkpoint()
     candidates = AnomalySelector(
         enabled=bool(discovery.get("diversity", {}).get("enabled", False)),
         min_spatial_distance=float(discovery.get("diversity", {}).get("min_spatial_distance", 32)),
@@ -418,6 +439,8 @@ def run_pipeline(
         candidates=scored_candidates,
         max_candidates=effective_max_candidates,
     )
+    if cancellation_token is not None:
+        cancellation_token.checkpoint()
     if memory is not None:
         memory = _build_vector_memory(
             embeddings=embeddings,
@@ -434,6 +457,8 @@ def run_pipeline(
             discovery.get("concepts", {}).get("max_supporting_examples", 5)
         ),
     ).cluster(candidates)
+    if cancellation_token is not None:
+        cancellation_token.checkpoint()
     evidence_items = EvidenceCollector(
         max_supporting_examples=int(
             discovery.get("concepts", {}).get("max_supporting_examples", 5)
@@ -442,14 +467,20 @@ def run_pipeline(
         top_k_neighbors=int(memory_config["top_k_neighbors"]),
         include_neighbors=bool(memory_config["include_neighbors_in_report"]),
     ).collect(concepts)
+    if cancellation_token is not None:
+        cancellation_token.checkpoint()
     confidences = ConfidenceScorer().score(evidence_items)
     hypotheses = HypothesisGenerator().generate(evidence_items)
+    if cancellation_token is not None:
+        cancellation_token.checkpoint()
 
     summary = DatasetSummary(
         input_dir=input_dir,
         image_count=len(image_records),
         patch_count=len(patches),
     )
+    if cancellation_token is not None:
+        cancellation_token.begin_finalization()
     return ReportGenerator(
         project_name=str(project["name"]),
         pipeline_version=str(project["pipeline_version"]),

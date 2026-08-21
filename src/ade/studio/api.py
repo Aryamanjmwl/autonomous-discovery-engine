@@ -10,6 +10,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from ade.cancellation import CancellationToken
 from ade.studio.execution import StudioJobExecutor, StudioJobOutput
 from ade.studio.jobs import DEFAULT_STUDIO_JOB_STORE, StudioJobStore
 from ade.studio.provenance import (
@@ -273,22 +274,25 @@ def create_app(
             request_parameters=payload.model_dump(mode="json"),
         )
 
-        def execute() -> StudioJobOutput:
+        def execute(cancellation: CancellationToken) -> StudioJobOutput:
             provenance = capture_image_folder_provenance(
                 payload.input_path,
                 payload.config_path,
                 paths=studio_paths,
+                cancellation_token=cancellation,
             )
             jobs.record_provenance(
                 job,
                 input_fingerprint=provenance.input_fingerprint,
                 effective_configuration=provenance.effective_configuration,
             )
+            cancellation.checkpoint()
             result = run_visual_analysis(
                 input_path=Path(payload.input_path),
                 output_name=payload.output_name,
                 config_path=Path(payload.config_path) if payload.config_path else None,
                 paths=studio_paths,
+                cancellation_token=cancellation,
             )
             report_paths = [
                 value
@@ -316,7 +320,7 @@ def create_app(
             request_parameters=payload.model_dump(mode="json"),
         )
 
-        def execute() -> StudioJobOutput:
+        def execute(cancellation: CancellationToken) -> StudioJobOutput:
             provenance = capture_temporal_provenance(
                 payload.manifest_path,
                 strategy=payload.strategy,
@@ -324,12 +328,14 @@ def create_app(
                 top_k=payload.top_k,
                 patch_top_k=payload.patch_top_k,
                 paths=studio_paths,
+                cancellation_token=cancellation,
             )
             jobs.record_provenance(
                 job,
                 input_fingerprint=provenance.input_fingerprint,
                 effective_configuration=provenance.effective_configuration,
             )
+            cancellation.checkpoint()
             result = run_temporal_analysis(
                 manifest_path=Path(payload.manifest_path),
                 output_name=payload.output_name,
@@ -338,6 +344,7 @@ def create_app(
                 top_k=payload.top_k,
                 patch_top_k=payload.patch_top_k,
                 paths=studio_paths,
+                cancellation_token=cancellation,
             )
             report_paths = [
                 value

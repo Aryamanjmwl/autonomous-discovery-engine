@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import TypeAlias
 
 import numpy as np
+from ade.cancellation import CancellationToken
 from ade.preprocessing.patch_extractor import PatchExtractor
 from ade.representation.embedding_engine import EmbeddingEngine
 from ade.visual.config import VISUAL_ENGINE_SCHEMA_VERSION
@@ -42,6 +43,7 @@ def analyze_temporal_change(
     patch_size: int | None = None,
     top_k: int = 10,
     patch_top_k: int = 5,
+    cancellation_token: CancellationToken | None = None,
 ) -> TemporalChangeResult:
     """Rank candidate changes in one explicitly ordered observation sequence."""
     from PIL import Image
@@ -59,6 +61,8 @@ def analyze_temporal_change(
     paths: dict[str, Path] = {}
     enriched: list[TemporalObservation] = []
     for observation in ordered.observations:
+        if cancellation_token is not None:
+            cancellation_token.checkpoint()
         path = (root / observation.source_path).resolve()
         paths[observation.observation_id] = path
         with Image.open(path) as image:
@@ -70,6 +74,8 @@ def analyze_temporal_change(
         dimensions[observation.observation_id] = (width, height)
         enriched.append(replace(observation, width=width, height=height))
     ordered = replace(ordered, observations=tuple(enriched))
+    if cancellation_token is not None:
+        cancellation_token.checkpoint()
     pairs = _pairs(ordered.observations, strategy)
     scores = tuple(
         TemporalChangeScore(
@@ -93,12 +99,15 @@ def analyze_temporal_change(
                 patch_size,
                 patch_top_k,
                 engine,
+                cancellation_token,
             )
             if patch_size
             else (),
         )
         for score in scores
     ]
+    if cancellation_token is not None:
+        cancellation_token.checkpoint()
     ranked = sorted(
         events_unranked, key=lambda item: (-item.score.global_feature_distance, item.event_id)
     )
@@ -208,12 +217,15 @@ def _patch_evidence(
     patch_size: int,
     top_k: int,
     engine: EmbeddingEngine,
+    cancellation_token: CancellationToken | None,
 ) -> tuple[TemporalPatchEvidence, ...]:
     extractor = PatchExtractor(patch_size=patch_size)
     left, right = extractor.extract_from_path(first), extractor.extract_from_path(second)
     left_by_key = {(p.x, p.y, p.width, p.height): p for p in left}
     evidence: list[TemporalPatchEvidence] = []
     for patch in right:
+        if cancellation_token is not None:
+            cancellation_token.checkpoint()
         key = (patch.x, patch.y, patch.width, patch.height)
         if key not in left_by_key:
             continue
