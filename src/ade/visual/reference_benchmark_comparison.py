@@ -8,7 +8,7 @@ import math
 import os
 import shutil
 import tempfile
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, fields
 from pathlib import Path
 from typing import Literal, cast
 
@@ -19,6 +19,7 @@ from ade.visual.reference_benchmark_artifacts import (
     ReferenceBenchmarkBaseline,
     validate_reference_benchmark_baseline,
 )
+from ade.visual.scoring_contracts import ReferenceScoringSummary
 
 REFERENCE_BASELINE_COMPARISON_ARTIFACT_TYPE = "reference-benchmark-comparison"
 AcceptanceTransition = Literal[
@@ -27,6 +28,15 @@ AcceptanceTransition = Literal[
     "pass_to_fail",
     "fail_to_pass",
 ]
+_ACCEPTANCE_TRANSITIONS = {
+    "unchanged_pass",
+    "unchanged_fail",
+    "pass_to_fail",
+    "fail_to_pass",
+}
+_SCORING_PROVENANCE_FIELDS = {
+    field.name for field in fields(ReferenceScoringSummary)
+} - {"scoring_id"}
 
 
 @dataclass(frozen=True)
@@ -209,12 +219,7 @@ def deserialize_reference_benchmark_comparison(
         raise VisualManifestError("Comparison limitations must be strings")
 
     transition = data["acceptance_transition"]
-    if transition not in {
-        "unchanged_pass",
-        "unchanged_fail",
-        "pass_to_fail",
-        "fail_to_pass",
-    }:
+    if transition not in _ACCEPTANCE_TRANSITIONS:
         raise VisualManifestError("Acceptance transition is invalid")
     comparison = ReferenceBenchmarkComparison(
         schema_version=_integer(data["schema_version"], "schema_version"),
@@ -465,11 +470,17 @@ def _validate_comparison(comparison: ReferenceBenchmarkComparison) -> None:
         _digest(value, name)
     if comparison.human_review_required is not True:
         raise VisualIntegrityError("Reference comparison must require human review")
+    if comparison.acceptance_transition not in _ACCEPTANCE_TRANSITIONS:
+        raise VisualIntegrityError("Reference comparison acceptance transition is invalid")
     expected_regression = comparison.acceptance_transition == "pass_to_fail"
     if comparison.gate_regression != expected_regression:
         raise VisualIntegrityError(
             "Reference comparison regression flag contradicts its transition"
         )
+    if comparison.auroc.metric != "auroc":
+        raise VisualIntegrityError("AUROC comparison metric is mislabeled")
+    if comparison.average_precision.metric != "average_precision":
+        raise VisualIntegrityError("Average-precision comparison metric is mislabeled")
     _validate_metric_delta(comparison.auroc)
     _validate_metric_delta(comparison.average_precision)
     seen: set[tuple[str, float]] = set()
@@ -478,13 +489,25 @@ def _validate_comparison(comparison: ReferenceBenchmarkComparison) -> None:
         if identity in seen:
             raise VisualIntegrityError("Comparison operating points must be unique")
         seen.add(identity)
-        for metric in (
-            point.precision,
-            point.recall,
-            point.f1,
-            point.selected_fraction,
-        ):
+        if not point.operating_point_id or point.strategy not in {
+            "explicit",
+            "percentile",
+            "top_k",
+            "top_fraction",
+        } or not math.isfinite(point.value):
+            raise VisualIntegrityError("Comparison operating point is invalid")
+        metrics = (
+            ("precision", point.precision),
+            ("recall", point.recall),
+            ("f1", point.f1),
+            ("selected_fraction", point.selected_fraction),
+        )
+        for expected_name, metric in metrics:
+            if metric.metric != expected_name:
+                raise VisualIntegrityError("Operating-point comparison metric is mislabeled")
             _validate_metric_delta(metric)
+    if not set(comparison.changed_provenance_fields) <= _SCORING_PROVENANCE_FIELDS:
+        raise VisualIntegrityError("Changed provenance fields contain unknown values")
     if tuple(sorted(set(comparison.changed_provenance_fields))) != (
         comparison.changed_provenance_fields
     ):
