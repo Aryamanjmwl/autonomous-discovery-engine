@@ -95,6 +95,10 @@ from ade.visual.manifests import (
     validate_artifact_integrity,
     write_manifest,
 )
+from ade.visual.reference_builder import (
+    ReferenceMemoryBuildSummary,
+    build_reference_memory_from_images,
+)
 from ade.visual.reference_contracts import (
     REFERENCE_MEMORY_SCHEMA_VERSION,
     LoadedReferenceMemory,
@@ -191,6 +195,7 @@ __all__ = [
     "ThresholdEvaluationResult",
     "VISUAL_ENGINE_SCHEMA_VERSION",
     "REFERENCE_MEMORY_SCHEMA_VERSION",
+    "ReferenceMemoryBuildSummary",
     "LoadedReferenceMemory",
     "ExactNumpySearch",
     "CoresetSelection",
@@ -244,6 +249,7 @@ __all__ = [
     "deserialize_reproducibility_manifest",
     "deserialize_reference_memory_manifest",
     "build_reference_memory",
+    "build_reference_memory_from_images",
     "derive_reference_memory_id",
     "fingerprint_configuration",
     "fingerprint_visual_content",
