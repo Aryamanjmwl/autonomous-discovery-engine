@@ -54,3 +54,76 @@ missing files, and unexpected files. Pickle is never used.
 Benchmark results are validation artifacts, not product guarantees. Human
 expert review remains required. DINOv2, FAISS, and fitted calibration remain
 optional and must be selected and provisioned explicitly.
+
+## Executing the reference scorer
+
+The benchmark layer can now execute ADE's configured lightweight reference
+scorer directly against one manifest split:
+
+```python
+from pathlib import Path
+
+from ade.visual import VisualBenchmarkRunConfig, run_reference_benchmark
+
+result = run_reference_benchmark(
+    Path("benchmarks/example/benchmark.json"),
+    config_path=Path("configs/reference_scoring.yaml"),
+    run_config=VisualBenchmarkRunConfig(
+        split_name="test",
+        precision_recall_k=(1, 5, 10),
+        top_k=(10,),
+    ),
+)
+```
+
+The manifest is loaded in strict mode. ADE validates declared paths and resource
+bounds before image decoding, preserves manifest sample IDs through patch
+scoring, and records the reference-scoring ID on every prediction. The
+configured reference memory must already exist and remain compatible with the
+patch extraction, representation, and metric settings.
+
+This runner supports the deterministic lightweight representation only because
+that is the only provider currently connected to image-folder reference
+scoring. It does not download datasets, fit thresholds, or publish a performance
+claim.
+
+## Explicit acceptance policies
+
+Acceptance criteria are declared separately from the measured result. This
+prevents the evaluation code from selecting favorable thresholds after seeing
+test labels:
+
+```python
+from ade.visual import (
+    VisualBenchmarkAcceptancePolicy,
+    VisualBenchmarkOperatingPointRequirement,
+    evaluate_visual_benchmark_acceptance,
+)
+
+policy = VisualBenchmarkAcceptancePolicy(
+    min_auroc=0.85,
+    min_average_precision=0.75,
+    max_missing_predictions=0,
+    operating_points=(
+        VisualBenchmarkOperatingPointRequirement(
+            strategy="top_k",
+            value=10,
+            min_precision=0.70,
+            min_recall=0.50,
+            max_selected_fraction=0.10,
+        ),
+    ),
+)
+acceptance = evaluate_visual_benchmark_acceptance(result, policy)
+```
+
+Required metrics that are unavailable fail closed. Required operating points
+must exist exactly once, and workload limits are evaluated alongside precision
+and recall. Thresholds shown above are illustrative only; a project must set
+them before evaluating its held-out test split and justify them from the
+intended review workload and error costs.
+
+Repository tests use a controlled synthetic fixture solely to verify execution,
+identity preservation, metric wiring, and failure behavior. They are not
+evidence of real-world detection quality.
+

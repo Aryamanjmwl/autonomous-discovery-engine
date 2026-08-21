@@ -208,6 +208,21 @@ reproducibility, while identical files cannot evade query/reference leakage
 checks merely because execution settings differ. Builds validate before atomic
 publication and resolve identical inputs to the existing immutable memory.
 
+## Stage 8H Executable Reference Benchmarks and Acceptance Gates
+
+ADE can now execute the configured lightweight reference scorer against one
+strict, labeled visual benchmark split and feed its real image-level scores into
+the existing benchmark evaluator. Manifest sample IDs remain traceable through
+patch extraction and scoring, configured resource bounds are checked before
+decoding, and every prediction identifies its reference-scoring source.
+
+Acceptance policies are separate typed inputs with explicit minimum AUROC,
+average precision, operating-point precision/recall, review-workload bounds,
+and missing-prediction limits. Required unavailable metrics and absent operating
+points fail closed. The controlled synthetic regression fixture validates
+plumbing only; no real-world benchmark quality or production threshold is
+claimed.
+
 ## Done
 
 - Python package scaffold with `src/` layout
@@ -284,7 +299,7 @@ publication and resolve identical inputs to the existing immutable memory.
 
 ## Next Recommended Engineering Steps
 
-1. Establish labeled reference-mode benchmark fixtures and explicit acceptance thresholds before reference scores can influence primary candidate ranking.
+1. Provision and qualify an external labeled reference-mode dataset, declare its acceptance policy before test evaluation, and record the first reproducible baseline.
 2. Keep generated artifacts out of version control.
 3. Keep hardening adapter interfaces before adding more non-visual data types.
 4. Integrate Stage 1 visual requests and reproducibility manifests around the
