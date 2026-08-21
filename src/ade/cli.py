@@ -1126,7 +1126,7 @@ def main() -> None:
                 "--benchmark-manifest-output is required with --qualify-mvtec-ad."
             )
         try:
-            summary = qualify_mvtec_ad_category(
+            mvtec_summary = qualify_mvtec_ad_category(
                 args.qualify_mvtec_ad,
                 category=args.mvtec_category,
                 benchmark_manifest_path=args.benchmark_manifest_output,
@@ -1135,19 +1135,19 @@ def main() -> None:
         except (OSError, ValueError) as error:
             parser.error(str(error))
         print("ADE MVTec AD category qualified.")
-        print(f"Category: {summary.category}")
-        print(f"Reference directory: {summary.reference_directory}")
-        print(f"Reference images: {summary.reference_image_count}")
-        print(f"Normal test images: {summary.test_normal_count}")
-        print(f"Anomalous test images: {summary.test_anomaly_count}")
-        print(f"Dataset fingerprint: {summary.dataset_sha256}")
-        print(f"Benchmark manifest: {summary.benchmark_manifest_path}")
+        print(f"Category: {mvtec_summary.category}")
+        print(f"Reference directory: {mvtec_summary.reference_directory}")
+        print(f"Reference images: {mvtec_summary.reference_image_count}")
+        print(f"Normal test images: {mvtec_summary.test_normal_count}")
+        print(f"Anomalous test images: {mvtec_summary.test_anomaly_count}")
+        print(f"Dataset fingerprint: {mvtec_summary.dataset_sha256}")
+        print(f"Benchmark manifest: {mvtec_summary.benchmark_manifest_path}")
         print("License: CC BY-NC-SA 4.0; commercial use is not allowed.")
         return
 
     if args.build_reference_memory is not None:
         try:
-            summary = run_reference_memory_build(
+            memory_summary = run_reference_memory_build(
                 args.build_reference_memory,
                 config_path=args.config,
                 storage_root=args.reference_memory_output,
@@ -1164,11 +1164,11 @@ def main() -> None:
         except (FileNotFoundError, NotADirectoryError, ValueError) as error:
             parser.error(str(error))
         print("ADE reference memory ready.")
-        print(f"Reference images: {summary.image_count}")
-        print(f"Extracted patches: {summary.patch_count}")
-        print(f"Stored vectors: {summary.vector_count}")
-        print(f"Memory ID: {summary.memory_id}")
-        print(f"Manifest: {summary.manifest_path}")
+        print(f"Reference images: {memory_summary.image_count}")
+        print(f"Extracted patches: {memory_summary.patch_count}")
+        print(f"Stored vectors: {memory_summary.vector_count}")
+        print(f"Memory ID: {memory_summary.memory_id}")
+        print(f"Manifest: {memory_summary.manifest_path}")
         return
 
     if args.validate_temporal_manifest is not None:
