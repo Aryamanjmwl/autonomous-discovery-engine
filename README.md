@@ -38,6 +38,7 @@ human review.
 - Supports explicit manifest-driven temporal analysis for candidate temporal changes.
 - Produces deterministic local artifacts and JSON, Markdown, and HTML review reports.
 - Displays real validated local reports in connected ADE Studio.
+- Runs immutable reference-memory scoring as explicit, artifact-backed report evidence.
 - Keeps DINOv2 and FAISS behind optional provider boundaries.
 
 ### What ADE does not claim yet
@@ -154,6 +155,7 @@ Helpful docs:
 - [Sample outputs](docs/sample_outputs.md)
 - [Local dashboard export docs](docs/dashboard/dashboard_product_spec.md)
 - [ADE Studio local UI foundation](docs/ade_studio.md)
+- [Opt-in reference scoring workflow](docs/reference_scoring_workflow.md)
 - [Demo script](examples/demo_script.md)
 - [Demo asset guidance](docs/demo_assets.md)
 
